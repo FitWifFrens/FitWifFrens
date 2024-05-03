@@ -11,7 +11,7 @@
 
 <h1>FitWifFrens!</h1>
 
-<p>Welcome to FitWifFrens!</p>
+<p>Where fitness goals meet a touch of scope creep, becoming your all-in-one commitment tracker with a side of camaraderie</p>
 
 @if (_commitments != null)
 {
@@ -28,9 +28,13 @@
                         {
                             <a href="/Commit" class="btn btn-secondary">View</a>
                         }
+                        else if (commitment.HasRequiredProviders == false && commitment.MissingProviders!.Length == 1)
+                        {
+                            <a href="/Account/Manage/ExternalLogins" class="btn btn-warning">Connect @commitment.MissingProviders[0]</a>
+                        }
                         else if (commitment.HasRequiredProviders == false)
                         {
-                            <a href="/Account/Manage/ExternalLogins" class="btn btn-warning">Connect Strava</a>
+                            <a href="/Account/Manage/ExternalLogins" class="btn btn-warning">Connect Providers</a>
                         }
                         else if (commitment.TotalCommitted <= 1)
                         {
@@ -91,7 +95,8 @@
                     ContractAddress = c.ContractAddress,
                     Committed = userCommitments.Any(uc => uc.CommitmentId == c.Id),
                     TotalCommitted = c.Users.Count,
-                    HasRequiredProviders = c.Providers.All(p => userLogins.Any(l => l.LoginProvider == p.ProviderName))
+                    HasRequiredProviders = c.Providers.All(p => userLogins.Any(l => l.LoginProvider == p.ProviderName)),
+                    MissingProviders = c.Providers.Where(p => userLogins.Any(l => l.LoginProvider != p.ProviderName)).Select(p => p.ProviderName).ToArray()
                 }).OrderBy(c => !c.Committed).ToList();
         }
 
@@ -113,6 +118,7 @@
 
         public bool? Committed { get; set; }
         public bool? HasRequiredProviders { get; set; }
+        public string[]? MissingProviders { get; set; }
         public int TotalCommitted { get; set; }
     }
 }

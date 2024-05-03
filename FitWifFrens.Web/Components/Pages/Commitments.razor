@@ -31,9 +31,13 @@
                         {
                             <a href="/Commit" class="btn btn-primary">Commit</a>
                         }
+                        else if (commitment.MissingProviders.Length == 1)
+                        {
+                            <a href="/Account/Manage/ExternalLogins" class="btn btn-warning">Connect @commitment.MissingProviders[0]</a>
+                        }
                         else
                         {
-                            <a href="/Account/Manage/ExternalLogins" class="btn btn-warning">Connect Strava</a>
+                            <a href="/Account/Manage/ExternalLogins" class="btn btn-warning">Connect Providers</a>
                         }
                     </div>
                 </div>
@@ -68,7 +72,8 @@
                 Amount = c.Amount,
                 ContractAddress = c.ContractAddress,
                 Committed = userCommitments.Any(uc => uc.CommitmentId == c.Id),
-                HasRequiredProviders = c.Providers.All(p => userLogins.Any(l => l.LoginProvider == p.ProviderName))
+                HasRequiredProviders = c.Providers.All(p => userLogins.Any(l => l.LoginProvider == p.ProviderName)),
+                MissingProviders = c.Providers.Where(p => userLogins.Any(l => l.LoginProvider != p.ProviderName)).Select(p => p.ProviderName).ToArray()
             }).OrderBy(c => !c.Committed).ToList();
     }
 
@@ -87,5 +92,6 @@
 
         public bool Committed { get; set; }
         public bool HasRequiredProviders { get; set; }
+        public string[] MissingProviders { get; set; }
     }
 }

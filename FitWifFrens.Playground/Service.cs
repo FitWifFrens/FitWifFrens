@@ -5,6 +5,8 @@ namespace FitWifFrens.Playground
 {
     public class Service : IHostedService
     {
+        private readonly record struct NewUser(Guid Id, string Email, string WorldId, bool JoinCommitment);
+
         private readonly IUserStore<User> _userStore;
         private readonly DataContext _dataContext;
 
@@ -16,38 +18,30 @@ namespace FitWifFrens.Playground
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            var userId1 = Guid.NewGuid().ToString();
-
-            _ = await _userStore.CreateAsync(new User
+            var users = new List<NewUser>
             {
-                Id = userId1,
-                Email = "test1@gmail.com",
-            }, CancellationToken.None);
+                new NewUser(Guid.NewGuid(), "test1@gmail.com", "0x2fefb77e01d5019b7b2571b44d8cea84d0e1d83491d93ec3f9bb8871dedd7cdb", false),
+                new NewUser(Guid.NewGuid(), "test2@gmail.com", "0x1a66e7598f54a728f7db97983b226005aca9ecbc44928e519f0244a61303af20", true),
+                new NewUser(Guid.NewGuid(), "test3@gmail.com", "0x035646cc875f3b69fb4fbbb0e8a6f01805a52255d7619a0fddb71cea7ad49960", true),
+            };
 
-            var userId2 = Guid.NewGuid().ToString();
-
-            _ = await _userStore.CreateAsync(new User
-            {
-                Id = userId2,
-                Email = "test2@gmail.com",
-            }, CancellationToken.None);
-
-            var userId3 = Guid.NewGuid().ToString();
-
-            _ = await _userStore.CreateAsync(new User
-            {
-                Id = userId3,
-                Email = "test3@gmail.com",
-            }, CancellationToken.None);
+            var commitmentId = Guid.NewGuid();
 
             _dataContext.Commitments.Add(new Commitment
             {
-                Id = Guid.NewGuid(),
+                Id = commitmentId,
                 Title = "90 minutes",
                 Description = "Record 3 activities on Strava with a total time of 90 minutes",
                 Image = "https://cdn.shopify.com/s/files/1/0942/6160/files/running-facts-crazy.jpg?v=1531298463",
                 Amount = 5,
                 ContractAddress = "6bb2344f-b6fb-4ac6-b08e-725f6ee35e9a",
+                Providers = new List<CommitmentProvider>
+                {
+                    new CommitmentProvider
+                    {
+                        ProviderName = "Strava"
+                    }
+                }
             });
 
             _dataContext.Commitments.Add(new Commitment
@@ -58,9 +52,62 @@ namespace FitWifFrens.Playground
                 Image = "https://cdn.shopify.com/s/files/1/0942/6160/files/running-backwards.jpg?v=1531298209",
                 Amount = 10,
                 ContractAddress = "f5baa36e-8ca9-40c8-86ee-d35824c772c3",
+                Providers = new List<CommitmentProvider>
+                {
+                    new CommitmentProvider
+                    {
+                        ProviderName = "Strava"
+                    }
+                }
             });
 
-            await _dataContext.SaveChangesAsync();
+            _dataContext.Commitments.Add(new Commitment
+            {
+                Id = Guid.NewGuid(),
+                Title = "Good Developer",
+                Description = "Answer 2 StackExchange questions a week",
+                Image = "https://pedrorijo.com/assets/img/super_developer.png",
+                Amount = 42,
+                ContractAddress = "bef64318-ecb3-4868-981f-c61eec7b5748",
+                Providers = new List<CommitmentProvider>
+                {
+                    new CommitmentProvider
+                    {
+                        ProviderName = "StackExchange"
+                    }
+                }
+            });
+
+            await _dataContext.SaveChangesAsync(CancellationToken.None);
+
+            foreach (var newUser in users)
+            {
+                await _userStore.CreateAsync(new User
+                {
+                    Id = newUser.Id.ToString(),
+                    Email = newUser.Email,
+                }, CancellationToken.None);
+
+                _dataContext.UserLogins.Add(new UserLogin
+                {
+                    LoginProvider = "WorldId",
+                    ProviderKey = newUser.WorldId,
+                    ProviderDisplayName = "World ID",
+                    UserId = newUser.Id.ToString()
+                });
+
+                if (newUser.JoinCommitment)
+                {
+                    _dataContext.CommittedUsers.Add(new CommittedUser
+                    {
+                        CommitmentId = commitmentId,
+                        UserId = newUser.Id.ToString(),
+                        Transaction = Guid.NewGuid().ToString()
+                    });
+                }
+
+                await _dataContext.SaveChangesAsync(CancellationToken.None);
+            }
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
