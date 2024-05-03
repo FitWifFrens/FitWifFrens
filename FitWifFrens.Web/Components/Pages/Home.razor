@@ -1,7 +1,109 @@
 ﻿@page "/"
 
-<PageTitle>Home</PageTitle>
+@using FitWifFrens.Data
+@using FitWifFrens.Web.Components.Account
+@using Microsoft.EntityFrameworkCore
 
-<h1>Hello, world!</h1>
+@inject IdentityUserAccessor UserAccessor
+@inject DataContext DataContext
 
-Welcome to your new app.
+<PageTitle>FitWifFrens</PageTitle>
+
+<h1>FitWifFrens!</h1>
+
+<p>Welcome to FitWifFrens!</p>
+
+@if (_commitments != null)
+{
+    <div class="row">
+        @foreach (var commitment in _commitments)
+        {
+            <div class="col-sm-3">
+                <div class="card">
+                    <img src="@commitment.Image" class="card-img-top" alt="@commitment.Title">
+                    <div class="card-body">
+                        <h5 class="card-title">@commitment.Title</h5>
+                        <p class="card-text">@commitment.Description</p>
+                        @if (commitment.Committed)
+                        {
+                            <a href="/Commit" class="btn btn-secondary">View</a>
+                        }
+                        else if (commitment.TotalCommitted <= 1)
+                        {
+                            <a href="/Commit" class="btn btn-primary">Commit</a>
+                        }
+                        else
+                        {
+                            <a href="/Commit" class="btn btn-primary">Commit with @commitment.TotalCommitted others</a>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+
+    private List<CommitmentData>? _commitments;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await UserAccessor.GetUserAsync(HttpContext);
+
+        var commitments = await DataContext.Commitments.Include(c => c.Users).ToListAsync();
+
+        if (user == null)
+        {
+            _commitments = await DataContext.Commitments.Select(c => new CommitmentData
+                {
+                    Id = c.Id,
+                    Title = c.Title,
+                    Description = c.Description,
+                    Image = c.Image,
+                    Amount = c.Amount,
+                    ContractAddress = c.ContractAddress,
+                    Committed = false,
+                    TotalCommitted = c.Users.Count
+                }).ToListAsync();
+        }
+        else
+        {
+            var userCommitments = await DataContext.CommittedUsers.Where(cu => cu.UserId == user.Id).ToListAsync();
+
+            _commitments = commitments.Select(c => new CommitmentData
+                {
+                    Id = c.Id,
+                    Title = c.Title,
+                    Description = c.Description,
+                    Image = c.Image,
+                    Amount = c.Amount,
+                    ContractAddress = c.ContractAddress,
+                    Committed = userCommitments.Any(uc => uc.CommitmentId == c.Id),
+                    TotalCommitted = c.Users.Count
+                }).OrderBy(c => !c.Committed).ToList();
+        }
+
+
+    }
+
+
+    private class CommitmentData
+    {
+        public Guid Id { get; set; }
+
+        public string Title { get; set; }
+        public string Description { get; set; }
+        public string Image { get; set; }
+
+        public int Amount { get; set; }
+
+        public string ContractAddress { get; set; }
+
+        public bool Committed { get; set; }
+        public int TotalCommitted { get; set; }
+    }
+}

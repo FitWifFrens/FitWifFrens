@@ -51,7 +51,7 @@ namespace FitWifFrens.Web
                 options.UseSqlServer(connectionString));
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-            builder.Services.AddIdentityCore<User>(options => options.SignIn.RequireConfirmedAccount = true)
+            builder.Services.AddIdentityCore<User>(options => options.SignIn.RequireConfirmedAccount = false)
                 .AddEntityFrameworkStores<DataContext>()
                 .AddSignInManager()
                 .AddDefaultTokenProviders();

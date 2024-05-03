@@ -14,28 +14,26 @@
 @if (_commitments != null)
 {
     <div class="row">
-        <div class="row">
-            @foreach (var commitment in _commitments)
-            {
-                <div class="col-sm-3">
-                    <div class="card">
-                        <img src="@commitment.Image" class="card-img-top" alt="@commitment.Title">
-                        <div class="card-body">
-                            <h5 class="card-title">@commitment.Title</h5>
-                            <p class="card-text">@commitment.Description</p>
-                            @if (commitment.Committed)
-                            {
-                                <a href="/Commit" class="btn btn-secondary">View</a>
-                            }
-                            else
-                            {
-                                <a href="/Commit" class="btn btn-primary">Commit</a>
-                            }
-                        </div>
+        @foreach (var commitment in _commitments)
+        {
+            <div class="col-sm-3">
+                <div class="card">
+                    <img src="@commitment.Image" class="card-img-top" alt="@commitment.Title">
+                    <div class="card-body">
+                        <h5 class="card-title">@commitment.Title</h5>
+                        <p class="card-text">@commitment.Description</p>
+                        @if (commitment.Committed)
+                        {
+                            <a href="/Commit" class="btn btn-secondary">View</a>
+                        }
+                        else
+                        {
+                            <a href="/Commit" class="btn btn-primary">Commit</a>
+                        }
                     </div>
                 </div>
-            }
-        </div>
+            </div>
+        }
     </div>
 }
 
@@ -63,7 +61,7 @@
                 Amount = c.Amount,
                 ContractAddress = c.ContractAddress,
                 Committed = userCommitments.Any(uc => uc.CommitmentId == c.Id)
-            }).OrderBy(c => c.Committed).ToList();
+            }).OrderBy(c => !c.Committed).ToList();
     }
 
 
