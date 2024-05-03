@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AspNet.Security.OAuth.WorldId\AspNet.Security.OAuth.WorldId.csproj" />
+    <ProjectReference Include="..\FitWifFrens.Data\FitWifFrens.Data.csproj" />
     <ProjectReference Include="..\FitWifFrens.Web.Client\FitWifFrens.Web.Client.csproj" />
   </ItemGroup>
 
