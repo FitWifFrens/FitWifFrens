@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspNet.Security.OAuth.World
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FitWifFrens.Data", "FitWifFrens.Data\FitWifFrens.Data.csproj", "{198BFBB2-C032-4440-B5B5-546168C21587}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FitWifFrens.Playground", "FitWifFrens.Playground\FitWifFrens.Playground.csproj", "{51417D4A-2C22-4AEB-873C-6590AB56F5B7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{198BFBB2-C032-4440-B5B5-546168C21587}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{198BFBB2-C032-4440-B5B5-546168C21587}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{198BFBB2-C032-4440-B5B5-546168C21587}.Release|Any CPU.Build.0 = Release|Any CPU
+		{51417D4A-2C22-4AEB-873C-6590AB56F5B7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51417D4A-2C22-4AEB-873C-6590AB56F5B7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51417D4A-2C22-4AEB-873C-6590AB56F5B7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51417D4A-2C22-4AEB-873C-6590AB56F5B7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
