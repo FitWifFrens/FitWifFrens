@@ -4,7 +4,14 @@
     {
         public Guid Id { get; set; }
 
+        public string Title { get; set; }
+        public string Description { get; set; }
+        public string Image { get; set; }
+
+        public int Amount { get; set; }
+
         public string ContractAddress { get; set; }
+
 
         public ICollection<CommitmentProvider> Providers { get; set; }
 
