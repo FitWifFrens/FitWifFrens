@@ -16,13 +16,13 @@ namespace FitWifFrens.Playground
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            //var userId1 = Guid.NewGuid().ToString();
+            var userId1 = Guid.NewGuid().ToString();
 
-            //_ = await _userStore.CreateAsync(new User
-            //{
-            //    Id = userId1,
-            //    Email = "test1@gmail.com",
-            //}, CancellationToken.None);
+            _ = await _userStore.CreateAsync(new User
+            {
+                Id = userId1,
+                Email = "test1@gmail.com",
+            }, CancellationToken.None);
 
             var userId2 = Guid.NewGuid().ToString();
 
