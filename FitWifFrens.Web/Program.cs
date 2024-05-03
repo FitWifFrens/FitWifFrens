@@ -1,4 +1,3 @@
-using FitWifFrens.Web.Client.Pages;
 using FitWifFrens.Web.Components;
 using FitWifFrens.Web.Components.Account;
 using FitWifFrens.Web.Data;
@@ -24,10 +23,23 @@ namespace FitWifFrens.Web
             builder.Services.AddScoped<IdentityRedirectManager>();
             builder.Services.AddScoped<AuthenticationStateProvider, PersistingRevalidatingAuthenticationStateProvider>();
 
-            builder.Services.AddAuthentication(options =>
+            builder.Services
+                .AddAuthentication(options =>
                 {
                     options.DefaultScheme = IdentityConstants.ApplicationScheme;
                     options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+                })
+                .AddWorldId(options =>
+                {
+                    options.ClientId = builder.Configuration.GetValue<string>("Authentication:WorldId:ClientId")!;
+                    options.ClientSecret = builder.Configuration.GetValue<string>("Authentication:WorldId:ClientSecret")!;
+                })
+                .AddStrava(options =>
+                {
+                    options.ClientId = builder.Configuration.GetValue<string>("Authentication:Strava:ClientId")!;
+                    options.ClientSecret = builder.Configuration.GetValue<string>("Authentication:Strava:ClientSecret")!;
+
+                    options.SaveTokens = true;
                 })
                 .AddIdentityCookies();
 
