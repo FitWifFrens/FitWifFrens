@@ -1,18 +1,45 @@
 ﻿using FitWifFrens.Data;
+using Microsoft.AspNetCore.Identity;
 
 namespace FitWifFrens.Playground
 {
     public class Service : IHostedService
     {
+        private readonly IUserStore<User> _userStore;
         private readonly DataContext _dataContext;
 
-        public Service(DataContext dataContext)
+        public Service(IUserStore<User> userStore, DataContext dataContext)
         {
+            _userStore = userStore;
             _dataContext = dataContext;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
+            //var userId1 = Guid.NewGuid().ToString();
+
+            //_ = await _userStore.CreateAsync(new User
+            //{
+            //    Id = userId1,
+            //    Email = "test1@gmail.com",
+            //}, CancellationToken.None);
+
+            var userId2 = Guid.NewGuid().ToString();
+
+            _ = await _userStore.CreateAsync(new User
+            {
+                Id = userId2,
+                Email = "test2@gmail.com",
+            }, CancellationToken.None);
+
+            var userId3 = Guid.NewGuid().ToString();
+
+            _ = await _userStore.CreateAsync(new User
+            {
+                Id = userId3,
+                Email = "test3@gmail.com",
+            }, CancellationToken.None);
+
             _dataContext.Commitments.Add(new Commitment
             {
                 Id = Guid.NewGuid(),

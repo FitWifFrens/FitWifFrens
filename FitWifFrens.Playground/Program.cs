@@ -1,4 +1,5 @@
 ﻿using FitWifFrens.Data;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitWifFrens.Playground
@@ -12,6 +13,11 @@ namespace FitWifFrens.Playground
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
             builder.Services.AddDbContext<DataContext>(options =>
                 options.UseSqlServer(connectionString));
+
+            builder.Services.AddIdentityCore<User>(options => options.SignIn.RequireConfirmedAccount = false)
+                .AddEntityFrameworkStores<DataContext>()
+                .AddSignInManager()
+                .AddDefaultTokenProviders();
 
             builder.Services.AddHostedService<Service>();
 
