@@ -132,6 +132,9 @@
             RedirectManager.RedirectToCurrentPageWithStatus("Error: The external login was not added. External logins can only be associated with one account.", HttpContext);
         }
 
+        // TODO:
+        _ = await SignInManager.UpdateExternalAuthenticationTokensAsync(info);
+
         // Clear the existing external cookie to ensure a clean login process
         await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
 
