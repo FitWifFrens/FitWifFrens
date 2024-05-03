@@ -26,9 +26,13 @@
                         {
                             <a href="/Commit" class="btn btn-secondary">View</a>
                         }
-                        else
+                        else if (commitment.HasRequiredProviders)
                         {
                             <a href="/Commit" class="btn btn-primary">Commit</a>
+                        }
+                        else
+                        {
+                            <a href="/Account/Manage/ExternalLogins" class="btn btn-warning">Connect Strava</a>
                         }
                     </div>
                 </div>
@@ -50,7 +54,9 @@
 
         var userCommitments = await DataContext.CommittedUsers.Where(cu => cu.UserId == user.Id).ToListAsync();
 
-        var commitments = await DataContext.Commitments.ToListAsync();
+        var userLogins = await DataContext.UserLogins.Where(cu => cu.UserId == user.Id).ToListAsync();
+
+        var commitments = await DataContext.Commitments.Include(c => c.Providers).ToListAsync();
 
         _commitments = commitments.Select(c => new CommitmentData
             {
@@ -60,7 +66,8 @@
                 Image = c.Image,
                 Amount = c.Amount,
                 ContractAddress = c.ContractAddress,
-                Committed = userCommitments.Any(uc => uc.CommitmentId == c.Id)
+                Committed = userCommitments.Any(uc => uc.CommitmentId == c.Id),
+                HasRequiredProviders = c.Providers.All(p => userLogins.Any(l => l.LoginProvider == p.ProviderName))
             }).OrderBy(c => !c.Committed).ToList();
     }
 
@@ -78,5 +85,6 @@
         public string ContractAddress { get; set; }
 
         public bool Committed { get; set; }
+        public bool HasRequiredProviders { get; set; }
     }
 }

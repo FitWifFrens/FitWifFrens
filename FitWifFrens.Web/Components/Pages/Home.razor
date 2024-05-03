@@ -24,9 +24,13 @@
                     <div class="card-body">
                         <h5 class="card-title">@commitment.Title</h5>
                         <p class="card-text">@commitment.Description</p>
-                        @if (commitment.Committed)
+                        @if (commitment.Committed == true)
                         {
                             <a href="/Commit" class="btn btn-secondary">View</a>
+                        }
+                        else if (commitment.HasRequiredProviders == false)
+                        {
+                            <a href="/Account/Manage/ExternalLogins" class="btn btn-warning">Connect Strava</a>
                         }
                         else if (commitment.TotalCommitted <= 1)
                         {
@@ -54,7 +58,7 @@
     {
         var user = await UserAccessor.GetUserAsync(HttpContext);
 
-        var commitments = await DataContext.Commitments.Include(c => c.Users).ToListAsync();
+        var commitments = await DataContext.Commitments.Include(c => c.Providers).Include(c => c.Users).ToListAsync();
 
         if (user == null)
         {
@@ -66,13 +70,16 @@
                     Image = c.Image,
                     Amount = c.Amount,
                     ContractAddress = c.ContractAddress,
-                    Committed = false,
+                    Committed = null,
+                    HasRequiredProviders = null,
                     TotalCommitted = c.Users.Count
                 }).ToListAsync();
         }
         else
         {
             var userCommitments = await DataContext.CommittedUsers.Where(cu => cu.UserId == user.Id).ToListAsync();
+
+            var userLogins = await DataContext.UserLogins.Where(cu => cu.UserId == user.Id).ToListAsync();
 
             _commitments = commitments.Select(c => new CommitmentData
                 {
@@ -83,7 +90,8 @@
                     Amount = c.Amount,
                     ContractAddress = c.ContractAddress,
                     Committed = userCommitments.Any(uc => uc.CommitmentId == c.Id),
-                    TotalCommitted = c.Users.Count
+                    TotalCommitted = c.Users.Count,
+                    HasRequiredProviders = c.Providers.All(p => userLogins.Any(l => l.LoginProvider == p.ProviderName))
                 }).OrderBy(c => !c.Committed).ToList();
         }
 
@@ -103,7 +111,8 @@
 
         public string ContractAddress { get; set; }
 
-        public bool Committed { get; set; }
+        public bool? Committed { get; set; }
+        public bool? HasRequiredProviders { get; set; }
         public int TotalCommitted { get; set; }
     }
 }
