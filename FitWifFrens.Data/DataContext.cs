@@ -68,9 +68,9 @@ namespace FitWifFrens.Data
                 b.Property(m => m.Name)
                     .HasMaxLength(450);
 
-                b.HasOne(m => m.Login)
+                b.HasMany(m => m.Logins)
                     .WithOne(m => m.Provider)
-                    .HasForeignKey<UserLogin>(m => m.LoginProvider);
+                    .HasForeignKey(m => m.LoginProvider);
 
                 b.HasMany(m => m.Commitments)
                     .WithOne(m => m.Provider)
@@ -80,6 +80,10 @@ namespace FitWifFrens.Data
                     new Provider
                     {
                         Name = "WorldId"
+                    },
+                    new Provider
+                    {
+                        Name = "StackExchange"
                     },
                     new Provider
                     {

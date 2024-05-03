@@ -44,6 +44,14 @@ namespace FitWifFrens.Web
 
                     options.SaveTokens = true;
                 })
+                .AddStackExchange(options =>
+                {
+                    options.ClientId = builder.Configuration.GetValue<string>("Authentication:StackExchange:ClientId")!;
+                    options.ClientSecret = builder.Configuration.GetValue<string>("Authentication:StackExchange:ClientSecret")!;
+                    options.RequestKey = builder.Configuration.GetValue<string>("Authentication:StackExchange:RequestKey")!;
+
+                    options.SaveTokens = true;
+                })
                 .AddIdentityCookies();
 
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");

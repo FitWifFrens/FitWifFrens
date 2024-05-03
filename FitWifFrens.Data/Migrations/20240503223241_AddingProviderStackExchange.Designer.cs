@@ -4,6 +4,7 @@ using FitWifFrens.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FitWifFrens.Data.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20240503223241_AddingProviderStackExchange")]
+    partial class AddingProviderStackExchange
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -270,6 +273,9 @@ namespace FitWifFrens.Data.Migrations
 
                     b.HasKey("LoginProvider", "ProviderKey");
 
+                    b.HasIndex("LoginProvider")
+                        .IsUnique();
+
                     b.HasIndex("UserId");
 
                     b.ToTable("AspNetUserLogins", (string)null);
@@ -372,8 +378,8 @@ namespace FitWifFrens.Data.Migrations
             modelBuilder.Entity("FitWifFrens.Data.UserLogin", b =>
                 {
                     b.HasOne("FitWifFrens.Data.Provider", "Provider")
-                        .WithMany("Logins")
-                        .HasForeignKey("LoginProvider")
+                        .WithOne("Login")
+                        .HasForeignKey("FitWifFrens.Data.UserLogin", "LoginProvider")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -429,7 +435,8 @@ namespace FitWifFrens.Data.Migrations
                 {
                     b.Navigation("Commitments");
 
-                    b.Navigation("Logins");
+                    b.Navigation("Login")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("FitWifFrens.Data.Role", b =>
