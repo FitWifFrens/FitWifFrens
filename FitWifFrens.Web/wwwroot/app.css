@@ -57,20 +57,14 @@ h1:focus {
 
 .card-img-top {
     width: 100%;
-    height: 110px;
+    height: 100%;
     padding: 3px;
 }
 
 .card-title {
     font-size: large;
-    font-weight: bold;
 }
 
 .card-text {
     font-size: small;
-}
-
-p .card-text {
-    font-size: smaller;
-    color: gray;
 }
