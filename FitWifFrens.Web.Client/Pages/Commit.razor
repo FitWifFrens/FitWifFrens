@@ -85,10 +85,10 @@
                             <div class="col-sm-2">
                                 @SelectedAccountTotalStaked
                             </div>
-                            @if (!StakeComplete)
+                            @if (StakeComplete)
                             {
                                 <div class="col-sm-3">
-                                    <button @onclick="@WithdrawAll" class="btn btn-primary">Withdraw All @StakeComplete</button>
+                                    <button @onclick="@WithdrawAll" class="btn btn-primary">Withdraw All</button>
                                 </div>
                             }
                             <div class="col-sm-3">
