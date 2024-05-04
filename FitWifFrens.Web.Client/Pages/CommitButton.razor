@@ -1,0 +1,113 @@
+﻿@rendermode @(new InteractiveWebAssemblyRenderMode(prerender:false))
+
+@implements IDisposable;
+@inject IJSRuntime jsRuntime;
+@inject SelectedEthereumHostProviderService selectedHostProviderService
+@inject NavigationManager _navigationManager
+@inject AuthenticationStateProvider _siweAuthenticationStateProvider;
+@using Nethereum.Hex.HexTypes;
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using FitWifFrens.Web.Client.Contract.TokenStaking
+@using Microsoft.AspNetCore.Authorization
+@using Nethereum.RPC.HostWallet
+@using System.Numerics
+
+<AuthorizeView Roles="EthereumConnected">
+    <Authorized>
+        @if (TotalStaked > 0)
+        {
+            <p><strong>@TotalStaked pledged already</strong></p>
+        }
+
+        <a href="/Commit/@WorldId/@ContractAddress" class="btn btn-primary">Commit</a>
+    </Authorized>
+    <NotAuthorized>
+        <a href="/Commit/@WorldId/@ContractAddress" class="btn btn-primary">Commit</a>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    [Parameter]
+    public string WorldId { get; set; }
+
+    [Parameter]
+    public string ContractAddress { get; set; }
+
+    [CascadingParameter]
+    public Task<AuthenticationState?> AuthenticationState { get; set; }
+
+    bool EthereumAvailable { get; set; }
+    string SelectedAccount { get; set; }
+    long SelectedChainId { get; set; }
+    BigInteger TotalStaked { get; set; }
+    IEthereumHostProvider _ethereumHostProvider;
+
+    protected override void OnInitialized()
+    {
+        _ethereumHostProvider = selectedHostProviderService.SelectedHost;
+        _ethereumHostProvider.SelectedAccountChanged += HostProvider_SelectedAccountChanged;
+        _ethereumHostProvider.NetworkChanged += HostProvider_NetworkChanged;
+        _ethereumHostProvider.EnabledChanged += HostProviderOnEnabledChanged;
+    }
+
+    public void Dispose()
+    {
+        _ethereumHostProvider.SelectedAccountChanged -= HostProvider_SelectedAccountChanged;
+        _ethereumHostProvider.NetworkChanged -= HostProvider_NetworkChanged;
+        _ethereumHostProvider.EnabledChanged -= HostProviderOnEnabledChanged;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        EthereumAvailable = await _ethereumHostProvider.CheckProviderAvailabilityAsync();
+        if (EthereumAvailable)
+        {
+            SelectedAccount = await _ethereumHostProvider.GetProviderSelectedAccountAsync();
+            await GetChainId();
+        }
+    }
+
+    private async Task HostProviderOnEnabledChanged(bool enabled)
+    {
+        if (enabled)
+        {
+            await GetChainId();
+            StateHasChanged();
+        }
+    }
+
+    private async Task GetChainId()
+    {
+        var web3 = await _ethereumHostProvider.GetWeb3Async();
+        var chainId = await web3.Eth.ChainId.SendRequestAsync();
+        SelectedChainId = (long)chainId.Value;
+
+        if (SelectedChainId == 84532)
+        {
+            await LoadStakingData();
+        }
+    }
+
+    private async Task HostProvider_SelectedAccountChanged(string account)
+    {
+        SelectedAccount = account;
+        await GetChainId();
+        StateHasChanged();
+    }
+
+    private async Task HostProvider_NetworkChanged(long chainId)
+    {
+        SelectedChainId = chainId;
+        StateHasChanged();
+    }
+
+    protected async Task LoadStakingData()
+    {
+        var web3 = await _ethereumHostProvider.GetWeb3Async();
+
+        var tokenStakingService = new TokenStakingService(web3, ContractAddress);
+
+        TotalStaked = await tokenStakingService.StakedTokensQueryAsync(SelectedAccount);
+    }
+}

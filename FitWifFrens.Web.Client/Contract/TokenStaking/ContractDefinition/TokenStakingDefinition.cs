@@ -32,6 +32,14 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
         public virtual BigInteger MinuteThreshold { get; set; }
     }
 
+    public partial class DistributeResultsBeginNextCycleFunction : DistributeResultsBeginNextCycleFunctionBase { }
+
+    [Function("DistributeResultsBeginNextCycle")]
+    public class DistributeResultsBeginNextCycleFunctionBase : FunctionMessage
+    {
+
+    }
+
     public partial class TokenAddressFunction : TokenAddressFunctionBase { }
 
     [Function("TokenAddress", "address")]
@@ -48,6 +56,22 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
 
     }
 
+    public partial class AllowWithdrawFunction : AllowWithdrawFunctionBase { }
+
+    [Function("allowWithdraw", "bool")]
+    public class AllowWithdrawFunctionBase : FunctionMessage
+    {
+
+    }
+
+    public partial class ChallengerCountFunction : ChallengerCountFunctionBase { }
+
+    [Function("challengerCount", "uint256")]
+    public class ChallengerCountFunctionBase : FunctionMessage
+    {
+
+    }
+
     public partial class CheckResultsFunction : CheckResultsFunctionBase { }
 
     [Function("checkResults")]
@@ -56,15 +80,48 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
 
     }
 
-    public partial class DistributeUSDCFunction : DistributeUSDCFunctionBase { }
+    public partial class CreatePledgeFunction : CreatePledgeFunctionBase { }
 
-    [Function("distributeUSDC")]
-    public class DistributeUSDCFunctionBase : FunctionMessage
+    [Function("createPledge")]
+    public class CreatePledgeFunctionBase : FunctionMessage
     {
-        [Parameter("address[]", "participants", 1)]
-        public virtual List<string> Participants { get; set; }
-        [Parameter("uint256[]", "amounts", 2)]
-        public virtual List<BigInteger> Amounts { get; set; }
+        [Parameter("uint256", "amount", 1)]
+        public virtual BigInteger Amount { get; set; }
+        [Parameter("string", "uniqueID", 2)]
+        public virtual string UniqueID { get; set; }
+    }
+
+    public partial class CycleFunction : CycleFunctionBase { }
+
+    [Function("cycle", "uint256")]
+    public class CycleFunctionBase : FunctionMessage
+    {
+
+    }
+
+    public partial class DisableWithdrawFunction : DisableWithdrawFunctionBase { }
+
+    [Function("disableWithdraw")]
+    public class DisableWithdrawFunctionBase : FunctionMessage
+    {
+
+    }
+
+    public partial class EnableWithdrawFunction : EnableWithdrawFunctionBase { }
+
+    [Function("enableWithdraw")]
+    public class EnableWithdrawFunctionBase : FunctionMessage
+    {
+
+    }
+
+    public partial class HasStakedFunction : HasStakedFunctionBase { }
+
+    [Function("hasStaked", "bool")]
+    public class HasStakedFunctionBase : FunctionMessage
+    {
+        [Parameter("address", "", 1)]
+        public virtual string ReturnValue1 { get; set; }
     }
 
     public partial class MinuteThresholdFunction : MinuteThresholdFunctionBase { }
@@ -83,6 +140,23 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
 
     }
 
+    public partial class ParticipantsFunction : ParticipantsFunctionBase { }
+
+    [Function("participants", "address")]
+    public class ParticipantsFunctionBase : FunctionMessage
+    {
+        [Parameter("uint256", "", 1)]
+        public virtual BigInteger ReturnValue1 { get; set; }
+    }
+
+    public partial class PendingResultsFunction : PendingResultsFunctionBase { }
+
+    [Function("pendingResults", "bool")]
+    public class PendingResultsFunctionBase : FunctionMessage
+    {
+
+    }
+
     public partial class RenounceOwnershipFunction : RenounceOwnershipFunctionBase { }
 
     [Function("renounceOwnership")]
@@ -91,13 +165,50 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
 
     }
 
-    public partial class StakeTokenFunction : StakeTokenFunctionBase { }
+    public partial class ResultThisCycleFunction : ResultThisCycleFunctionBase { }
 
-    [Function("stakeToken")]
-    public class StakeTokenFunctionBase : FunctionMessage
+    [Function("resultThisCycle", "bool")]
+    public class ResultThisCycleFunctionBase : FunctionMessage
     {
-        [Parameter("uint256", "amount", 1)]
-        public virtual BigInteger Amount { get; set; }
+        [Parameter("address", "", 1)]
+        public virtual string ReturnValue1 { get; set; }
+    }
+
+    public partial class RewardTokensFunction : RewardTokensFunctionBase { }
+
+    [Function("rewardTokens", "uint256")]
+    public class RewardTokensFunctionBase : FunctionMessage
+    {
+        [Parameter("address", "", 1)]
+        public virtual string ReturnValue1 { get; set; }
+    }
+
+    public partial class RewardsPoolFunction : RewardsPoolFunctionBase { }
+
+    [Function("rewardsPool", "uint256")]
+    public class RewardsPoolFunctionBase : FunctionMessage
+    {
+
+    }
+
+    public partial class SetResultFunction : SetResultFunctionBase { }
+
+    [Function("setResult")]
+    public class SetResultFunctionBase : FunctionMessage
+    {
+        [Parameter("address", "_userAddress", 1)]
+        public virtual string UserAddress { get; set; }
+        [Parameter("bool", "resultstate", 2)]
+        public virtual bool Resultstate { get; set; }
+    }
+
+    public partial class StakeCompleteFunction : StakeCompleteFunctionBase { }
+
+    [Function("stakeComplete", "bool")]
+    public class StakeCompleteFunctionBase : FunctionMessage
+    {
+        [Parameter("address", "", 1)]
+        public virtual string ReturnValue1 { get; set; }
     }
 
     public partial class StakedTokensFunction : StakedTokensFunctionBase { }
@@ -126,13 +237,30 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
         public virtual string NewOwner { get; set; }
     }
 
+    public partial class UniqueIDUsedFunction : UniqueIDUsedFunctionBase { }
+
+    [Function("uniqueIDUsed", "bool")]
+    public class UniqueIDUsedFunctionBase : FunctionMessage
+    {
+        [Parameter("string", "", 1)]
+        public virtual string ReturnValue1 { get; set; }
+    }
+
+    public partial class UniqueIDmapFunction : UniqueIDmapFunctionBase { }
+
+    [Function("uniqueIDmap", "string")]
+    public class UniqueIDmapFunctionBase : FunctionMessage
+    {
+        [Parameter("address", "", 1)]
+        public virtual string ReturnValue1 { get; set; }
+    }
+
     public partial class WithdrawStakeFunction : WithdrawStakeFunctionBase { }
 
     [Function("withdrawStake")]
     public class WithdrawStakeFunctionBase : FunctionMessage
     {
-        [Parameter("uint256", "amount", 1)]
-        public virtual BigInteger Amount { get; set; }
+
     }
 
     public partial class OwnershipTransferredEventDTO : OwnershipTransferredEventDTOBase { }
@@ -164,6 +292,8 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
         public virtual string Account { get; set; }
     }
 
+
+
     public partial class TokenAddressOutputDTO : TokenAddressOutputDTOBase { }
 
     [FunctionOutput]
@@ -182,9 +312,49 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
         public virtual BigInteger ReturnValue1 { get; set; }
     }
 
+    public partial class AllowWithdrawOutputDTO : AllowWithdrawOutputDTOBase { }
+
+    [FunctionOutput]
+    public class AllowWithdrawOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("bool", "", 1)]
+        public virtual bool ReturnValue1 { get; set; }
+    }
+
+    public partial class ChallengerCountOutputDTO : ChallengerCountOutputDTOBase { }
+
+    [FunctionOutput]
+    public class ChallengerCountOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("uint256", "", 1)]
+        public virtual BigInteger ReturnValue1 { get; set; }
+    }
 
 
 
+
+
+    public partial class CycleOutputDTO : CycleOutputDTOBase { }
+
+    [FunctionOutput]
+    public class CycleOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("uint256", "", 1)]
+        public virtual BigInteger ReturnValue1 { get; set; }
+    }
+
+
+
+
+
+    public partial class HasStakedOutputDTO : HasStakedOutputDTOBase { }
+
+    [FunctionOutput]
+    public class HasStakedOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("bool", "", 1)]
+        public virtual bool ReturnValue1 { get; set; }
+    }
 
     public partial class MinuteThresholdOutputDTO : MinuteThresholdOutputDTOBase { }
 
@@ -204,9 +374,63 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
         public virtual string ReturnValue1 { get; set; }
     }
 
+    public partial class ParticipantsOutputDTO : ParticipantsOutputDTOBase { }
+
+    [FunctionOutput]
+    public class ParticipantsOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("address", "", 1)]
+        public virtual string ReturnValue1 { get; set; }
+    }
+
+    public partial class PendingResultsOutputDTO : PendingResultsOutputDTOBase { }
+
+    [FunctionOutput]
+    public class PendingResultsOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("bool", "", 1)]
+        public virtual bool ReturnValue1 { get; set; }
+    }
 
 
 
+    public partial class ResultThisCycleOutputDTO : ResultThisCycleOutputDTOBase { }
+
+    [FunctionOutput]
+    public class ResultThisCycleOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("bool", "", 1)]
+        public virtual bool ReturnValue1 { get; set; }
+    }
+
+    public partial class RewardTokensOutputDTO : RewardTokensOutputDTOBase { }
+
+    [FunctionOutput]
+    public class RewardTokensOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("uint256", "", 1)]
+        public virtual BigInteger ReturnValue1 { get; set; }
+    }
+
+    public partial class RewardsPoolOutputDTO : RewardsPoolOutputDTOBase { }
+
+    [FunctionOutput]
+    public class RewardsPoolOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("uint256", "", 1)]
+        public virtual BigInteger ReturnValue1 { get; set; }
+    }
+
+
+
+    public partial class StakeCompleteOutputDTO : StakeCompleteOutputDTOBase { }
+
+    [FunctionOutput]
+    public class StakeCompleteOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("bool", "", 1)]
+        public virtual bool ReturnValue1 { get; set; }
+    }
 
     public partial class StakedTokensOutputDTO : StakedTokensOutputDTOBase { }
 
@@ -227,6 +451,24 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
     }
 
 
+
+    public partial class UniqueIDUsedOutputDTO : UniqueIDUsedOutputDTOBase { }
+
+    [FunctionOutput]
+    public class UniqueIDUsedOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("bool", "", 1)]
+        public virtual bool ReturnValue1 { get; set; }
+    }
+
+    public partial class UniqueIDmapOutputDTO : UniqueIDmapOutputDTOBase { }
+
+    [FunctionOutput]
+    public class UniqueIDmapOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("string", "", 1)]
+        public virtual string ReturnValue1 { get; set; }
+    }
 
 
 }
