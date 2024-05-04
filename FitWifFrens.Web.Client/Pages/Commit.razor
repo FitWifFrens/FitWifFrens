@@ -12,6 +12,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using Nethereum.RPC.HostWallet
 @using System.Numerics
+@using FitWifFrens.Web.Client.Contract.Token
 
 
 <AuthorizeView Roles="EthereumConnected">
@@ -76,44 +77,79 @@
                 </div>
             }
 
-            @if (SelectedAccountTotalStaked > 0)
+            @if (SelectedAccountHasAllowance == true)
+            {
+                @if (SelectedAccountTotalStaked > 0)
+                {
+                    <div class="card m-1">
+                        <div class="card-body">
+                            <div class="row">
+                                <label class="col-sm-4 col-form-label-md">Your Staked FitDollar:</label>
+                                <div class="col-sm-2">
+                                    @SelectedAccountTotalStaked
+                                </div>
+                                @if (StakeComplete)
+                                {
+                                    <div class="col-sm-3">
+                                        <button @onclick="@WithdrawAll" class="btn btn-primary">Withdraw All</button>
+                                    </div>
+                                }
+                                <div class="col-sm-3">
+                                    <button @onclick="@WithdrawRewards" class="btn btn-primary">Withdraw Rewards</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @if (SelectedAccountRewardTokens > 0)
+                {
+                    <div class="card m-1">
+                        <div class="card-body">
+                            <div class="row">
+                                <label class="col-sm-4 col-form-label-md">Your FitDollar Rewards:</label>
+                                <div class="col-sm-2">
+                                    @SelectedAccountRewardTokens
+                                </div>
+                                <div class="col-sm-3">
+                                    <button @onclick="@WithdrawRewards" class="btn btn-primary">Withdraw Rewards</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <div class="card m-1">
+                    <div class="card-body">
+                        <div class="row">
+                            <label class="col-sm-4 col-form-label-md">Stake FitDollar:</label>
+
+                            <div class="col-sm-2">
+                                <InputNumber @bind-Value="StakeAmount" type="number" class="form-control" placeholder="10" />
+                            </div>
+
+                            <div class="col-sm-3">
+                                <button @onclick="@StakeFitDollar" class="btn btn-primary">Stake</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
             {
                 <div class="card m-1">
                     <div class="card-body">
                         <div class="row">
-                            <label class="col-sm-4 col-form-label-md">Your Staked FitDollar:</label>
-                            <div class="col-sm-2">
-                                @SelectedAccountTotalStaked
-                            </div>
-                            @if (StakeComplete)
-                            {
-                                <div class="col-sm-3">
-                                    <button @onclick="@WithdrawAll" class="btn btn-primary">Withdraw All</button>
-                                </div>
-                            }
+                            <label class="col-sm-4 col-form-label-md">Allow FitDollar:</label>
+
                             <div class="col-sm-3">
-                                <button @onclick="@WithdrawRewards" class="btn btn-primary">Withdraw Rewards</button>
+                                <button @onclick="@AllowFitDollar" class="btn btn-primary">Allow</button>
                             </div>
                         </div>
                     </div>
                 </div>
             }
 
-            <div class="card m-1">
-                <div class="card-body">
-                    <div class="row">
-                        <label class="col-sm-4 col-form-label-md">Stake FitDollar:</label>
-
-                        <div class="col-sm-2">
-                            <InputNumber @bind-Value="StakeAmount" type="number" class="form-control" placeholder="10" />
-                        </div>
-
-                        <div class="col-sm-3">
-                            <button @onclick="@StakeFitDollar" class="btn btn-primary">Stake</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
         }
 
     </Authorized>
@@ -145,7 +181,9 @@
     string ErrorAuthenticateMessage { get; set; }
     string UserName { get; set; }
     protected string AuthenticatedAccount { get; set; }
+    bool SelectedAccountHasAllowance { get; set; }
     BigInteger SelectedAccountTotalStaked { get; set; }
+    BigInteger SelectedAccountRewardTokens { get; set; }
     BigInteger TotalStaked { get; set; }
     BigInteger ChallengerCount { get; set; }
     bool StakeComplete { get; set; }
@@ -229,13 +267,29 @@
     {
         var web3 = await _ethereumHostProvider.GetWeb3Async();
 
+        var tokenService = new TokenService(web3, Constants.TokenAddress);
+
+        SelectedAccountHasAllowance = await tokenService.AllowanceQueryAsync(SelectedAccount, ContractAddress) > 0;
+
         var tokenStakingService = new TokenStakingService(web3, ContractAddress);
 
         SelectedAccountTotalStaked = await tokenStakingService.StakedTokensQueryAsync(SelectedAccount);
+        SelectedAccountRewardTokens = await tokenStakingService.RewardTokensQueryAsync(SelectedAccount);
         ChallengerCount = await tokenStakingService.ChallengerCountQueryAsync();
         TotalStaked = await tokenStakingService.TotalStakedQueryAsync();
 
         StakeComplete = await tokenStakingService.StakeCompleteQueryAsync(ContractAddress);
+    }
+
+    protected async Task AllowFitDollar()
+    {
+        var web3 = await _ethereumHostProvider.GetWeb3Async();
+
+        var tokenService = new TokenService(web3, Constants.TokenAddress);
+
+        var transactionReceipt = await tokenService.IncreaseAllowanceRequestAndWaitForReceiptAsync(ContractAddress, Constants.IncreaseAllowance);
+
+        await LoadStakingData();
     }
 
     protected async Task StakeFitDollar()
@@ -246,10 +300,7 @@
 
         var transactionReceipt = await tokenStakingService.CreatePledgeRequestAndWaitForReceiptAsync(StakeAmount, WorldId);
 
-        if (transactionReceipt.HasErrors() == false)
-        {
-            await LoadStakingData();
-        }
+        await LoadStakingData();
     }
 
     protected async Task WithdrawAll()
@@ -260,10 +311,7 @@
 
         var transactionReceipt = await tokenStakingService.WithdrawAllRequestAndWaitForReceiptAsync();
 
-        if (transactionReceipt.HasErrors() == false)
-        {
-            await LoadStakingData();
-        }
+        await LoadStakingData();
     }
 
     protected async Task WithdrawRewards()
@@ -274,10 +322,7 @@
 
         var transactionReceipt = await tokenStakingService.WithdrawRewardsRequestAndWaitForReceiptAsync();
 
-        if (transactionReceipt.HasErrors() == false)
-        {
-            await LoadStakingData();
-        }
+        await LoadStakingData();
     }
 
     protected async Task AddChain()
