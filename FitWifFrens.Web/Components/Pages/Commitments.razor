@@ -6,7 +6,6 @@
 @using FitWifFrens.Data
 @using FitWifFrens.Web.Components.Account
 @using Microsoft.EntityFrameworkCore
-@using System.Security.Claims
 
 @inject IdentityUserAccessor UserAccessor
 @inject DataContext DataContext
@@ -31,11 +30,11 @@
                         <p class="card-text">@commitment.Description</p>
                         @if (commitment.Committed)
                         {
-                            <a href="/Commit/@_worldId/@commitment.ContractAddress" class="btn btn-secondary">View</a>
+                            <a href="/Commitment/@commitment.Id" class="btn btn-secondary">View</a>
                         }
                         else if (commitment.HasRequiredProviders)
                         {
-                            <CommitButton WorldId="@_worldId" ContractAddress="@commitment.ContractAddress"></CommitButton>
+                            <CommitButton CommitmentId="commitment.Id" WorldId="@_worldId" ContractAddress="@commitment.ContractAddress"></CommitButton>
                         }
                         else if (commitment.MissingProviders.Length == 1)
                         {

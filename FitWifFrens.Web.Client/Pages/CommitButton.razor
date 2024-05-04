@@ -25,14 +25,17 @@
             <p><strong>You have already committed @SelectedAccountTotalStaked FitDollar</strong></p>
         }
 
-        <a href="/Commit/@WorldId/@ContractAddress" class="btn btn-primary">Commit</a>
+        <a href="/Commitment/@CommitmentId" class="btn btn-primary">Commit</a>
     </Authorized>
     <NotAuthorized>
-        <a href="/Commit/@WorldId/@ContractAddress" class="btn btn-primary">Commit</a>
+        <a href="/Commitment/@CommitmentId" class="btn btn-primary">Commit</a>
     </NotAuthorized>
 </AuthorizeView>
 
 @code {
+    [Parameter]
+    public Guid CommitmentId { get; set; }
+
     [Parameter]
     public string WorldId { get; set; }
 

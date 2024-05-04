@@ -1,6 +1,4 @@
-﻿@page "/Commit/{WorldId}/{ContractAddress}"
-@attribute [Authorize]
-@rendermode @(new InteractiveWebAssemblyRenderMode(prerender:false))
+﻿@rendermode @(new InteractiveWebAssemblyRenderMode(prerender:false))
 
 @implements IDisposable;
 @inject IJSRuntime jsRuntime;
@@ -25,7 +23,7 @@
                     <div class="row">
                         <label class="col-sm-4 col-form-label-md">Connect to Base Sepolia</label>
                         <div class="col-sm-8">
-                            <button @onclick="@AddChain">Add Chain (Base Sepolia)</button>
+                            <button @onclick="@AddChain" class="btn btn-primary">Add Chain (Base Sepolia)</button>
                         </div>
                     </div>
                 </div>
@@ -64,19 +62,6 @@
                 </div>
             </div>
 
-            <div class="card m-1">
-                <div class="card-body">
-                    <div class="row">
-                        <label class="col-sm-4 col-form-label-md">Block hash of block number 0:</label>
-                        <div class="col-sm-8">
-                            <button @onclick="@GetBlockHashAsync">Get BlockHash</button>
-                            <div>@BlockHash</div>
-                            <small id="selectedAccountHelp" class="form-text text-muted">With Metamask calls are redirected to its configured node (i.e http://localhost:8545)</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             @if (TotalStaked > 0)
             {
                 <div class="card m-1">
@@ -91,12 +76,40 @@
                 </div>
             }
 
+            @if (SelectedAccountTotalStaked > 0)
+            {
+                <div class="card m-1">
+                    <div class="card-body">
+                        <div class="row">
+                            <label class="col-sm-4 col-form-label-md">Your Staked FitDollar:</label>
+                            <div class="col-sm-2">
+                                @SelectedAccountTotalStaked
+                            </div>
+                            @if (!StakeComplete)
+                            {
+                                <div class="col-sm-3">
+                                    <button @onclick="@WithdrawAll" class="btn btn-primary">Withdraw All @StakeComplete</button>
+                                </div>
+                            }
+                            <div class="col-sm-3">
+                                <button @onclick="@WithdrawRewards" class="btn btn-primary">Withdraw Rewards</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
             <div class="card m-1">
                 <div class="card-body">
                     <div class="row">
                         <label class="col-sm-4 col-form-label-md">Stake FitDollar:</label>
-                        <div class="col-sm-8">
-                            <button @onclick="@StakeFitDollar">Stake</button>
+
+                        <div class="col-sm-2">
+                            <InputNumber @bind-Value="StakeAmount" type="number" class="form-control" placeholder="10" />
+                        </div>
+
+                        <div class="col-sm-3">
+                            <button @onclick="@StakeFitDollar" class="btn btn-primary">Stake</button>
                         </div>
                     </div>
                 </div>
@@ -118,6 +131,8 @@
     [Parameter]
     public string ContractAddress { get; set; }
 
+    public int StakeAmount { get; set; } = 50;
+
     [CascadingParameter]
     public Task<AuthenticationState?> AuthenticationState { get; set; }
 
@@ -130,7 +145,10 @@
     string ErrorAuthenticateMessage { get; set; }
     string UserName { get; set; }
     protected string AuthenticatedAccount { get; set; }
+    BigInteger SelectedAccountTotalStaked { get; set; }
     BigInteger TotalStaked { get; set; }
+    BigInteger ChallengerCount { get; set; }
+    bool StakeComplete { get; set; }
     IEthereumHostProvider _ethereumHostProvider;
 
     protected override void OnInitialized()
@@ -213,7 +231,11 @@
 
         var tokenStakingService = new TokenStakingService(web3, ContractAddress);
 
+        SelectedAccountTotalStaked = await tokenStakingService.StakedTokensQueryAsync(SelectedAccount);
+        ChallengerCount = await tokenStakingService.ChallengerCountQueryAsync();
         TotalStaked = await tokenStakingService.TotalStakedQueryAsync();
+
+        StakeComplete = await tokenStakingService.StakeCompleteQueryAsync(ContractAddress);
     }
 
     protected async Task StakeFitDollar()
@@ -222,7 +244,35 @@
 
         var tokenStakingService = new TokenStakingService(web3, ContractAddress);
 
-        var transactionReceipt = await tokenStakingService.CreatePledgeRequestAndWaitForReceiptAsync(1, WorldId);
+        var transactionReceipt = await tokenStakingService.CreatePledgeRequestAndWaitForReceiptAsync(StakeAmount, WorldId);
+
+        if (transactionReceipt.HasErrors() == false)
+        {
+            await LoadStakingData();
+        }
+    }
+
+    protected async Task WithdrawAll()
+    {
+        var web3 = await _ethereumHostProvider.GetWeb3Async();
+
+        var tokenStakingService = new TokenStakingService(web3, ContractAddress);
+
+        var transactionReceipt = await tokenStakingService.WithdrawAllRequestAndWaitForReceiptAsync();
+
+        if (transactionReceipt.HasErrors() == false)
+        {
+            await LoadStakingData();
+        }
+    }
+
+    protected async Task WithdrawRewards()
+    {
+        var web3 = await _ethereumHostProvider.GetWeb3Async();
+
+        var tokenStakingService = new TokenStakingService(web3, ContractAddress);
+
+        var transactionReceipt = await tokenStakingService.WithdrawRewardsRequestAndWaitForReceiptAsync();
 
         if (transactionReceipt.HasErrors() == false)
         {

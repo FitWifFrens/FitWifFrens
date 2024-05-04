@@ -2,6 +2,7 @@
 
 @attribute [Authorize]
 
+@using FitWifFrens.Web.Client.Pages
 @using FitWifFrens.Web.Components.Account
 @using FitWifFrens.Data
 @using Microsoft.AspNetCore.Authorization
@@ -12,26 +13,63 @@
 
 <PageTitle>Commitment</PageTitle>
 
+<style>
+    .bg-image {
+        height: 100%;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
+    }
 
-@if (_users != null)
+    .bg-text {
+        color: white;
+        font-weight: bold;
+        line-height: 2;
+        z-index: 2;
+    }
+</style>
+
+
+@if (_commitment != null)
 {
-    <table class="table">
-        <thead>
-            <tr>
-                <th>WorldId</th>
-                <th>Distributed Amount</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var user in _users)
-            {
+@*     <div class="row">
+        <div class="col-sm-12 bg-image" style="background-image:url('@_commitment.Image')">
+            <h3 class="bg-text">@_commitment.Title</h3>
+            <p>@_commitment.Description</p>
+        </div>
+    </div>
+ *@
+    @if (!_commitment.Complete)
+    {
+        <div>
+            <div class="col-sm-12">
+                <Commit WorldId="@_worldId" ContractAddress="@_commitment.ContractAddress"></Commit>
+            </div>
+        </div>
+    }
+    else
+    {
+        @if (_users != null)
+        {
+            <table class="table">
+                <thead>
                 <tr>
-                    <td>@user.WorldId</td>
-                    <td>@user.DistributedAmount</td>
+                    <th>WorldId</th>
+                    <th>Distributed Amount</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+                </thead>
+                <tbody>
+                @foreach (var user in _users)
+                {
+                    <tr>
+                        <td>@user.WorldId</td>
+                        <td>@user.DistributedAmount</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    }
 }
 
 @code {
@@ -39,14 +77,39 @@
     [Parameter]
     public Guid CommitmentId { get; set; }
 
+    private string _worldId;
+
+    private CommitmentData? _commitment;
+
     private List<CommittedUserData>? _users;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
+        var user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+
+        var userCommitments = await DataContext.CommittedUsers.Where(cu => cu.UserId == user.Id).ToListAsync();
+
+        var userLogins = await DataContext.UserLogins.Where(cu => cu.UserId == user.Id).ToListAsync();
+
+        _worldId = userLogins.Single(l => l.LoginProvider == "WorldId").ProviderKey;
+
         var commitment = await DataContext.Commitments
             .Include(c => c.Providers)
             .Include(c => c.Users).ThenInclude(u => u.User.Logins)
             .SingleAsync(c => c.Id == CommitmentId);
+
+        _commitment = new CommitmentData
+            {
+                Id = commitment.Id,
+                Title = commitment.Title,
+                Description = commitment.Description,
+                Image = commitment.Image,
+                ContractAddress = commitment.ContractAddress,
+                Complete = commitment.Complete
+            };
 
         _users = commitment.Users.Select(u => new CommittedUserData
             {
@@ -54,6 +117,23 @@
                 Transaction = u.Transaction,
                 DistributedAmount = u.DistributedAmount
             }).ToList();
+    }
+
+    private class CommitmentData
+    {
+        public Guid Id { get; set; }
+
+        public string Title { get; set; }
+        public string Description { get; set; }
+        public string Image { get; set; }
+
+        public string ContractAddress { get; set; }
+
+        public bool Complete { get; set; }
+
+        public bool Committed { get; set; }
+        public bool HasRequiredProviders { get; set; }
+        public string[] MissingProviders { get; set; }
     }
 
     private class CommittedUserData

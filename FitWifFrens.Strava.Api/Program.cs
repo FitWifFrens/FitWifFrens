@@ -26,18 +26,17 @@ var id = new[]
 
 app.MapGet("/stravaactivity/{worldId}", (string worldId) =>
 {
-    var activity =  new StravaActivity
+    var activity = new StravaActivity
     (
         worldId,
-        Random.Shared.Next(2, 7),
-        Random.Shared.Next(20, 120)
+        Enumerable.Range(0, 4).Where(x => Random.Shared.Next(0, 10) < 5).ToArray()
      );
     return activity;
 });
 
 app.Run();
 
-internal record StravaActivity(string Id, int NumberOfActivity, int MinuteOfActivity)
+internal record StravaActivity(string Id, int[] Successes)
 {
 
 }
