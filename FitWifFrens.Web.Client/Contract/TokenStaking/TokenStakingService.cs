@@ -100,6 +100,45 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
             return ContractHandler.QueryAsync<AllowWithdrawFunction, bool>(null, blockParameter);
         }
 
+        public Task<string> BytesToStringQueryAsync(BytesToStringFunction bytesToStringFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<BytesToStringFunction, string>(bytesToStringFunction, blockParameter);
+        }
+
+        
+        public Task<string> BytesToStringQueryAsync(byte[] data, BlockParameter blockParameter = null)
+        {
+            var bytesToStringFunction = new BytesToStringFunction();
+                bytesToStringFunction.Data = data;
+            
+            return ContractHandler.QueryAsync<BytesToStringFunction, string>(bytesToStringFunction, blockParameter);
+        }
+
+        public Task<List<BigInteger>> BytesToUintArrayQueryAsync(BytesToUintArrayFunction bytesToUintArrayFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<BytesToUintArrayFunction, List<BigInteger>>(bytesToUintArrayFunction, blockParameter);
+        }
+
+        
+        public Task<List<BigInteger>> BytesToUintArrayQueryAsync(byte[] data, BlockParameter blockParameter = null)
+        {
+            var bytesToUintArrayFunction = new BytesToUintArrayFunction();
+                bytesToUintArrayFunction.Data = data;
+            
+            return ContractHandler.QueryAsync<BytesToUintArrayFunction, List<BigInteger>>(bytesToUintArrayFunction, blockParameter);
+        }
+
+        public Task<string> ChallengeNameQueryAsync(ChallengeNameFunction challengeNameFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<ChallengeNameFunction, string>(challengeNameFunction, blockParameter);
+        }
+
+        
+        public Task<string> ChallengeNameQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<ChallengeNameFunction, string>(null, blockParameter);
+        }
+
         public Task<BigInteger> ChallengerCountQueryAsync(ChallengerCountFunction challengerCountFunction, BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<ChallengerCountFunction, BigInteger>(challengerCountFunction, blockParameter);
@@ -111,24 +150,15 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
             return ContractHandler.QueryAsync<ChallengerCountFunction, BigInteger>(null, blockParameter);
         }
 
-        public Task<string> CheckResultsRequestAsync(CheckResultsFunction checkResultsFunction)
+        public Task<bool> CheckResultsQueryAsync(CheckResultsFunction checkResultsFunction, BlockParameter blockParameter = null)
         {
-             return ContractHandler.SendRequestAsync(checkResultsFunction);
+            return ContractHandler.QueryAsync<CheckResultsFunction, bool>(checkResultsFunction, blockParameter);
         }
 
-        public Task<string> CheckResultsRequestAsync()
+        
+        public Task<bool> CheckResultsQueryAsync(BlockParameter blockParameter = null)
         {
-             return ContractHandler.SendRequestAsync<CheckResultsFunction>();
-        }
-
-        public Task<TransactionReceipt> CheckResultsRequestAndWaitForReceiptAsync(CheckResultsFunction checkResultsFunction, CancellationTokenSource cancellationToken = null)
-        {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(checkResultsFunction, cancellationToken);
-        }
-
-        public Task<TransactionReceipt> CheckResultsRequestAndWaitForReceiptAsync(CancellationTokenSource cancellationToken = null)
-        {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync<CheckResultsFunction>(null, cancellationToken);
+            return ContractHandler.QueryAsync<CheckResultsFunction, bool>(null, blockParameter);
         }
 
         public Task<string> CreatePledgeRequestAsync(CreatePledgeFunction createPledgeFunction)
@@ -292,6 +322,31 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
             return ContractHandler.QueryAsync<HasStakedFunction, bool>(hasStakedFunction, blockParameter);
         }
 
+        public Task<string> LastSuccessfulIndicesQueryAsync(LastSuccessfulIndicesFunction lastSuccessfulIndicesFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<LastSuccessfulIndicesFunction, string>(lastSuccessfulIndicesFunction, blockParameter);
+        }
+
+        
+        public Task<string> LastSuccessfulIndicesQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<LastSuccessfulIndicesFunction, string>(null, blockParameter);
+        }
+
+        public Task<List<BigInteger>> ParseStringToArrayQueryAsync(ParseStringToArrayFunction parseStringToArrayFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<ParseStringToArrayFunction, List<BigInteger>>(parseStringToArrayFunction, blockParameter);
+        }
+
+        
+        public Task<List<BigInteger>> ParseStringToArrayQueryAsync(string str, BlockParameter blockParameter = null)
+        {
+            var parseStringToArrayFunction = new ParseStringToArrayFunction();
+                parseStringToArrayFunction.Str = str;
+            
+            return ContractHandler.QueryAsync<ParseStringToArrayFunction, List<BigInteger>>(parseStringToArrayFunction, blockParameter);
+        }
+
         public Task<string> ParticipantsQueryAsync(ParticipantsFunction participantsFunction, BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<ParticipantsFunction, string>(participantsFunction, blockParameter);
@@ -438,6 +493,32 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
              return ContractHandler.SendRequestAndWaitForReceiptAsync(setAllResultFunction, cancellationToken);
         }
 
+        public Task<string> SetLastSuccessfulIndicesRequestAsync(SetLastSuccessfulIndicesFunction setLastSuccessfulIndicesFunction)
+        {
+             return ContractHandler.SendRequestAsync(setLastSuccessfulIndicesFunction);
+        }
+
+        public Task<TransactionReceipt> SetLastSuccessfulIndicesRequestAndWaitForReceiptAsync(SetLastSuccessfulIndicesFunction setLastSuccessfulIndicesFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setLastSuccessfulIndicesFunction, cancellationToken);
+        }
+
+        public Task<string> SetLastSuccessfulIndicesRequestAsync(string successfulIndices)
+        {
+            var setLastSuccessfulIndicesFunction = new SetLastSuccessfulIndicesFunction();
+                setLastSuccessfulIndicesFunction.SuccessfulIndices = successfulIndices;
+            
+             return ContractHandler.SendRequestAsync(setLastSuccessfulIndicesFunction);
+        }
+
+        public Task<TransactionReceipt> SetLastSuccessfulIndicesRequestAndWaitForReceiptAsync(string successfulIndices, CancellationTokenSource cancellationToken = null)
+        {
+            var setLastSuccessfulIndicesFunction = new SetLastSuccessfulIndicesFunction();
+                setLastSuccessfulIndicesFunction.SuccessfulIndices = successfulIndices;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setLastSuccessfulIndicesFunction, cancellationToken);
+        }
+
         public Task<string> SetResultRequestAsync(SetResultFunction setResultFunction)
         {
              return ContractHandler.SendRequestAsync(setResultFunction);
@@ -506,6 +587,17 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
                 supportsInterfaceFunction.InterfaceId = interfaceId;
             
             return ContractHandler.QueryAsync<SupportsInterfaceFunction, bool>(supportsInterfaceFunction, blockParameter);
+        }
+
+        public Task<List<BigInteger>> TestParseStringToArrayQueryAsync(TestParseStringToArrayFunction testParseStringToArrayFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<TestParseStringToArrayFunction, List<BigInteger>>(testParseStringToArrayFunction, blockParameter);
+        }
+
+        
+        public Task<List<BigInteger>> TestParseStringToArrayQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<TestParseStringToArrayFunction, List<BigInteger>>(null, blockParameter);
         }
 
         public Task<BigInteger> TotalStakedQueryAsync(TotalStakedFunction totalStakedFunction, BlockParameter blockParameter = null)
@@ -596,6 +688,9 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
                 typeof(ManagerRoleFunction),
                 typeof(TokenAddressFunction),
                 typeof(AllowWithdrawFunction),
+                typeof(BytesToStringFunction),
+                typeof(BytesToUintArrayFunction),
+                typeof(ChallengeNameFunction),
                 typeof(ChallengerCountFunction),
                 typeof(CheckResultsFunction),
                 typeof(CreatePledgeFunction),
@@ -607,6 +702,8 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
                 typeof(GrantRoleFunction),
                 typeof(HasRoleFunction),
                 typeof(HasStakedFunction),
+                typeof(LastSuccessfulIndicesFunction),
+                typeof(ParseStringToArrayFunction),
                 typeof(ParticipantsFunction),
                 typeof(PendingResultsFunction),
                 typeof(RenounceRoleFunction),
@@ -615,10 +712,12 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
                 typeof(RewardTokensFunction),
                 typeof(RewardsPoolFunction),
                 typeof(SetAllResultFunction),
+                typeof(SetLastSuccessfulIndicesFunction),
                 typeof(SetResultFunction),
                 typeof(StakeCompleteFunction),
                 typeof(StakedTokensFunction),
                 typeof(SupportsInterfaceFunction),
+                typeof(TestParseStringToArrayFunction),
                 typeof(TotalStakedFunction),
                 typeof(UniqueIDUsedFunction),
                 typeof(UniqueIDmapFunction),
@@ -631,6 +730,7 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
         {
             return new List<Type>
             {
+                typeof(FitResultsEventDTO),
                 typeof(RoleAdminChangedEventDTO),
                 typeof(RoleGrantedEventDTO),
                 typeof(RoleRevokedEventDTO)

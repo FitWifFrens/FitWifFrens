@@ -30,6 +30,8 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
         public virtual BigInteger ActivityThreshold { get; set; }
         [Parameter("uint256", "_minuteThreshold", 3)]
         public virtual BigInteger MinuteThreshold { get; set; }
+        [Parameter("string", "_challengeName", 4)]
+        public virtual string ChallengeName { get; set; }
     }
 
     public partial class DefaultAdminRoleFunction : DefaultAdminRoleFunctionBase { }
@@ -72,6 +74,32 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
 
     }
 
+    public partial class BytesToStringFunction : BytesToStringFunctionBase { }
+
+    [Function("bytesToString", "string")]
+    public class BytesToStringFunctionBase : FunctionMessage
+    {
+        [Parameter("bytes", "data", 1)]
+        public virtual byte[] Data { get; set; }
+    }
+
+    public partial class BytesToUintArrayFunction : BytesToUintArrayFunctionBase { }
+
+    [Function("bytesToUintArray", "uint256[]")]
+    public class BytesToUintArrayFunctionBase : FunctionMessage
+    {
+        [Parameter("bytes", "data", 1)]
+        public virtual byte[] Data { get; set; }
+    }
+
+    public partial class ChallengeNameFunction : ChallengeNameFunctionBase { }
+
+    [Function("challengeName", "string")]
+    public class ChallengeNameFunctionBase : FunctionMessage
+    {
+
+    }
+
     public partial class ChallengerCountFunction : ChallengerCountFunctionBase { }
 
     [Function("challengerCount", "uint256")]
@@ -82,7 +110,7 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
 
     public partial class CheckResultsFunction : CheckResultsFunctionBase { }
 
-    [Function("checkResults")]
+    [Function("checkResults", "bool")]
     public class CheckResultsFunctionBase : FunctionMessage
     {
 
@@ -171,6 +199,23 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
         public virtual string ReturnValue1 { get; set; }
     }
 
+    public partial class LastSuccessfulIndicesFunction : LastSuccessfulIndicesFunctionBase { }
+
+    [Function("lastSuccessfulIndices", "string")]
+    public class LastSuccessfulIndicesFunctionBase : FunctionMessage
+    {
+
+    }
+
+    public partial class ParseStringToArrayFunction : ParseStringToArrayFunctionBase { }
+
+    [Function("parseStringToArray", "uint256[]")]
+    public class ParseStringToArrayFunctionBase : FunctionMessage
+    {
+        [Parameter("string", "str", 1)]
+        public virtual string Str { get; set; }
+    }
+
     public partial class ParticipantsFunction : ParticipantsFunctionBase { }
 
     [Function("participants", "address")]
@@ -245,6 +290,15 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
         public virtual List<BigInteger> SuccessfulIndices { get; set; }
     }
 
+    public partial class SetLastSuccessfulIndicesFunction : SetLastSuccessfulIndicesFunctionBase { }
+
+    [Function("setLastSuccessfulIndices")]
+    public class SetLastSuccessfulIndicesFunctionBase : FunctionMessage
+    {
+        [Parameter("string", "_successfulIndices", 1)]
+        public virtual string SuccessfulIndices { get; set; }
+    }
+
     public partial class SetResultFunction : SetResultFunctionBase { }
 
     [Function("setResult")]
@@ -281,6 +335,14 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
     {
         [Parameter("bytes4", "interfaceId", 1)]
         public virtual byte[] InterfaceId { get; set; }
+    }
+
+    public partial class TestParseStringToArrayFunction : TestParseStringToArrayFunctionBase { }
+
+    [Function("testParseStringToArray", "uint256[]")]
+    public class TestParseStringToArrayFunctionBase : FunctionMessage
+    {
+
     }
 
     public partial class TotalStakedFunction : TotalStakedFunctionBase { }
@@ -323,6 +385,15 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
     public class WithdrawRewardsFunctionBase : FunctionMessage
     {
 
+    }
+
+    public partial class FitResultsEventDTO : FitResultsEventDTOBase { }
+
+    [Event("FitResults")]
+    public class FitResultsEventDTOBase : IEventDTO
+    {
+        [Parameter("string", "successes", 1, false )]
+        public virtual string Successes { get; set; }
     }
 
     public partial class RoleAdminChangedEventDTO : RoleAdminChangedEventDTOBase { }
@@ -419,6 +490,33 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
         public virtual bool ReturnValue1 { get; set; }
     }
 
+    public partial class BytesToStringOutputDTO : BytesToStringOutputDTOBase { }
+
+    [FunctionOutput]
+    public class BytesToStringOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("string", "", 1)]
+        public virtual string ReturnValue1 { get; set; }
+    }
+
+    public partial class BytesToUintArrayOutputDTO : BytesToUintArrayOutputDTOBase { }
+
+    [FunctionOutput]
+    public class BytesToUintArrayOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("uint256[]", "", 1)]
+        public virtual List<BigInteger> ReturnValue1 { get; set; }
+    }
+
+    public partial class ChallengeNameOutputDTO : ChallengeNameOutputDTOBase { }
+
+    [FunctionOutput]
+    public class ChallengeNameOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("string", "", 1)]
+        public virtual string ReturnValue1 { get; set; }
+    }
+
     public partial class ChallengerCountOutputDTO : ChallengerCountOutputDTOBase { }
 
     [FunctionOutput]
@@ -428,7 +526,14 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
         public virtual BigInteger ReturnValue1 { get; set; }
     }
 
+    public partial class CheckResultsOutputDTO : CheckResultsOutputDTOBase { }
 
+    [FunctionOutput]
+    public class CheckResultsOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("bool", "result", 1)]
+        public virtual bool Result { get; set; }
+    }
 
 
 
@@ -481,6 +586,24 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
     {
         [Parameter("bool", "", 1)]
         public virtual bool ReturnValue1 { get; set; }
+    }
+
+    public partial class LastSuccessfulIndicesOutputDTO : LastSuccessfulIndicesOutputDTOBase { }
+
+    [FunctionOutput]
+    public class LastSuccessfulIndicesOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("string", "", 1)]
+        public virtual string ReturnValue1 { get; set; }
+    }
+
+    public partial class ParseStringToArrayOutputDTO : ParseStringToArrayOutputDTOBase { }
+
+    [FunctionOutput]
+    public class ParseStringToArrayOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("uint256[]", "", 1)]
+        public virtual List<BigInteger> ReturnValue1 { get; set; }
     }
 
     public partial class ParticipantsOutputDTO : ParticipantsOutputDTOBase { }
@@ -536,6 +659,8 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
 
 
 
+
+
     public partial class StakeCompleteOutputDTO : StakeCompleteOutputDTOBase { }
 
     [FunctionOutput]
@@ -561,6 +686,15 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
     {
         [Parameter("bool", "", 1)]
         public virtual bool ReturnValue1 { get; set; }
+    }
+
+    public partial class TestParseStringToArrayOutputDTO : TestParseStringToArrayOutputDTOBase { }
+
+    [FunctionOutput]
+    public class TestParseStringToArrayOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("uint256[]", "", 1)]
+        public virtual List<BigInteger> ReturnValue1 { get; set; }
     }
 
     public partial class TotalStakedOutputDTO : TotalStakedOutputDTOBase { }
