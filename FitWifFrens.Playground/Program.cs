@@ -10,9 +10,11 @@ namespace FitWifFrens.Playground
         {
             var builder = Host.CreateApplicationBuilder(args);
 
+            builder.Configuration.AddUserSecrets<Program>();
+
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
             builder.Services.AddDbContext<DataContext>(options =>
-                options.UseSqlServer(connectionString));
+                options.UseNpgsql(connectionString, o => o.SetPostgresVersion(11, 0)));
 
             builder.Services.AddIdentityCore<User>(options => options.SignIn.RequireConfirmedAccount = false)
                 .AddEntityFrameworkStores<DataContext>()
