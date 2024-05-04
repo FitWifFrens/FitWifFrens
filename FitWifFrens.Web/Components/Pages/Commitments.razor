@@ -1,10 +1,12 @@
 ﻿@page "/Commitments"
 @attribute [Authorize]
 
+@using FitWifFrens.Web.Client.Pages
 @using Microsoft.AspNetCore.Authorization
 @using FitWifFrens.Data
 @using FitWifFrens.Web.Components.Account
 @using Microsoft.EntityFrameworkCore
+@using System.Security.Claims
 
 @inject IdentityUserAccessor UserAccessor
 @inject DataContext DataContext
@@ -29,12 +31,11 @@
                         <p class="card-text">@commitment.Description</p>
                         @if (commitment.Committed)
                         {
-                            <a href="/Commit/@commitment.ContractAddress" class="btn btn-secondary">View</a>
+                            <a href="/Commit/@_worldId/@commitment.ContractAddress" class="btn btn-secondary">View</a>
                         }
                         else if (commitment.HasRequiredProviders)
-
                         {
-                            <a href="/Commit/@commitment.ContractAddress" class="btn btn-primary">Commit</a>
+                            <CommitButton WorldId="@_worldId" ContractAddress="@commitment.ContractAddress"></CommitButton>
                         }
                         else if (commitment.MissingProviders.Length == 1)
                         {
@@ -73,12 +74,13 @@
 }
 
 @code {
+    private string _worldId;
 
     private List<CommitmentData>? _commitments;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
-
+    
     protected override async Task OnInitializedAsync()
     {
         var user = await UserAccessor.GetRequiredUserAsync(HttpContext);
@@ -86,6 +88,8 @@
         var userCommitments = await DataContext.CommittedUsers.Where(cu => cu.UserId == user.Id).ToListAsync();
 
         var userLogins = await DataContext.UserLogins.Where(cu => cu.UserId == user.Id).ToListAsync();
+
+        _worldId = userLogins.Single(l => l.LoginProvider == "WorldId").ProviderKey;
 
         var commitments = await DataContext.Commitments.Include(c => c.Providers).ToListAsync();
 

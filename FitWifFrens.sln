@@ -15,7 +15,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FitWifFrens.Playground", "F
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FitWifFrens.Background", "FitWifFrens.Background\FitWifFrens.Background.csproj", "{4523AE0A-290F-4F16-B95A-7D8D19CE7507}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FitWifFrens.Strava.Api", "FitWifFrens.Strava.Api\FitWifFrens.Strava.Api.csproj", "{0349A459-13D3-4C92-A295-8F0BB3C3FB3B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FitWifFrens.Strava.Api", "FitWifFrens.Strava.Api\FitWifFrens.Strava.Api.csproj", "{0349A459-13D3-4C92-A295-8F0BB3C3FB3B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

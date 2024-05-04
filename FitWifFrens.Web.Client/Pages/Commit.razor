@@ -1,4 +1,4 @@
-﻿@page "/Commit/{ContractAddress}"
+﻿@page "/Commit/{WorldId}/{ContractAddress}"
 @attribute [Authorize]
 @rendermode @(new InteractiveWebAssemblyRenderMode(prerender:false))
 
@@ -24,7 +24,7 @@
                 <div class="card-body">
                     <div class="row">
                         <label class="col-sm-4 col-form-label-md">Connect to Base Sepolia</label>
-                        <div class="col-sm-6">
+                        <div class="col-sm-8">
                             <button @onclick="@AddChain">Add Chain (Base Sepolia)</button>
                         </div>
                     </div>
@@ -36,8 +36,17 @@
             <div class="card m-1">
                 <div class="card-body">
                     <div class="row">
+                        <label class="col-sm-4 col-form-label-md">WorldId:</label>
+                        <div class="col-sm-8">
+                            @WorldId
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="row">
                         <label class="col-sm-4 col-form-label-md">Selected Account:</label>
-                        <div class="col-sm-6">
+                        <div class="col-sm-8">
                             @SelectedAccount
                             <small id="selectedAccountHelp" class="form-text text-muted">The selected account is bound to the host (ie Metamask) on change</small>
                         </div>
@@ -47,7 +56,7 @@
                 <div class="card-body">
                     <div class="row">
                         <label class="col-sm-4 col-form-label-md">Selected Network ChainId:</label>
-                        <div class="col-sm-6">
+                        <div class="col-sm-8">
                             @SelectedChainId
                             <small id="selectedAccountHelp" class="form-text text-muted">The selected chain Id</small>
                         </div>
@@ -59,7 +68,7 @@
                 <div class="card-body">
                     <div class="row">
                         <label class="col-sm-4 col-form-label-md">Block hash of block number 0:</label>
-                        <div class="col-sm-6">
+                        <div class="col-sm-8">
                             <button @onclick="@GetBlockHashAsync">Get BlockHash</button>
                             <div>@BlockHash</div>
                             <small id="selectedAccountHelp" class="form-text text-muted">With Metamask calls are redirected to its configured node (i.e http://localhost:8545)</small>
@@ -74,7 +83,7 @@
                     <div class="card-body">
                         <div class="row">
                             <label class="col-sm-4 col-form-label-md">Total Staked FitDollar:</label>
-                            <div class="col-sm-6">
+                            <div class="col-sm-8">
                                 @TotalStaked
                             </div>
                         </div>
@@ -86,7 +95,7 @@
                 <div class="card-body">
                     <div class="row">
                         <label class="col-sm-4 col-form-label-md">Stake FitDollar:</label>
-                        <div class="col-sm-6">
+                        <div class="col-sm-8">
                             <button @onclick="@StakeFitDollar">Stake</button>
                         </div>
                     </div>
@@ -103,6 +112,8 @@
 </AuthorizeView>
 
 @code {
+    [Parameter]
+    public string WorldId { get; set; }
 
     [Parameter]
     public string ContractAddress { get; set; }
@@ -171,8 +182,6 @@
 
         if (SelectedChainId == 84532)
         {
-            Console.WriteLine($"SelectedChainId {SelectedChainId}");
-
             await LoadStakingData();
         }
     }
@@ -213,7 +222,7 @@
 
         var tokenStakingService = new TokenStakingService(web3, ContractAddress);
 
-        var transactionReceipt = await tokenStakingService.StakeTokenRequestAndWaitForReceiptAsync(1);
+        var transactionReceipt = await tokenStakingService.CreatePledgeRequestAndWaitForReceiptAsync(1, WorldId);
 
         if (transactionReceipt.HasErrors() == false)
         {
