@@ -12,6 +12,7 @@
 
         public string ContractAddress { get; set; }
 
+        public bool Complete { get; set; }
 
         public ICollection<CommitmentProvider> Providers { get; set; }
 

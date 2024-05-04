@@ -5,7 +5,7 @@ namespace FitWifFrens.Playground
 {
     public class Service : IHostedService
     {
-        private readonly record struct NewUser(Guid Id, string Email, string WorldId, bool JoinCommitment);
+        private readonly record struct NewUser(Guid Id, string Email, string WorldId, bool CompletedOldCommitment, bool JoinNewCommitment);
 
         private readonly IUserStore<User> _userStore;
         private readonly DataContext _dataContext;
@@ -20,16 +20,37 @@ namespace FitWifFrens.Playground
         {
             var users = new List<NewUser>
             {
-                new NewUser(Guid.NewGuid(), "test1@gmail.com", "0x2fefb77e01d5019b7b2571b44d8cea84d0e1d83491d93ec3f9bb8871dedd7cdb", false),
-                new NewUser(Guid.NewGuid(), "test2@gmail.com", "0x1a66e7598f54a728f7db97983b226005aca9ecbc44928e519f0244a61303af20", true),
-                new NewUser(Guid.NewGuid(), "test3@gmail.com", "0x035646cc875f3b69fb4fbbb0e8a6f01805a52255d7619a0fddb71cea7ad49960", true),
+                new NewUser(Guid.NewGuid(), "test1@gmail.com", "0x2fefb77e01d5019b7b2571b44d8cea84d0e1d83491d93ec3f9bb8871dedd7cdb", true, false),
+                new NewUser(Guid.NewGuid(), "test2@gmail.com", "0x1a66e7598f54a728f7db97983b226005aca9ecbc44928e519f0244a61303af20", true, true),
+                new NewUser(Guid.NewGuid(), "test3@gmail.com", "0x035646cc875f3b69fb4fbbb0e8a6f01805a52255d7619a0fddb71cea7ad49960", false, true),
             };
 
-            var commitmentId = Guid.NewGuid();
+            var oldCommitmentId = Guid.NewGuid();
 
             _dataContext.Commitments.Add(new Commitment
             {
-                Id = commitmentId,
+                Id = oldCommitmentId,
+                Title = "60 minutes",
+                Description = "Record 2 activities on Strava with a total time of 60 minutes",
+                Image = "https://cdn.shopify.com/s/files/1/0942/6160/files/marathon-des-sables-desert-running.jpg?v=1531298303",
+                Amount = 2,
+                Complete = true,
+                ContractAddress = "981086bc-7147-4026-bae7-8f5828e90cdd",
+                Providers = new List<CommitmentProvider>
+                {
+                    new CommitmentProvider
+                    {
+                        ProviderName = "Strava"
+                    }
+                }
+            });
+
+
+            var newCommitmentId = Guid.NewGuid();
+
+            _dataContext.Commitments.Add(new Commitment
+            {
+                Id = newCommitmentId,
                 Title = "90 minutes",
                 Description = "Record 3 activities on Strava with a total time of 90 minutes",
                 Image = "https://cdn.shopify.com/s/files/1/0942/6160/files/running-facts-crazy.jpg?v=1531298463",
@@ -96,11 +117,32 @@ namespace FitWifFrens.Playground
                     UserId = newUser.Id.ToString()
                 });
 
-                if (newUser.JoinCommitment)
+                if (newUser.CompletedOldCommitment)
                 {
                     _dataContext.CommittedUsers.Add(new CommittedUser
                     {
-                        CommitmentId = commitmentId,
+                        CommitmentId = oldCommitmentId,
+                        UserId = newUser.Id.ToString(),
+                        Transaction = Guid.NewGuid().ToString(),
+                        DistributedAmount = 3
+                    });
+                }
+                else
+                {
+                    _dataContext.CommittedUsers.Add(new CommittedUser
+                    {
+                        CommitmentId = oldCommitmentId,
+                        UserId = newUser.Id.ToString(),
+                        Transaction = Guid.NewGuid().ToString(),
+                        DistributedAmount = 0
+                    });
+                }
+
+                if (newUser.JoinNewCommitment)
+                {
+                    _dataContext.CommittedUsers.Add(new CommittedUser
+                    {
+                        CommitmentId = newCommitmentId,
                         UserId = newUser.Id.ToString(),
                         Transaction = Guid.NewGuid().ToString()
                     });
