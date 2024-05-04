@@ -13,99 +13,77 @@
 @using FitWifFrens.Web.Client.Contract.TokenStaking
 @using Microsoft.AspNetCore.Authorization
 @using Nethereum.RPC.HostWallet
-@using Nethereum.Signer
-@using Nethereum.Signer.EIP712
+
 
 <AuthorizeView Roles="EthereumConnected">
     <Authorized>
-        <div class="card m-1">
-            <div class="card-body">
-                <div class="row">
-                    <label class="col-sm-3 col-form-label-lg">Selected Account:</label>
-                    <div class="col-sm-6">
-                        @SelectedAccount
-                        <small id="selectedAccountHelp" class="form-text text-muted">The selected account is bound to the host (ie Metamask) on change</small>
-                    </div>
-                </div>
-                 <div class="row">
-                    <label class="col-sm-3 col-form-label-lg">Selected Account from Claims Principal</label>
-                    <div class="col-sm-6">
-                        @context?.User?.FindFirst(c => c.Type.Contains(ClaimTypes.NameIdentifier))?.Value
-                        <small id="selectedAccountHelp" class="form-text text-muted">The selected account is bound to the claims principal</small>
+        @if (SelectedChainId != 84532)
+        {
+            <div class="card m-1">
+                <div class="card-body">
+                    <div class="row">
+                        <label class="col-sm-4 col-form-label-md">Connect to Base Sepolia</label>
+                        <div class="col-sm-6">
+                            <button @onclick="@AddChain">Add Chain (Base Sepolia)</button>
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <div class="card-body">
-                <div class="row">
-                    <label class="col-sm-3 col-form-label-lg">Selected Network ChainId:</label>
-                    <div class="col-sm-6">
-                        @SelectedChainId
-                        <small id="selectedAccountHelp" class="form-text text-muted">The selected chain Id</small>
+        }
+        else
+        {
+            <div class="card m-1">
+                <div class="card-body">
+                    <div class="row">
+                        <label class="col-sm-4 col-form-label-md">Selected Account:</label>
+                        <div class="col-sm-6">
+                            @SelectedAccount
+                            <small id="selectedAccountHelp" class="form-text text-muted">The selected account is bound to the host (ie Metamask) on change</small>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <div class="card m-1">
-            <div class="card-body">
-                <div class="row">
-                    <label class="col-sm-3 col-form-label-lg">Block hash of block number 0:</label>
-                    <div class="col-sm-6">
-                        <button @onclick="@GetBlockHashAsync">Get BlockHash</button>
-                        <div>@BlockHash</div>
-                        <small id="selectedAccountHelp" class="form-text text-muted">With Metamask calls are redirected to its configured node (i.e http://localhost:8545)</small>
+                <div class="card-body">
+                    <div class="row">
+                        <label class="col-sm-4 col-form-label-md">Selected Network ChainId:</label>
+                        <div class="col-sm-6">
+                            @SelectedChainId
+                            <small id="selectedAccountHelp" class="form-text text-muted">The selected chain Id</small>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <Erc20Transfer></Erc20Transfer>
 
-        <div class="card m-1">
-            <div class="card-body">
-                <div class="row">
-                    <label class="col-sm-3 col-form-label-lg">Sign Typed Data V4:</label>
-                    <div class="col-sm-6">
-                        <button @onclick="@SignV4">Sign</button>
-                        <div>@RecoveredAccount</div>
-                        <small id="selectedAccountHelp" class="form-text text-muted">Coverts Typed data to Json and sends it to Metamask to sign it, then uses Nethereum to recover the address</small>
+            <div class="card m-1">
+                <div class="card-body">
+                    <div class="row">
+                        <label class="col-sm-4 col-form-label-md">Block hash of block number 0:</label>
+                        <div class="col-sm-6">
+                            <button @onclick="@GetBlockHashAsync">Get BlockHash</button>
+                            <div>@BlockHash</div>
+                            <small id="selectedAccountHelp" class="form-text text-muted">With Metamask calls are redirected to its configured node (i.e http://localhost:8545)</small>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="card m-1">
-            <div class="card-body">
-                <div class="row">
-                    <label class="col-sm-3 col-form-label-lg">Sign Message</label>
-                    <div class="col-sm-6">
-                        <button @onclick="@SignAMessage">Sign</button>
-                        <div>@RecoveredAccountMessage</div>
-                        <small id="selectedAccountHelp" class="form-text text-muted">Signs using personal_sign and recovers using Nethereum</small>
+            <div class="card m-1">
+                <div class="card-body">
+                    <div class="row">
+                        <label class="col-sm-4 col-form-label-md">Stake FitDollar:</label>
+                        <div class="col-sm-6">
+                            <button @onclick="@StakeFitDollar">Stake</button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        }
 
-        <div class="card m-1">
-            <div class="card-body">
-                <div class="row">
-                    <label class="col-sm-3 col-form-label-lg">Add Chain</label>
-                    <div class="col-sm-6">
-                        <button @onclick="@AddChain">Add Chain (Optimism)</button>
-                        
-                        <small id="selectedAccountHelp" class="form-text text-muted">Adds a new chain (Optimism) to Metamask</small>
-                    </div>
-                </div>
-            </div>
-        </div>
     </Authorized>
     <NotAuthorized>
-
         <div>
             Please connect to Ethereum !
         </div>
-
     </NotAuthorized>
 </AuthorizeView>
 
@@ -125,8 +103,6 @@
     string ErrorTransferMessage { get; set; }
     string ErrorAuthenticateMessage { get; set; }
     string UserName { get; set; }
-    string RecoveredAccount { get; set; }
-    string RecoveredAccountMessage { get; set; }
     protected string AuthenticatedAccount { get; set; }
     IEthereumHostProvider _ethereumHostProvider;
 
@@ -148,7 +124,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        
+
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -204,18 +180,12 @@
         BlockHash = block.BlockHash;
     }
 
-    protected async Task SignAMessage()
-    {
-        RecoveredAccountMessage = "";
-        var web3 = await _ethereumHostProvider.GetWeb3Async();
-        var signature = await web3.Eth.AccountSigning.PersonalSign.SendRequestAsync(new HexUTF8String("Hello"));
-        RecoveredAccountMessage = new EthereumMessageSigner().EncodeUTF8AndEcRecover("Hello", signature);
-    }
 
     protected async Task AddChain()
     {
         var web3 = await _ethereumHostProvider.GetWeb3Async();
-        var optimismChain = new AddEthereumChainParameter() {
+        var optimismChain = new AddEthereumChainParameter()
+            {
                 ChainId = new HexBigInteger(84532),
                 ChainName = "Base Sepolia",
                 NativeCurrency = new NativeCurrency()
@@ -231,13 +201,13 @@
         {
             var result = await web3.Eth.HostWallet.AddEthereumChain.SendRequestAsync(optimismChain);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
-            
+
         }
     }
 
-    protected async Task SignV4()
+    protected async Task StakeFitDollar()
     {
         var web3 = await _ethereumHostProvider.GetWeb3Async();
 
@@ -247,10 +217,7 @@
 
         Console.WriteLine($"TotalStaked {x}");
 
-
         var x1 = await tokenStakingService.StakeTokenRequestAsync(1);
-
-
     }
 
 }
