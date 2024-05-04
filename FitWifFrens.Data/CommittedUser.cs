@@ -9,5 +9,7 @@
         public User User { get; set; }
 
         public string Transaction { get; set; }
+
+        public int DistributedAmount { get; set; }
     }
 }

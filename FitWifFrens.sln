@@ -7,13 +7,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FitWifFrens.Web", "FitWifFr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FitWifFrens.Web.Client", "FitWifFrens.Web.Client\FitWifFrens.Web.Client.csproj", "{F823A22A-763D-4632-B49E-4B9184656691}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspNet.Security.OAuth.WorldId", "AspNet.Security.OAuth.WorldId\AspNet.Security.OAuth.WorldId.csproj", "{01D39F94-A95B-4E24-8546-8D86658C4E9D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspNet.Security.OAuth.WorldId", "AspNet.Security.OAuth.WorldId\AspNet.Security.OAuth.WorldId.csproj", "{01D39F94-A95B-4E24-8546-8D86658C4E9D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FitWifFrens.Data", "FitWifFrens.Data\FitWifFrens.Data.csproj", "{198BFBB2-C032-4440-B5B5-546168C21587}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FitWifFrens.Data", "FitWifFrens.Data\FitWifFrens.Data.csproj", "{198BFBB2-C032-4440-B5B5-546168C21587}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FitWifFrens.Playground", "FitWifFrens.Playground\FitWifFrens.Playground.csproj", "{51417D4A-2C22-4AEB-873C-6590AB56F5B7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FitWifFrens.Playground", "FitWifFrens.Playground\FitWifFrens.Playground.csproj", "{51417D4A-2C22-4AEB-873C-6590AB56F5B7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FitWifFrens.Background", "FitWifFrens.Background\FitWifFrens.Background.csproj", "{4523AE0A-290F-4F16-B95A-7D8D19CE7507}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FitWifFrens.Background", "FitWifFrens.Background\FitWifFrens.Background.csproj", "{4523AE0A-290F-4F16-B95A-7D8D19CE7507}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FitWifFrens.Strava.Api", "FitWifFrens.Strava.Api\FitWifFrens.Strava.Api.csproj", "{0349A459-13D3-4C92-A295-8F0BB3C3FB3B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,10 @@ Global
 		{4523AE0A-290F-4F16-B95A-7D8D19CE7507}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4523AE0A-290F-4F16-B95A-7D8D19CE7507}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4523AE0A-290F-4F16-B95A-7D8D19CE7507}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0349A459-13D3-4C92-A295-8F0BB3C3FB3B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0349A459-13D3-4C92-A295-8F0BB3C3FB3B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0349A459-13D3-4C92-A295-8F0BB3C3FB3B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0349A459-13D3-4C92-A295-8F0BB3C3FB3B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

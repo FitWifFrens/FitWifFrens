@@ -16,7 +16,12 @@
 @if (_commitments != null)
 {
     <div class="row">
-        @foreach (var commitment in _commitments)
+        <div class="col">
+            <h3>Current Commitments</h3>
+        </div>
+    </div>
+    <div class="row">
+        @foreach (var commitment in _commitments.Where(c => !c.Complete))
         {
             <div class="col-sm-3">
                 <div class="card">
@@ -26,7 +31,7 @@
                         <p class="card-text">@commitment.Description</p>
                         @if (commitment.Committed == true)
                         {
-                            <a href="/Commit" class="btn btn-secondary">View</a>
+                            <a href="/Commit/@commitment.ContractAddress" class="btn btn-secondary">View</a>
                         }
                         else if (commitment.HasRequiredProviders == false && commitment.MissingProviders!.Length == 1)
                         {
@@ -38,12 +43,33 @@
                         }
                         else if (commitment.TotalCommitted <= 1)
                         {
-                            <a href="/Commit" class="btn btn-primary">Commit</a>
+                            <a href="/Commit/@commitment.ContractAddress" class="btn btn-primary">Commit</a>
                         }
                         else
                         {
-                            <a href="/Commit" class="btn btn-primary">Commit with @commitment.TotalCommitted others</a>
+                            <a href="/Commit/@commitment.ContractAddress" class="btn btn-primary">Commit with @commitment.TotalCommitted others</a>
                         }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="row mt-5">
+        <div class="col">
+            <h3>Previous Commitments</h3>
+        </div>
+    </div>
+    <div class="row">
+        @foreach (var commitment in _commitments.Where(c => c.Complete))
+        {
+            <div class="col-sm-3">
+                <div class="card">
+                    <img src="@commitment.Image" class="card-img-top" alt="@commitment.Title">
+                    <div class="card-body">
+                        <h5 class="card-title">@commitment.Title</h5>
+                        <p class="card-text">@commitment.Description</p>
+                        <a href="/Commitment/@commitment.Id" class="btn btn-secondary">View</a>
                     </div>
                 </div>
             </div>
@@ -74,6 +100,7 @@
                     Image = c.Image,
                     Amount = c.Amount,
                     ContractAddress = c.ContractAddress,
+                    Complete = c.Complete,
                     Committed = null,
                     HasRequiredProviders = null,
                     TotalCommitted = c.Users.Count
@@ -93,6 +120,7 @@
                     Image = c.Image,
                     Amount = c.Amount,
                     ContractAddress = c.ContractAddress,
+                    Complete = c.Complete,
                     Committed = userCommitments.Any(uc => uc.CommitmentId == c.Id),
                     TotalCommitted = c.Users.Count,
                     HasRequiredProviders = c.Providers.All(p => userLogins.Any(l => l.LoginProvider == p.ProviderName)),
@@ -115,6 +143,8 @@
         public int Amount { get; set; }
 
         public string ContractAddress { get; set; }
+
+        public bool Complete { get; set; }
 
         public bool? Committed { get; set; }
         public bool? HasRequiredProviders { get; set; }

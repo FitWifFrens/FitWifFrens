@@ -42,6 +42,10 @@ namespace FitWifFrens.Web
                     options.ClientId = builder.Configuration.GetValue<string>("Authentication:Strava:ClientId")!;
                     options.ClientSecret = builder.Configuration.GetValue<string>("Authentication:Strava:ClientSecret")!;
 
+                    options.Scope.Add("read_all");
+                    options.Scope.Add("profile:read_all");
+                    options.Scope.Add("activity:read_all");
+
                     options.SaveTokens = true;
                 })
                 .AddStackExchange(options =>
@@ -56,7 +60,7 @@ namespace FitWifFrens.Web
 
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
             builder.Services.AddDbContext<DataContext>(options =>
-                options.UseSqlServer(connectionString));
+                options.UseNpgsql(connectionString, o => o.SetPostgresVersion(11, 0)));
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
             builder.Services.AddIdentityCore<User>(options => options.SignIn.RequireConfirmedAccount = false)
