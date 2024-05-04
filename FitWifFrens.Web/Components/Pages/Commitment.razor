@@ -2,6 +2,7 @@
 
 @attribute [Authorize]
 
+@using FitWifFrens.Web.Client.Pages
 @using FitWifFrens.Web.Components.Account
 @using FitWifFrens.Data
 @using Microsoft.AspNetCore.Authorization
@@ -12,26 +13,95 @@
 
 <PageTitle>Commitment</PageTitle>
 
+<style>
+    .bg-image {
+        height: 100%;
+        width: 100%;
+        position: absolute;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
+        overflow: hidden;
+    }
 
-@if (_users != null)
+    .bg-overlay {
+        position: absolute;
+        height: 100%;
+        width: 100%;
+        background-color: #000;
+        opacity: 0.5;
+        overflow: hidden;
+    }
+
+    .bg-header {
+        color: white;
+        font-weight: bold;
+        line-height: 2;
+        z-index: 6;
+        position: relative;
+    }
+
+    .bg-text {
+        color: white;
+        line-height: 2;
+        z-index: 6;
+        position: relative
+    }
+</style>
+
+
+@if (_commitment != null)
 {
-    <table class="table">
-        <thead>
-            <tr>
-                <th>WorldId</th>
-                <th>Distributed Amount</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var user in _users)
-            {
-                <tr>
-                    <td>@user.WorldId</td>
-                    <td>@user.DistributedAmount</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <div class="card m-1" style="overflow: hidden;">
+        <div class="bg-image" style="background-image:url('@_commitment.Image')"></div>
+        <div class="bg-overlay"></div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-sm-12">
+                    <h2 class="bg-header">@_commitment.Title</h2>
+                    <p class="bg-text">@_commitment.Description</p>
+                    <p class="bg-text">Connects to <strong>@string.Join(", ", _commitment.Providers)</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!_commitment.Complete)
+    {
+
+        <div class="row">
+            <div class="col-sm-12">
+                <Commit WorldId="@_worldId" ContractAddress="@_commitment.ContractAddress"></Commit>
+            </div>
+        </div>
+    }
+    else
+    {
+        @if (_users != null)
+        {
+            <div class="card m-1">
+                <div class="card-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>WorldId</th>
+                                <th>Distributed Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var user in _users)
+                            {
+                                <tr>
+                                    <td>@user.WorldId</td>
+                                    <td>@user.DistributedAmount</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    }
 }
 
 @code {
@@ -39,14 +109,40 @@
     [Parameter]
     public Guid CommitmentId { get; set; }
 
+    private string _worldId;
+
+    private CommitmentData? _commitment;
+
     private List<CommittedUserData>? _users;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
+        var user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+
+        var userCommitments = await DataContext.CommittedUsers.Where(cu => cu.UserId == user.Id).ToListAsync();
+
+        var userLogins = await DataContext.UserLogins.Where(cu => cu.UserId == user.Id).ToListAsync();
+
+        _worldId = userLogins.Single(l => l.LoginProvider == "WorldId").ProviderKey;
+
         var commitment = await DataContext.Commitments
             .Include(c => c.Providers)
             .Include(c => c.Users).ThenInclude(u => u.User.Logins)
             .SingleAsync(c => c.Id == CommitmentId);
+
+        _commitment = new CommitmentData
+            {
+                Id = commitment.Id,
+                Title = commitment.Title,
+                Description = commitment.Description,
+                Image = commitment.Image,
+                ContractAddress = commitment.ContractAddress,
+                Complete = commitment.Complete,
+                Providers = commitment.Providers.Select(p => p.ProviderName).ToArray(),
+            };
 
         _users = commitment.Users.Select(u => new CommittedUserData
             {
@@ -54,6 +150,21 @@
                 Transaction = u.Transaction,
                 DistributedAmount = u.DistributedAmount
             }).ToList();
+    }
+
+    private class CommitmentData
+    {
+        public Guid Id { get; set; }
+
+        public string Title { get; set; }
+        public string Description { get; set; }
+        public string Image { get; set; }
+
+        public string ContractAddress { get; set; }
+
+        public bool Complete { get; set; }
+
+        public string[] Providers { get; set; }
     }
 
     private class CommittedUserData

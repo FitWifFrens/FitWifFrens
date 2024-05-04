@@ -36,6 +36,17 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
         {
         }
 
+        public Task<byte[]> DefaultAdminRoleQueryAsync(DefaultAdminRoleFunction defaultAdminRoleFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<DefaultAdminRoleFunction, byte[]>(defaultAdminRoleFunction, blockParameter);
+        }
+
+        
+        public Task<byte[]> DefaultAdminRoleQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<DefaultAdminRoleFunction, byte[]>(null, blockParameter);
+        }
+
         public Task<string> DistributeResultsBeginNextCycleRequestAsync(DistributeResultsBeginNextCycleFunction distributeResultsBeginNextCycleFunction)
         {
              return ContractHandler.SendRequestAsync(distributeResultsBeginNextCycleFunction);
@@ -56,6 +67,17 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
              return ContractHandler.SendRequestAndWaitForReceiptAsync<DistributeResultsBeginNextCycleFunction>(null, cancellationToken);
         }
 
+        public Task<byte[]> ManagerRoleQueryAsync(ManagerRoleFunction managerRoleFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<ManagerRoleFunction, byte[]>(managerRoleFunction, blockParameter);
+        }
+
+        
+        public Task<byte[]> ManagerRoleQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<ManagerRoleFunction, byte[]>(null, blockParameter);
+        }
+
         public Task<string> TokenAddressQueryAsync(TokenAddressFunction tokenAddressFunction, BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<TokenAddressFunction, string>(tokenAddressFunction, blockParameter);
@@ -65,17 +87,6 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
         public Task<string> TokenAddressQueryAsync(BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<TokenAddressFunction, string>(null, blockParameter);
-        }
-
-        public Task<BigInteger> ActivityThresholdQueryAsync(ActivityThresholdFunction activityThresholdFunction, BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<ActivityThresholdFunction, BigInteger>(activityThresholdFunction, blockParameter);
-        }
-
-        
-        public Task<BigInteger> ActivityThresholdQueryAsync(BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<ActivityThresholdFunction, BigInteger>(null, blockParameter);
         }
 
         public Task<bool> AllowWithdrawQueryAsync(AllowWithdrawFunction allowWithdrawFunction, BlockParameter blockParameter = null)
@@ -199,6 +210,74 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
              return ContractHandler.SendRequestAndWaitForReceiptAsync<EnableWithdrawFunction>(null, cancellationToken);
         }
 
+        public Task<List<string>> GetParticipantsQueryAsync(GetParticipantsFunction getParticipantsFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetParticipantsFunction, List<string>>(getParticipantsFunction, blockParameter);
+        }
+
+        
+        public Task<List<string>> GetParticipantsQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetParticipantsFunction, List<string>>(null, blockParameter);
+        }
+
+        public Task<byte[]> GetRoleAdminQueryAsync(GetRoleAdminFunction getRoleAdminFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetRoleAdminFunction, byte[]>(getRoleAdminFunction, blockParameter);
+        }
+
+        
+        public Task<byte[]> GetRoleAdminQueryAsync(byte[] role, BlockParameter blockParameter = null)
+        {
+            var getRoleAdminFunction = new GetRoleAdminFunction();
+                getRoleAdminFunction.Role = role;
+            
+            return ContractHandler.QueryAsync<GetRoleAdminFunction, byte[]>(getRoleAdminFunction, blockParameter);
+        }
+
+        public Task<string> GrantRoleRequestAsync(GrantRoleFunction grantRoleFunction)
+        {
+             return ContractHandler.SendRequestAsync(grantRoleFunction);
+        }
+
+        public Task<TransactionReceipt> GrantRoleRequestAndWaitForReceiptAsync(GrantRoleFunction grantRoleFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(grantRoleFunction, cancellationToken);
+        }
+
+        public Task<string> GrantRoleRequestAsync(byte[] role, string account)
+        {
+            var grantRoleFunction = new GrantRoleFunction();
+                grantRoleFunction.Role = role;
+                grantRoleFunction.Account = account;
+            
+             return ContractHandler.SendRequestAsync(grantRoleFunction);
+        }
+
+        public Task<TransactionReceipt> GrantRoleRequestAndWaitForReceiptAsync(byte[] role, string account, CancellationTokenSource cancellationToken = null)
+        {
+            var grantRoleFunction = new GrantRoleFunction();
+                grantRoleFunction.Role = role;
+                grantRoleFunction.Account = account;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(grantRoleFunction, cancellationToken);
+        }
+
+        public Task<bool> HasRoleQueryAsync(HasRoleFunction hasRoleFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<HasRoleFunction, bool>(hasRoleFunction, blockParameter);
+        }
+
+        
+        public Task<bool> HasRoleQueryAsync(byte[] role, string account, BlockParameter blockParameter = null)
+        {
+            var hasRoleFunction = new HasRoleFunction();
+                hasRoleFunction.Role = role;
+                hasRoleFunction.Account = account;
+            
+            return ContractHandler.QueryAsync<HasRoleFunction, bool>(hasRoleFunction, blockParameter);
+        }
+
         public Task<bool> HasStakedQueryAsync(HasStakedFunction hasStakedFunction, BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<HasStakedFunction, bool>(hasStakedFunction, blockParameter);
@@ -211,28 +290,6 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
                 hasStakedFunction.ReturnValue1 = returnValue1;
             
             return ContractHandler.QueryAsync<HasStakedFunction, bool>(hasStakedFunction, blockParameter);
-        }
-
-        public Task<BigInteger> MinuteThresholdQueryAsync(MinuteThresholdFunction minuteThresholdFunction, BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<MinuteThresholdFunction, BigInteger>(minuteThresholdFunction, blockParameter);
-        }
-
-        
-        public Task<BigInteger> MinuteThresholdQueryAsync(BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<MinuteThresholdFunction, BigInteger>(null, blockParameter);
-        }
-
-        public Task<string> OwnerQueryAsync(OwnerFunction ownerFunction, BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<OwnerFunction, string>(ownerFunction, blockParameter);
-        }
-
-        
-        public Task<string> OwnerQueryAsync(BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<OwnerFunction, string>(null, blockParameter);
         }
 
         public Task<string> ParticipantsQueryAsync(ParticipantsFunction participantsFunction, BlockParameter blockParameter = null)
@@ -260,24 +317,32 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
             return ContractHandler.QueryAsync<PendingResultsFunction, bool>(null, blockParameter);
         }
 
-        public Task<string> RenounceOwnershipRequestAsync(RenounceOwnershipFunction renounceOwnershipFunction)
+        public Task<string> RenounceRoleRequestAsync(RenounceRoleFunction renounceRoleFunction)
         {
-             return ContractHandler.SendRequestAsync(renounceOwnershipFunction);
+             return ContractHandler.SendRequestAsync(renounceRoleFunction);
         }
 
-        public Task<string> RenounceOwnershipRequestAsync()
+        public Task<TransactionReceipt> RenounceRoleRequestAndWaitForReceiptAsync(RenounceRoleFunction renounceRoleFunction, CancellationTokenSource cancellationToken = null)
         {
-             return ContractHandler.SendRequestAsync<RenounceOwnershipFunction>();
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(renounceRoleFunction, cancellationToken);
         }
 
-        public Task<TransactionReceipt> RenounceOwnershipRequestAndWaitForReceiptAsync(RenounceOwnershipFunction renounceOwnershipFunction, CancellationTokenSource cancellationToken = null)
+        public Task<string> RenounceRoleRequestAsync(byte[] role, string callerConfirmation)
         {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(renounceOwnershipFunction, cancellationToken);
+            var renounceRoleFunction = new RenounceRoleFunction();
+                renounceRoleFunction.Role = role;
+                renounceRoleFunction.CallerConfirmation = callerConfirmation;
+            
+             return ContractHandler.SendRequestAsync(renounceRoleFunction);
         }
 
-        public Task<TransactionReceipt> RenounceOwnershipRequestAndWaitForReceiptAsync(CancellationTokenSource cancellationToken = null)
+        public Task<TransactionReceipt> RenounceRoleRequestAndWaitForReceiptAsync(byte[] role, string callerConfirmation, CancellationTokenSource cancellationToken = null)
         {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync<RenounceOwnershipFunction>(null, cancellationToken);
+            var renounceRoleFunction = new RenounceRoleFunction();
+                renounceRoleFunction.Role = role;
+                renounceRoleFunction.CallerConfirmation = callerConfirmation;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(renounceRoleFunction, cancellationToken);
         }
 
         public Task<bool> ResultThisCycleQueryAsync(ResultThisCycleFunction resultThisCycleFunction, BlockParameter blockParameter = null)
@@ -292,6 +357,34 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
                 resultThisCycleFunction.ReturnValue1 = returnValue1;
             
             return ContractHandler.QueryAsync<ResultThisCycleFunction, bool>(resultThisCycleFunction, blockParameter);
+        }
+
+        public Task<string> RevokeRoleRequestAsync(RevokeRoleFunction revokeRoleFunction)
+        {
+             return ContractHandler.SendRequestAsync(revokeRoleFunction);
+        }
+
+        public Task<TransactionReceipt> RevokeRoleRequestAndWaitForReceiptAsync(RevokeRoleFunction revokeRoleFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(revokeRoleFunction, cancellationToken);
+        }
+
+        public Task<string> RevokeRoleRequestAsync(byte[] role, string account)
+        {
+            var revokeRoleFunction = new RevokeRoleFunction();
+                revokeRoleFunction.Role = role;
+                revokeRoleFunction.Account = account;
+            
+             return ContractHandler.SendRequestAsync(revokeRoleFunction);
+        }
+
+        public Task<TransactionReceipt> RevokeRoleRequestAndWaitForReceiptAsync(byte[] role, string account, CancellationTokenSource cancellationToken = null)
+        {
+            var revokeRoleFunction = new RevokeRoleFunction();
+                revokeRoleFunction.Role = role;
+                revokeRoleFunction.Account = account;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(revokeRoleFunction, cancellationToken);
         }
 
         public Task<BigInteger> RewardTokensQueryAsync(RewardTokensFunction rewardTokensFunction, BlockParameter blockParameter = null)
@@ -317,6 +410,32 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
         public Task<BigInteger> RewardsPoolQueryAsync(BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<RewardsPoolFunction, BigInteger>(null, blockParameter);
+        }
+
+        public Task<string> SetAllResultRequestAsync(SetAllResultFunction setAllResultFunction)
+        {
+             return ContractHandler.SendRequestAsync(setAllResultFunction);
+        }
+
+        public Task<TransactionReceipt> SetAllResultRequestAndWaitForReceiptAsync(SetAllResultFunction setAllResultFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setAllResultFunction, cancellationToken);
+        }
+
+        public Task<string> SetAllResultRequestAsync(List<BigInteger> successfulIndices)
+        {
+            var setAllResultFunction = new SetAllResultFunction();
+                setAllResultFunction.SuccessfulIndices = successfulIndices;
+            
+             return ContractHandler.SendRequestAsync(setAllResultFunction);
+        }
+
+        public Task<TransactionReceipt> SetAllResultRequestAndWaitForReceiptAsync(List<BigInteger> successfulIndices, CancellationTokenSource cancellationToken = null)
+        {
+            var setAllResultFunction = new SetAllResultFunction();
+                setAllResultFunction.SuccessfulIndices = successfulIndices;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setAllResultFunction, cancellationToken);
         }
 
         public Task<string> SetResultRequestAsync(SetResultFunction setResultFunction)
@@ -375,6 +494,20 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
             return ContractHandler.QueryAsync<StakedTokensFunction, BigInteger>(stakedTokensFunction, blockParameter);
         }
 
+        public Task<bool> SupportsInterfaceQueryAsync(SupportsInterfaceFunction supportsInterfaceFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<SupportsInterfaceFunction, bool>(supportsInterfaceFunction, blockParameter);
+        }
+
+        
+        public Task<bool> SupportsInterfaceQueryAsync(byte[] interfaceId, BlockParameter blockParameter = null)
+        {
+            var supportsInterfaceFunction = new SupportsInterfaceFunction();
+                supportsInterfaceFunction.InterfaceId = interfaceId;
+            
+            return ContractHandler.QueryAsync<SupportsInterfaceFunction, bool>(supportsInterfaceFunction, blockParameter);
+        }
+
         public Task<BigInteger> TotalStakedQueryAsync(TotalStakedFunction totalStakedFunction, BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<TotalStakedFunction, BigInteger>(totalStakedFunction, blockParameter);
@@ -384,32 +517,6 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
         public Task<BigInteger> TotalStakedQueryAsync(BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<TotalStakedFunction, BigInteger>(null, blockParameter);
-        }
-
-        public Task<string> TransferOwnershipRequestAsync(TransferOwnershipFunction transferOwnershipFunction)
-        {
-             return ContractHandler.SendRequestAsync(transferOwnershipFunction);
-        }
-
-        public Task<TransactionReceipt> TransferOwnershipRequestAndWaitForReceiptAsync(TransferOwnershipFunction transferOwnershipFunction, CancellationTokenSource cancellationToken = null)
-        {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(transferOwnershipFunction, cancellationToken);
-        }
-
-        public Task<string> TransferOwnershipRequestAsync(string newOwner)
-        {
-            var transferOwnershipFunction = new TransferOwnershipFunction();
-                transferOwnershipFunction.NewOwner = newOwner;
-            
-             return ContractHandler.SendRequestAsync(transferOwnershipFunction);
-        }
-
-        public Task<TransactionReceipt> TransferOwnershipRequestAndWaitForReceiptAsync(string newOwner, CancellationTokenSource cancellationToken = null)
-        {
-            var transferOwnershipFunction = new TransferOwnershipFunction();
-                transferOwnershipFunction.NewOwner = newOwner;
-            
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(transferOwnershipFunction, cancellationToken);
         }
 
         public Task<bool> UniqueIDUsedQueryAsync(UniqueIDUsedFunction uniqueIDUsedFunction, BlockParameter blockParameter = null)
@@ -440,33 +547,54 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
             return ContractHandler.QueryAsync<UniqueIDmapFunction, string>(uniqueIDmapFunction, blockParameter);
         }
 
-        public Task<string> WithdrawStakeRequestAsync(WithdrawStakeFunction withdrawStakeFunction)
+        public Task<string> WithdrawAllRequestAsync(WithdrawAllFunction withdrawAllFunction)
         {
-             return ContractHandler.SendRequestAsync(withdrawStakeFunction);
+             return ContractHandler.SendRequestAsync(withdrawAllFunction);
         }
 
-        public Task<string> WithdrawStakeRequestAsync()
+        public Task<string> WithdrawAllRequestAsync()
         {
-             return ContractHandler.SendRequestAsync<WithdrawStakeFunction>();
+             return ContractHandler.SendRequestAsync<WithdrawAllFunction>();
         }
 
-        public Task<TransactionReceipt> WithdrawStakeRequestAndWaitForReceiptAsync(WithdrawStakeFunction withdrawStakeFunction, CancellationTokenSource cancellationToken = null)
+        public Task<TransactionReceipt> WithdrawAllRequestAndWaitForReceiptAsync(WithdrawAllFunction withdrawAllFunction, CancellationTokenSource cancellationToken = null)
         {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(withdrawStakeFunction, cancellationToken);
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(withdrawAllFunction, cancellationToken);
         }
 
-        public Task<TransactionReceipt> WithdrawStakeRequestAndWaitForReceiptAsync(CancellationTokenSource cancellationToken = null)
+        public Task<TransactionReceipt> WithdrawAllRequestAndWaitForReceiptAsync(CancellationTokenSource cancellationToken = null)
         {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync<WithdrawStakeFunction>(null, cancellationToken);
+             return ContractHandler.SendRequestAndWaitForReceiptAsync<WithdrawAllFunction>(null, cancellationToken);
+        }
+
+        public Task<string> WithdrawRewardsRequestAsync(WithdrawRewardsFunction withdrawRewardsFunction)
+        {
+             return ContractHandler.SendRequestAsync(withdrawRewardsFunction);
+        }
+
+        public Task<string> WithdrawRewardsRequestAsync()
+        {
+             return ContractHandler.SendRequestAsync<WithdrawRewardsFunction>();
+        }
+
+        public Task<TransactionReceipt> WithdrawRewardsRequestAndWaitForReceiptAsync(WithdrawRewardsFunction withdrawRewardsFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(withdrawRewardsFunction, cancellationToken);
+        }
+
+        public Task<TransactionReceipt> WithdrawRewardsRequestAndWaitForReceiptAsync(CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync<WithdrawRewardsFunction>(null, cancellationToken);
         }
 
         public override List<Type> GetAllFunctionTypes()
         {
             return new List<Type>
             {
+                typeof(DefaultAdminRoleFunction),
                 typeof(DistributeResultsBeginNextCycleFunction),
+                typeof(ManagerRoleFunction),
                 typeof(TokenAddressFunction),
-                typeof(ActivityThresholdFunction),
                 typeof(AllowWithdrawFunction),
                 typeof(ChallengerCountFunction),
                 typeof(CheckResultsFunction),
@@ -474,23 +602,28 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
                 typeof(CycleFunction),
                 typeof(DisableWithdrawFunction),
                 typeof(EnableWithdrawFunction),
+                typeof(GetParticipantsFunction),
+                typeof(GetRoleAdminFunction),
+                typeof(GrantRoleFunction),
+                typeof(HasRoleFunction),
                 typeof(HasStakedFunction),
-                typeof(MinuteThresholdFunction),
-                typeof(OwnerFunction),
                 typeof(ParticipantsFunction),
                 typeof(PendingResultsFunction),
-                typeof(RenounceOwnershipFunction),
+                typeof(RenounceRoleFunction),
                 typeof(ResultThisCycleFunction),
+                typeof(RevokeRoleFunction),
                 typeof(RewardTokensFunction),
                 typeof(RewardsPoolFunction),
+                typeof(SetAllResultFunction),
                 typeof(SetResultFunction),
                 typeof(StakeCompleteFunction),
                 typeof(StakedTokensFunction),
+                typeof(SupportsInterfaceFunction),
                 typeof(TotalStakedFunction),
-                typeof(TransferOwnershipFunction),
                 typeof(UniqueIDUsedFunction),
                 typeof(UniqueIDmapFunction),
-                typeof(WithdrawStakeFunction)
+                typeof(WithdrawAllFunction),
+                typeof(WithdrawRewardsFunction)
             };
         }
 
@@ -498,7 +631,9 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
         {
             return new List<Type>
             {
-                typeof(OwnershipTransferredEventDTO)
+                typeof(RoleAdminChangedEventDTO),
+                typeof(RoleGrantedEventDTO),
+                typeof(RoleRevokedEventDTO)
             };
         }
 
@@ -506,8 +641,8 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking
         {
             return new List<Type>
             {
-                typeof(OwnableInvalidOwnerError),
-                typeof(OwnableUnauthorizedAccountError)
+                typeof(AccessControlBadConfirmationError),
+                typeof(AccessControlUnauthorizedAccountError)
             };
         }
     }

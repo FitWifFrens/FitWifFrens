@@ -6,7 +6,6 @@
 @using FitWifFrens.Data
 @using FitWifFrens.Web.Components.Account
 @using Microsoft.EntityFrameworkCore
-@using System.Security.Claims
 
 @inject IdentityUserAccessor UserAccessor
 @inject DataContext DataContext
@@ -17,11 +16,11 @@
 {
     <div class="row">
         <div class="col">
-            <h3>Current Commitments</h3>
+            <h3>Commitments Available</h3>
         </div>
     </div>
     <div class="row">
-        @foreach (var commitment in _commitments.Where(c => !c.Complete))
+        @foreach (var commitment in _commitments.Where(c => !c.Complete).OrderBy(c => c.Title))
         {
             <div class="col-sm-3">
                 <div class="card">
@@ -31,11 +30,11 @@
                         <p class="card-text">@commitment.Description</p>
                         @if (commitment.Committed)
                         {
-                            <a href="/Commit/@_worldId/@commitment.ContractAddress" class="btn btn-secondary">View</a>
+                            <a href="/Commitment/@commitment.Id" class="btn btn-secondary">View</a>
                         }
                         else if (commitment.HasRequiredProviders)
                         {
-                            <CommitButton WorldId="@_worldId" ContractAddress="@commitment.ContractAddress"></CommitButton>
+                            <CommitButton CommitmentId="commitment.Id" WorldId="@_worldId" ContractAddress="@commitment.ContractAddress"></CommitButton>
                         }
                         else if (commitment.MissingProviders.Length == 1)
                         {
@@ -53,7 +52,7 @@
 
     <div class="row mt-5">
         <div class="col">
-            <h3>Previous Commitments</h3>
+            <h3>Historical Commitments</h3>
         </div>
     </div>
     <div class="row">

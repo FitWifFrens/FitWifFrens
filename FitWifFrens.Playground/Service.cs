@@ -36,10 +36,10 @@ namespace FitWifFrens.Playground
                 Id = oldCommitmentId,
                 Title = "60 minutes",
                 Description = "Record 2 activities on Strava with a total time of 60 minutes",
-                Image = "https://cdn.shopify.com/s/files/1/0942/6160/files/marathon-des-sables-desert-running.jpg?v=1531298303",
+                Image = "images/runner0.png",
                 Amount = 2,
                 Complete = true,
-                ContractAddress = "0x93F682be07C5772390FfB44585365Cf64e347331",
+                ContractAddress = "0x947384ef21BB443416383A7FFeF3f1C3543c19eD",
                 Providers = new List<CommitmentProvider>
                 {
                     new CommitmentProvider
@@ -57,9 +57,9 @@ namespace FitWifFrens.Playground
                 Id = newCommitmentId,
                 Title = "90 minutes",
                 Description = "Record 3 activities on Strava with a total time of 90 minutes",
-                Image = "https://cdn.shopify.com/s/files/1/0942/6160/files/running-facts-crazy.jpg?v=1531298463",
+                Image = "images/runner1.png",
                 Amount = 5,
-                ContractAddress = "0x93F682be07C5772390FfB44585365Cf64e347331",
+                ContractAddress = "0x947384ef21BB443416383A7FFeF3f1C3543c19eD",
                 Providers = new List<CommitmentProvider>
                 {
                     new CommitmentProvider
@@ -74,9 +74,9 @@ namespace FitWifFrens.Playground
                 Id = Guid.NewGuid(),
                 Title = "120 minutes",
                 Description = "Record 4 activities on Strava with a total time of 120 minutes",
-                Image = "https://cdn.shopify.com/s/files/1/0942/6160/files/running-backwards.jpg?v=1531298209",
+                Image = "images/runner2.png",
                 Amount = 10,
-                ContractAddress = "0x93F682be07C5772390FfB44585365Cf64e347331",
+                ContractAddress = "0x1d06111Db821c8728125e5480dD702486bd72A60",
                 Providers = new List<CommitmentProvider>
                 {
                     new CommitmentProvider
@@ -91,9 +91,9 @@ namespace FitWifFrens.Playground
                 Id = Guid.NewGuid(),
                 Title = "Good Developer",
                 Description = "Answer 2 StackExchange questions a week",
-                Image = "https://pedrorijo.com/assets/img/super_developer.png",
+                Image = "images/developer0.png",
                 Amount = 42,
-                ContractAddress = "0x93F682be07C5772390FfB44585365Cf64e347331",
+                ContractAddress = "0x947384ef21BB443416383A7FFeF3f1C3543c19eD",
                 Providers = new List<CommitmentProvider>
                 {
                     new CommitmentProvider

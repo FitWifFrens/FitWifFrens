@@ -1,6 +1,4 @@
-﻿@page "/Commit/{WorldId}/{ContractAddress}"
-@attribute [Authorize]
-@rendermode @(new InteractiveWebAssemblyRenderMode(prerender:false))
+﻿@rendermode @(new InteractiveWebAssemblyRenderMode(prerender:false))
 
 @implements IDisposable;
 @inject IJSRuntime jsRuntime;
@@ -14,18 +12,19 @@
 @using Microsoft.AspNetCore.Authorization
 @using Nethereum.RPC.HostWallet
 @using System.Numerics
+@using FitWifFrens.Web.Client.Contract.Token
 
 
 <AuthorizeView Roles="EthereumConnected">
     <Authorized>
-        @if (SelectedChainId != 84532)
+        @if (SelectedChainId != 84532 && SelectedChainId > 0)
         {
             <div class="card m-1">
                 <div class="card-body">
                     <div class="row">
                         <label class="col-sm-4 col-form-label-md">Connect to Base Sepolia</label>
                         <div class="col-sm-8">
-                            <button @onclick="@AddChain">Add Chain (Base Sepolia)</button>
+                            <button @onclick="@AddChain" class="btn btn-primary">Add Chain (Base Sepolia)</button>
                         </div>
                     </div>
                 </div>
@@ -48,7 +47,15 @@
                         <label class="col-sm-4 col-form-label-md">Selected Account:</label>
                         <div class="col-sm-8">
                             @SelectedAccount
-                            <small id="selectedAccountHelp" class="form-text text-muted">The selected account is bound to the host (ie Metamask) on change</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="row">
+                        <label class="col-sm-4 col-form-label-md">Contract Address:</label>
+                        <div class="col-sm-8">
+                            @ContractAddress
                         </div>
                     </div>
                 </div>
@@ -58,20 +65,6 @@
                         <label class="col-sm-4 col-form-label-md">Selected Network ChainId:</label>
                         <div class="col-sm-8">
                             @SelectedChainId
-                            <small id="selectedAccountHelp" class="form-text text-muted">The selected chain Id</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card m-1">
-                <div class="card-body">
-                    <div class="row">
-                        <label class="col-sm-4 col-form-label-md">Block hash of block number 0:</label>
-                        <div class="col-sm-8">
-                            <button @onclick="@GetBlockHashAsync">Get BlockHash</button>
-                            <div>@BlockHash</div>
-                            <small id="selectedAccountHelp" class="form-text text-muted">With Metamask calls are redirected to its configured node (i.e http://localhost:8545)</small>
                         </div>
                     </div>
                 </div>
@@ -84,23 +77,88 @@
                         <div class="row">
                             <label class="col-sm-4 col-form-label-md">Total Staked FitDollar:</label>
                             <div class="col-sm-8">
-                                @TotalStaked
+                                <strong>
+                                    @TotalStaked
+                                </strong>
                             </div>
                         </div>
                     </div>
                 </div>
             }
 
-            <div class="card m-1">
-                <div class="card-body">
-                    <div class="row">
-                        <label class="col-sm-4 col-form-label-md">Stake FitDollar:</label>
-                        <div class="col-sm-8">
-                            <button @onclick="@StakeFitDollar">Stake</button>
+            @if (SelectedAccountHasAllowance == true)
+            {
+                @if (SelectedAccountTotalStaked > 0)
+                {
+                    <div class="card m-1">
+                        <div class="card-body">
+                            <div class="row">
+                                <label class="col-sm-4 col-form-label-md">Your Staked FitDollar:</label>
+                                <div class="col-sm-2">
+                                    <strong>
+                                        @SelectedAccountTotalStaked
+                                    </strong>
+                                </div>
+                                @if (StakeComplete)
+                                {
+                                    <div class="col-sm-3">
+                                        <button @onclick="@WithdrawAll" class="btn btn-info">Withdraw All</button>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @if (SelectedAccountRewardTokens > 0)
+                {
+                    <div class="card m-1">
+                        <div class="card-body">
+                            <div class="row">
+                                <label class="col-sm-4 col-form-label-md">Your FitDollar Rewards:</label>
+                                <div class="col-sm-2">
+                                    <strong>
+                                        @SelectedAccountRewardTokens
+                                    </strong>
+                                </div>
+                                <div class="col-sm-3">
+                                    <button @onclick="@WithdrawRewards" class="btn btn-info">Withdraw Rewards</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <div class="card m-1">
+                    <div class="card-body">
+                        <div class="row">
+                            <label class="col-sm-4 col-form-label-md">Stake FitDollar:</label>
+
+                            <div class="col-sm-2">
+                                <InputNumber @bind-Value="StakeAmount" type="number" class="form-control" placeholder="10" />
+                            </div>
+
+                            <div class="col-sm-3">
+                                <button @onclick="@StakeFitDollar" class="btn btn-primary">Stake</button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            }
+            else
+            {
+                <div class="card m-1">
+                    <div class="card-body">
+                        <div class="row">
+                            <label class="col-sm-4 col-form-label-md">Allow FitDollar:</label>
+
+                            <div class="col-sm-3">
+                                <button @onclick="@AllowFitDollar" class="btn btn-primary">Allow</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
         }
 
     </Authorized>
@@ -118,6 +176,8 @@
     [Parameter]
     public string ContractAddress { get; set; }
 
+    public int StakeAmount { get; set; } = 50;
+
     [CascadingParameter]
     public Task<AuthenticationState?> AuthenticationState { get; set; }
 
@@ -130,7 +190,12 @@
     string ErrorAuthenticateMessage { get; set; }
     string UserName { get; set; }
     protected string AuthenticatedAccount { get; set; }
+    bool SelectedAccountHasAllowance { get; set; }
+    BigInteger SelectedAccountTotalStaked { get; set; }
+    BigInteger SelectedAccountRewardTokens { get; set; }
     BigInteger TotalStaked { get; set; }
+    BigInteger ChallengerCount { get; set; }
+    bool StakeComplete { get; set; }
     IEthereumHostProvider _ethereumHostProvider;
 
     protected override void OnInitialized()
@@ -140,6 +205,7 @@
         _ethereumHostProvider.SelectedAccountChanged += HostProvider_SelectedAccountChanged;
         _ethereumHostProvider.NetworkChanged += HostProvider_NetworkChanged;
         _ethereumHostProvider.EnabledChanged += HostProviderOnEnabledChanged;
+
     }
 
     public void Dispose()
@@ -211,9 +277,29 @@
     {
         var web3 = await _ethereumHostProvider.GetWeb3Async();
 
+        var tokenService = new TokenService(web3, Constants.TokenAddress);
+
+        SelectedAccountHasAllowance = await tokenService.AllowanceQueryAsync(SelectedAccount, ContractAddress) > 0;
+
         var tokenStakingService = new TokenStakingService(web3, ContractAddress);
 
-        TotalStaked = await tokenStakingService.TotalStakedQueryAsync();
+        SelectedAccountTotalStaked = await tokenStakingService.StakedTokensQueryAsync(SelectedAccount) / Constants.TokenDecimals;
+        SelectedAccountRewardTokens = await tokenStakingService.RewardTokensQueryAsync(SelectedAccount) / Constants.TokenDecimals;
+        ChallengerCount = await tokenStakingService.ChallengerCountQueryAsync();
+        TotalStaked = await tokenStakingService.TotalStakedQueryAsync() / Constants.TokenDecimals;
+
+        StakeComplete = await tokenStakingService.StakeCompleteQueryAsync(SelectedAccount);
+    }
+
+    protected async Task AllowFitDollar()
+    {
+        var web3 = await _ethereumHostProvider.GetWeb3Async();
+
+        var tokenService = new TokenService(web3, Constants.TokenAddress);
+
+        var transactionReceipt = await tokenService.IncreaseAllowanceRequestAndWaitForReceiptAsync(ContractAddress, Constants.IncreaseAllowance);
+
+        await LoadStakingData();
     }
 
     protected async Task StakeFitDollar()
@@ -222,12 +308,31 @@
 
         var tokenStakingService = new TokenStakingService(web3, ContractAddress);
 
-        var transactionReceipt = await tokenStakingService.CreatePledgeRequestAndWaitForReceiptAsync(1, WorldId);
+        var transactionReceipt = await tokenStakingService.CreatePledgeRequestAndWaitForReceiptAsync(StakeAmount * Constants.TokenDecimals, WorldId);
 
-        if (transactionReceipt.HasErrors() == false)
-        {
-            await LoadStakingData();
-        }
+        await LoadStakingData();
+    }
+
+    protected async Task WithdrawAll()
+    {
+        var web3 = await _ethereumHostProvider.GetWeb3Async();
+
+        var tokenStakingService = new TokenStakingService(web3, ContractAddress);
+
+        var transactionReceipt = await tokenStakingService.WithdrawAllRequestAndWaitForReceiptAsync();
+
+        await LoadStakingData();
+    }
+
+    protected async Task WithdrawRewards()
+    {
+        var web3 = await _ethereumHostProvider.GetWeb3Async();
+
+        var tokenStakingService = new TokenStakingService(web3, ContractAddress);
+
+        var transactionReceipt = await tokenStakingService.WithdrawRewardsRequestAndWaitForReceiptAsync();
+
+        await LoadStakingData();
     }
 
     protected async Task AddChain()
