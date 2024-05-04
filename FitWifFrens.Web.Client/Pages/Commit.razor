@@ -47,7 +47,15 @@
                         <label class="col-sm-4 col-form-label-md">Selected Account:</label>
                         <div class="col-sm-8">
                             @SelectedAccount
-                            <small id="selectedAccountHelp" class="form-text text-muted">The selected account is bound to the host (ie Metamask) on change</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="row">
+                        <label class="col-sm-4 col-form-label-md">Contract Address:</label>
+                        <div class="col-sm-8">
+                            @ContractAddress
                         </div>
                     </div>
                 </div>
@@ -57,7 +65,6 @@
                         <label class="col-sm-4 col-form-label-md">Selected Network ChainId:</label>
                         <div class="col-sm-8">
                             @SelectedChainId
-                            <small id="selectedAccountHelp" class="form-text text-muted">The selected chain Id</small>
                         </div>
                     </div>
                 </div>
@@ -70,7 +77,9 @@
                         <div class="row">
                             <label class="col-sm-4 col-form-label-md">Total Staked FitDollar:</label>
                             <div class="col-sm-8">
-                                @TotalStaked
+                                <strong>
+                                    @TotalStaked
+                                </strong>
                             </div>
                         </div>
                     </div>
@@ -86,17 +95,16 @@
                             <div class="row">
                                 <label class="col-sm-4 col-form-label-md">Your Staked FitDollar:</label>
                                 <div class="col-sm-2">
-                                    @SelectedAccountTotalStaked
+                                    <strong>
+                                        @SelectedAccountTotalStaked
+                                    </strong>
                                 </div>
                                 @if (StakeComplete)
                                 {
                                     <div class="col-sm-3">
-                                        <button @onclick="@WithdrawAll" class="btn btn-primary">Withdraw All</button>
+                                        <button @onclick="@WithdrawAll" class="btn btn-info">Withdraw All</button>
                                     </div>
                                 }
-                                <div class="col-sm-3">
-                                    <button @onclick="@WithdrawRewards" class="btn btn-primary">Withdraw Rewards</button>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -109,10 +117,12 @@
                             <div class="row">
                                 <label class="col-sm-4 col-form-label-md">Your FitDollar Rewards:</label>
                                 <div class="col-sm-2">
-                                    @SelectedAccountRewardTokens
+                                    <strong>
+                                        @SelectedAccountRewardTokens
+                                    </strong>
                                 </div>
                                 <div class="col-sm-3">
-                                    <button @onclick="@WithdrawRewards" class="btn btn-primary">Withdraw Rewards</button>
+                                    <button @onclick="@WithdrawRewards" class="btn btn-info">Withdraw Rewards</button>
                                 </div>
                             </div>
                         </div>
@@ -273,12 +283,12 @@
 
         var tokenStakingService = new TokenStakingService(web3, ContractAddress);
 
-        SelectedAccountTotalStaked = await tokenStakingService.StakedTokensQueryAsync(SelectedAccount);
-        SelectedAccountRewardTokens = await tokenStakingService.RewardTokensQueryAsync(SelectedAccount);
+        SelectedAccountTotalStaked = await tokenStakingService.StakedTokensQueryAsync(SelectedAccount) / Constants.TokenDecimals;
+        SelectedAccountRewardTokens = await tokenStakingService.RewardTokensQueryAsync(SelectedAccount) / Constants.TokenDecimals;
         ChallengerCount = await tokenStakingService.ChallengerCountQueryAsync();
-        TotalStaked = await tokenStakingService.TotalStakedQueryAsync();
+        TotalStaked = await tokenStakingService.TotalStakedQueryAsync() / Constants.TokenDecimals;
 
-        StakeComplete = await tokenStakingService.StakeCompleteQueryAsync(ContractAddress);
+        StakeComplete = await tokenStakingService.StakeCompleteQueryAsync(SelectedAccount);
     }
 
     protected async Task AllowFitDollar()
@@ -298,7 +308,7 @@
 
         var tokenStakingService = new TokenStakingService(web3, ContractAddress);
 
-        var transactionReceipt = await tokenStakingService.CreatePledgeRequestAndWaitForReceiptAsync(StakeAmount, WorldId);
+        var transactionReceipt = await tokenStakingService.CreatePledgeRequestAndWaitForReceiptAsync(StakeAmount * Constants.TokenDecimals, WorldId);
 
         await LoadStakingData();
     }

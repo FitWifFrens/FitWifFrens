@@ -118,8 +118,8 @@
 
         var tokenStakingService = new TokenStakingService(web3, ContractAddress);
 
-        SelectedAccountTotalStaked = await tokenStakingService.StakedTokensQueryAsync(SelectedAccount);
+        SelectedAccountTotalStaked = await tokenStakingService.StakedTokensQueryAsync(SelectedAccount) / Constants.TokenDecimals;
         ChallengerCount = await tokenStakingService.ChallengerCountQueryAsync();
-        TotalStaked = await tokenStakingService.TotalStakedQueryAsync();
+        TotalStaked = await tokenStakingService.TotalStakedQueryAsync() / Constants.TokenDecimals;
     }
 }
