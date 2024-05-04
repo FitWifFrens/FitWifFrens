@@ -32,13 +32,13 @@
 
 @if (_commitment != null)
 {
-@*     <div class="row">
+    <div class="row">
         <div class="col-sm-12 bg-image" style="background-image:url('@_commitment.Image')">
             <h3 class="bg-text">@_commitment.Title</h3>
             <p>@_commitment.Description</p>
         </div>
     </div>
- *@
+
     @if (!_commitment.Complete)
     {
         <div>
