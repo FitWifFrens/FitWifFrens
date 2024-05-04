@@ -15,14 +15,14 @@
 
 <AuthorizeView Roles="EthereumConnected">
     <Authorized>
-        @if (ChallengerCount > 0)
+        @if (ChallengerCount > 0 && TotalStaked > 0)
         {
-            <p>There are currently @ChallengerCount challengers committed</p>
+            <p>There are currently @ChallengerCount challengers who have committed @TotalStaked FitDollar</p>
         }
 
-        @if (TotalStaked > 0)
+        @if (SelectedAccountTotalStaked > 0)
         {
-            <p><strong>You have already committed @TotalStaked FitDollar</strong></p>
+            <p><strong>You have already committed @SelectedAccountTotalStaked FitDollar</strong></p>
         }
 
         <a href="/Commit/@WorldId/@ContractAddress" class="btn btn-primary">Commit</a>
@@ -45,6 +45,7 @@
     bool EthereumAvailable { get; set; }
     string SelectedAccount { get; set; }
     long SelectedChainId { get; set; }
+    BigInteger SelectedAccountTotalStaked { get; set; }
     BigInteger TotalStaked { get; set; }
     BigInteger ChallengerCount { get; set; }
     IEthereumHostProvider _ethereumHostProvider;
@@ -114,7 +115,8 @@
 
         var tokenStakingService = new TokenStakingService(web3, ContractAddress);
 
-        TotalStaked = await tokenStakingService.StakedTokensQueryAsync(SelectedAccount);
+        SelectedAccountTotalStaked = await tokenStakingService.StakedTokensQueryAsync(SelectedAccount);
         ChallengerCount = await tokenStakingService.ChallengerCountQueryAsync();
+        TotalStaked = await tokenStakingService.TotalStakedQueryAsync();
     }
 }
