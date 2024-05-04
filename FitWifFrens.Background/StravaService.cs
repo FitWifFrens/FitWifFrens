@@ -25,6 +25,12 @@ namespace FitWifFrens.Background
 
                     var athlete = await client.Athletes.GetCurrent();
 
+                    var activities = await client.Activities.GetAthleteActivities();
+
+                    var activityMine = await client.Activities.Get(11302245706);
+
+                    var activityOther = await client.Activities.Get(11325887240);
+
                     ;
                 }
             }

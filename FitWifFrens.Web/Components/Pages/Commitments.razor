@@ -29,12 +29,12 @@
                         <p class="card-text">@commitment.Description</p>
                         @if (commitment.Committed)
                         {
-                            <a href="/Commit" class="btn btn-secondary">View</a>
+                            <a href="/Commit/@commitment.ContractAddress" class="btn btn-secondary">View</a>
                         }
                         else if (commitment.HasRequiredProviders)
 
                         {
-                            <a href="/Commit" class="btn btn-primary">Commit</a>
+                            <a href="/Commit/@commitment.ContractAddress" class="btn btn-primary">Commit</a>
                         }
                         else if (commitment.MissingProviders.Length == 1)
                         {

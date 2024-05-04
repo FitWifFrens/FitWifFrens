@@ -20,6 +20,9 @@
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.4" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.4" />
+    <PackageReference Include="Nethereum.Metamask.Blazor" Version="4.20.0" />
+    <PackageReference Include="Nethereum.UI" Version="4.20.0" />
+    <PackageReference Include="Nethereum.Web3" Version="4.20.0" />
   </ItemGroup>
 
   <ItemGroup>

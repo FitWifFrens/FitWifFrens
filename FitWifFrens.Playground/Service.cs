@@ -76,7 +76,7 @@ namespace FitWifFrens.Playground
                 Description = "Record 4 activities on Strava with a total time of 120 minutes",
                 Image = "https://cdn.shopify.com/s/files/1/0942/6160/files/running-backwards.jpg?v=1531298209",
                 Amount = 10,
-                ContractAddress = "f5baa36e-8ca9-40c8-86ee-d35824c772c3",
+                ContractAddress = "0x484CdEb8F3d223E68Bc1771194fDAd6Df191FeBc",
                 Providers = new List<CommitmentProvider>
                 {
                     new CommitmentProvider

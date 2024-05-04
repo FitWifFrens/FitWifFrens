@@ -31,7 +31,7 @@
                         <p class="card-text">@commitment.Description</p>
                         @if (commitment.Committed == true)
                         {
-                            <a href="/Commit" class="btn btn-secondary">View</a>
+                            <a href="/Commit/@commitment.ContractAddress" class="btn btn-secondary">View</a>
                         }
                         else if (commitment.HasRequiredProviders == false && commitment.MissingProviders!.Length == 1)
                         {
@@ -43,11 +43,11 @@
                         }
                         else if (commitment.TotalCommitted <= 1)
                         {
-                            <a href="/Commit" class="btn btn-primary">Commit</a>
+                            <a href="/Commit/@commitment.ContractAddress" class="btn btn-primary">Commit</a>
                         }
                         else
                         {
-                            <a href="/Commit" class="btn btn-primary">Commit with @commitment.TotalCommitted others</a>
+                            <a href="/Commit/@commitment.ContractAddress" class="btn btn-primary">Commit with @commitment.TotalCommitted others</a>
                         }
                     </div>
                 </div>

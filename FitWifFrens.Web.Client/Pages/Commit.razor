@@ -1,9 +1,7 @@
-﻿@page "/Commit"
+﻿@page "/Commit/{ContractAddress}"
 @attribute [Authorize]
 @rendermode InteractiveWebAssembly
 
-@using Nethereum.ABI.EIP712
-@using Nethereum.ABI.FunctionEncoding.Attributes
 @implements IDisposable;
 @inject IJSRuntime jsRuntime;
 @inject SelectedEthereumHostProviderService selectedHostProviderService
@@ -12,6 +10,7 @@
 @using Nethereum.Hex.HexTypes;
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
+@using FitWifFrens.Web.Client.Contract.TokenStaking
 @using Microsoft.AspNetCore.Authorization
 @using Nethereum.RPC.HostWallet
 @using Nethereum.Signer
@@ -111,6 +110,9 @@
 </AuthorizeView>
 
 @code {
+
+    [Parameter]
+    public string ContractAddress { get; set; }
 
     [CascadingParameter]
     public Task<AuthenticationState> AuthenticationState { get; set; }
@@ -214,15 +216,16 @@
     {
         var web3 = await _ethereumHostProvider.GetWeb3Async();
         var optimismChain = new AddEthereumChainParameter() {
-                ChainId = new HexBigInteger(10), ChainName = "Optimism", NativeCurrency = new NativeCurrency()
+                ChainId = new HexBigInteger(84532),
+                ChainName = "Base Sepolia",
+                NativeCurrency = new NativeCurrency()
                 {
                     Decimals = 18,
                     Name = "ETH",
                     Symbol = "ETH"
                 },
-                RpcUrls = new List<string> { "https://mainnet.optimism.io", "https://rpc.ankr.com/optimism" },
-                BlockExplorerUrls = new List<string> { "https://optimistic.etherscan.io/"},
-
+                RpcUrls = new List<string> { "https://sepolia.base.org" },
+                BlockExplorerUrls = new List<string> { "https://base-sepolia.blockscout.com" },
             };
         try
         {
@@ -236,70 +239,18 @@
 
     protected async Task SignV4()
     {
-        RecoveredAccount = "";
         var web3 = await _ethereumHostProvider.GetWeb3Async();
-       
 
-        var typedData = GetMailTypedDefinition();
+        var tokenStakingService = new TokenStakingService(web3, ContractAddress);
 
-        var mail = new Mail
-            {
-                From = new Person
-                {
-                    Name = "Cow",
-                    Wallets = new List<string> { "0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826", "0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF" }
-                },
-                To = new List<Person>
-                {
-                    new Person
-                    {
-                        Name = "Bob",
-                        Wallets = new List<string> { "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB", "0xB0BdaBea57B0BDABeA57b0bdABEA57b0BDabEa57", "0xB0B0b0b0b0b0B000000000000000000000000000" }
-                    }
-                },
-                Contents = "Hello, Bob!"
-            };
+        var x = await tokenStakingService.TotalStakedQueryAsync();
 
-        typedData.Domain.ChainId = 1;
-        typedData.SetMessage(mail);
-
-        var signature = await web3.Eth.AccountSigning.SignTypedDataV4.SendRequestAsync(typedData.ToJson());
-
-        RecoveredAccount = new Eip712TypedDataSigner().RecoverFromSignatureV4(typedData, signature);
-
-    }
-
-    protected async Task TransferEtherAsync()
-    {
-        try
-        {
-            var web3 = await _ethereumHostProvider.GetWeb3Async();
-
-            TransactionHash = await web3.Eth.GetEtherTransferService().TransferEtherAsync("0x13f022d72158410433cbd66f5dd8bf6d2d129924", 0.001m);
-        }
-        catch (Exception ex)
-        {
-            ErrorTransferMessage = ex.Message;
-        }
-    }
+        Console.WriteLine($"TotalStaked {x}");
 
 
+        var x1 = await tokenStakingService.StakeTokenRequestAsync(1);
 
-    //The generic EIP712 Typed schema defintion for this message
-    public TypedData<Domain> GetMailTypedDefinition()
-    {
-        return new TypedData<Domain>
-            {
-                Domain = new Domain
-                {
-                    Name = "Ether Mail",
-                    Version = "1",
-                    ChainId = 1,
-                    VerifyingContract = "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"
-                },
-                Types = MemberDescriptionFactory.GetTypesMemberDescription(typeof(Domain), typeof(Group), typeof(Mail), typeof(Person)),
-                PrimaryType = nameof(Mail),
-            };
+
     }
 
 }
