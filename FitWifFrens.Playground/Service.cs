@@ -39,7 +39,7 @@ namespace FitWifFrens.Playground
                 Image = "https://cdn.shopify.com/s/files/1/0942/6160/files/marathon-des-sables-desert-running.jpg?v=1531298303",
                 Amount = 2,
                 Complete = true,
-                ContractAddress = "981086bc-7147-4026-bae7-8f5828e90cdd",
+                ContractAddress = "0x93F682be07C5772390FfB44585365Cf64e347331",
                 Providers = new List<CommitmentProvider>
                 {
                     new CommitmentProvider
@@ -59,7 +59,7 @@ namespace FitWifFrens.Playground
                 Description = "Record 3 activities on Strava with a total time of 90 minutes",
                 Image = "https://cdn.shopify.com/s/files/1/0942/6160/files/running-facts-crazy.jpg?v=1531298463",
                 Amount = 5,
-                ContractAddress = "6bb2344f-b6fb-4ac6-b08e-725f6ee35e9a",
+                ContractAddress = "0x93F682be07C5772390FfB44585365Cf64e347331",
                 Providers = new List<CommitmentProvider>
                 {
                     new CommitmentProvider
@@ -76,7 +76,7 @@ namespace FitWifFrens.Playground
                 Description = "Record 4 activities on Strava with a total time of 120 minutes",
                 Image = "https://cdn.shopify.com/s/files/1/0942/6160/files/running-backwards.jpg?v=1531298209",
                 Amount = 10,
-                ContractAddress = "0x484CdEb8F3d223E68Bc1771194fDAd6Df191FeBc",
+                ContractAddress = "0x93F682be07C5772390FfB44585365Cf64e347331",
                 Providers = new List<CommitmentProvider>
                 {
                     new CommitmentProvider
@@ -93,7 +93,7 @@ namespace FitWifFrens.Playground
                 Description = "Answer 2 StackExchange questions a week",
                 Image = "https://pedrorijo.com/assets/img/super_developer.png",
                 Amount = 42,
-                ContractAddress = "bef64318-ecb3-4868-981f-c61eec7b5748",
+                ContractAddress = "0x93F682be07C5772390FfB44585365Cf64e347331",
                 Providers = new List<CommitmentProvider>
                 {
                     new CommitmentProvider
