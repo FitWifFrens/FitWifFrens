@@ -60,7 +60,7 @@ namespace FitWifFrens.Web
 
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
             builder.Services.AddDbContext<DataContext>(options =>
-                options.UseSqlServer(connectionString));
+                options.UseNpgsql(connectionString, o => o.SetPostgresVersion(11, 0)));
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
             builder.Services.AddIdentityCore<User>(options => options.SignIn.RequireConfirmedAccount = false)

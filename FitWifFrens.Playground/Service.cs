@@ -1,5 +1,6 @@
 ﻿using FitWifFrens.Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace FitWifFrens.Playground
 {
@@ -18,6 +19,9 @@ namespace FitWifFrens.Playground
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
+            await _dataContext.Database.EnsureDeletedAsync(cancellationToken);
+            await _dataContext.Database.MigrateAsync(cancellationToken);
+
             var users = new List<NewUser>
             {
                 new NewUser(Guid.NewGuid(), "test1@gmail.com", "0x2fefb77e01d5019b7b2571b44d8cea84d0e1d83491d93ec3f9bb8871dedd7cdb", true, false),

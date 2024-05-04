@@ -3,8 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FitWifFrens.Data
 {
-    public class
-        DataContext : IdentityDbContext<User, Role, string, UserClaim, UserRole, UserLogin, RoleClaim, UserToken>
+    public class DataContext : IdentityDbContext<User, Role, string, UserClaim, UserRole, UserLogin, RoleClaim, UserToken>
     {
         public DbSet<Provider> Providers { get; set; }
         public DbSet<Commitment> Commitments { get; set; }
