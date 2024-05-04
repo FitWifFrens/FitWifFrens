@@ -165,7 +165,7 @@ contract StakingForFitFrens is AccessControl {
     function setAllResult(uint[] memory _successfulIndices) public onlyRole(MANAGER_ROLE) {
         // Set resultThisCycle to true for successful participants
         for (uint256 i = 0; i < _successfulIndices.length; i++) {
-            if(stakedTokens[participants[_successfulIndices[i]]]>0 && participants.length > _successfulIndices[i]){
+            if( participants.length > _successfulIndices[i] && stakedTokens[participants[_successfulIndices[i]]]>0){
                 resultThisCycle[participants[_successfulIndices[i]]] = true;
             }
         }
@@ -179,6 +179,10 @@ contract StakingForFitFrens is AccessControl {
     function bytesToString(bytes memory data) public pure returns (string memory) {
     return string(data);
     }
+
+    function testParseStringToArray() public view returns (uint256[] memory) {
+        return parseStringToArray(lastSuccessfulIndices);
+    } 
 
     function parseStringToArray(string memory str) public pure returns (uint256[] memory) {
         bytes memory b = bytes(str);
