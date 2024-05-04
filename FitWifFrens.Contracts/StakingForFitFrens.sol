@@ -2,11 +2,10 @@
 pragma solidity 0.8.23;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 
-contract TokenStakingFitChallenge is Ownable(msg.sender), AccessControl { //pass msg.sender as initialOwner
+contract TokenStakingFitChallenge is AccessControl { //pass msg.sender as initialOwner
     
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
     IERC20 public TokenAddress;
@@ -22,8 +21,8 @@ contract TokenStakingFitChallenge is Ownable(msg.sender), AccessControl { //pass
     uint256 public totalStaked;
     uint256 public rewardsPool;
     uint256 public challengerCount;
-    uint256 public activityThreshold;
-    uint256 public minuteThreshold;
+    uint256 private activityThreshold;
+    uint256 private minuteThreshold;
     uint256 private rewardPerParticipant;
     bool public pendingResults;
     bool public allowWithdraw = true;
@@ -31,6 +30,8 @@ contract TokenStakingFitChallenge is Ownable(msg.sender), AccessControl { //pass
 
 
     constructor(address _tokenAddress, uint256 _activityThreshold, uint256 _minuteThreshold) {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(MANAGER_ROLE, msg.sender);
         TokenAddress = IERC20(_tokenAddress);
         activityThreshold = _activityThreshold;
         minuteThreshold = _minuteThreshold;
@@ -87,12 +88,12 @@ contract TokenStakingFitChallenge is Ownable(msg.sender), AccessControl { //pass
     }
 
     //disable withdrawing on contract
-    function disableWithdraw() public onlyOwner {
+    function disableWithdraw() public onlyRole(MANAGER_ROLE) {
         allowWithdraw = false;
     }
 
      //disable withdrawing on contract
-    function enableWithdraw() public onlyOwner {
+    function enableWithdraw() public onlyRole(MANAGER_ROLE) {
         allowWithdraw = true;
     }
     
@@ -114,7 +115,7 @@ contract TokenStakingFitChallenge is Ownable(msg.sender), AccessControl { //pass
             } else {
                 //passed Test this cycle
                 successfulParticipants += 1;    
-                stakeComplete[parameter[i]]=true;            
+                stakeComplete[participants[i]]=true;            
 
             }
         }
