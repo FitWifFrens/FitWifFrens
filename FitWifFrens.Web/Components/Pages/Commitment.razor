@@ -16,32 +16,60 @@
 <style>
     .bg-image {
         height: 100%;
+        width: 100%;
+        position: absolute;
         background-position: center;
         background-repeat: no-repeat;
         background-size: cover;
+        overflow: hidden;
+    }
+
+    .bg-overlay {
+        position: absolute;
+        height: 100%;
+        width: 100%;
+        background-color: #000;
+        opacity: 0.5;
+        overflow: hidden;
+    }
+
+    .bg-header {
+        color: white;
+        font-weight: bold;
+        line-height: 2;
+        z-index: 6;
+        position: relative;
     }
 
     .bg-text {
         color: white;
-        font-weight: bold;
         line-height: 2;
-        z-index: 2;
+        z-index: 6;
+        position: relative
     }
 </style>
 
 
 @if (_commitment != null)
 {
-    <div class="row">
-        <div class="col-sm-12 bg-image" style="background-image:url('@_commitment.Image')">
-            <h3 class="bg-text">@_commitment.Title</h3>
-            <p>@_commitment.Description</p>
+    <div class="card m-1" style="overflow: hidden;">
+        <div class="bg-image" style="background-image:url('@_commitment.Image')"></div>
+        <div class="bg-overlay"></div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-sm-12">
+                    <h3 class="bg-header">@_commitment.Title</h3>
+                    <p class="bg-text">@_commitment.Description</p>
+                    <p class="bg-text">Connects to <strong>@string.Join(", ", _commitment.Providers)</strong></p>
+                </div>
+            </div>
         </div>
     </div>
 
     @if (!_commitment.Complete)
     {
-        <div>
+
+        <div class="row">
             <div class="col-sm-12">
                 <Commit WorldId="@_worldId" ContractAddress="@_commitment.ContractAddress"></Commit>
             </div>
@@ -51,23 +79,27 @@
     {
         @if (_users != null)
         {
-            <table class="table">
-                <thead>
-                <tr>
-                    <th>WorldId</th>
-                    <th>Distributed Amount</th>
-                </tr>
-                </thead>
-                <tbody>
-                @foreach (var user in _users)
-                {
-                    <tr>
-                        <td>@user.WorldId</td>
-                        <td>@user.DistributedAmount</td>
-                    </tr>
-                }
-                </tbody>
-            </table>
+            <div class="card m-1">
+                <div class="card-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>WorldId</th>
+                                <th>Distributed Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var user in _users)
+                            {
+                                <tr>
+                                    <td>@user.WorldId</td>
+                                    <td>@user.DistributedAmount</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         }
     }
 }
@@ -108,7 +140,8 @@
                 Description = commitment.Description,
                 Image = commitment.Image,
                 ContractAddress = commitment.ContractAddress,
-                Complete = commitment.Complete
+                Complete = commitment.Complete,
+                Providers = commitment.Providers.Select(p => p.ProviderName).ToArray(),
             };
 
         _users = commitment.Users.Select(u => new CommittedUserData
@@ -131,9 +164,7 @@
 
         public bool Complete { get; set; }
 
-        public bool Committed { get; set; }
-        public bool HasRequiredProviders { get; set; }
-        public string[] MissingProviders { get; set; }
+        public string[] Providers { get; set; }
     }
 
     private class CommittedUserData

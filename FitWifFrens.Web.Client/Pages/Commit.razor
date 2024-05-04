@@ -17,7 +17,7 @@
 
 <AuthorizeView Roles="EthereumConnected">
     <Authorized>
-        @if (SelectedChainId != 84532)
+        @if (SelectedChainId != 84532 && SelectedChainId > 0)
         {
             <div class="card m-1">
                 <div class="card-body">
