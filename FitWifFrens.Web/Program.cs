@@ -42,6 +42,10 @@ namespace FitWifFrens.Web
                     options.ClientId = builder.Configuration.GetValue<string>("Authentication:Strava:ClientId")!;
                     options.ClientSecret = builder.Configuration.GetValue<string>("Authentication:Strava:ClientSecret")!;
 
+                    options.Scope.Add("read_all");
+                    options.Scope.Add("profile:read_all");
+                    options.Scope.Add("activity:read_all");
+
                     options.SaveTokens = true;
                 })
                 .AddStackExchange(options =>

@@ -1,0 +1,67 @@
+﻿@page "/Commitment/{CommitmentId:guid}"
+
+@attribute [Authorize]
+
+@using FitWifFrens.Web.Components.Account
+@using FitWifFrens.Data
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+
+@inject IdentityUserAccessor UserAccessor
+@inject DataContext DataContext
+
+<PageTitle>Commitment</PageTitle>
+
+
+@if (_users != null)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>WorldId</th>
+                <th>Distributed Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in _users)
+            {
+                <tr>
+                    <td>@user.WorldId</td>
+                    <td>@user.DistributedAmount</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+
+    [Parameter]
+    public Guid CommitmentId { get; set; }
+
+    private List<CommittedUserData>? _users;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var commitment = await DataContext.Commitments
+            .Include(c => c.Providers)
+            .Include(c => c.Users).ThenInclude(u => u.User.Logins)
+            .SingleAsync(c => c.Id == CommitmentId);
+
+        _users = commitment.Users.Select(u => new CommittedUserData
+            {
+                WorldId = u.User.Logins.Single(l => l.LoginProvider == "WorldId").ProviderKey,
+                Transaction = u.Transaction,
+                DistributedAmount = u.DistributedAmount
+            }).ToList();
+    }
+
+    private class CommittedUserData
+    {
+        public string WorldId { get; set; }
+
+        public string Transaction { get; set; }
+
+        public int DistributedAmount { get; set; }
+    }
+}
