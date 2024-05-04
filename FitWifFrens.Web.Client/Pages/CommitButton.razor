@@ -17,12 +17,12 @@
     <Authorized>
         @if (ChallengerCount > 1)
         {
-            <p>Compete against @ChallengerCount challengers</p>
+            <p class="card-text">Compete against @ChallengerCount challengers</p>
         }
 
         @if (SelectedAccountTotalStaked > 0)
         {
-            <p><strong>You have already committed @SelectedAccountTotalStaked FitDollar</strong></p>
+            <p class="card-text"><strong>You have already committed @SelectedAccountTotalStaked FitDollars</strong></p>
         }
 
         <a href="/Commitment/@CommitmentId" class="btn btn-primary">Commit</a>
