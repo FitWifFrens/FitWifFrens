@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 
-contract TokenStakingFitChallenge is AccessControl { //pass msg.sender as initialOwner
+contract StakingForFitFrens is AccessControl { 
     
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
     IERC20 public TokenAddress;
@@ -27,16 +27,24 @@ contract TokenStakingFitChallenge is AccessControl { //pass msg.sender as initia
     bool public pendingResults;
     bool public allowWithdraw = true;
     uint public cycle = 1;
+    string public challengeName;
+    string public lastSuccessfulIndices = "none";
+
+    // Event to log responses
+    event FitResults(
+        string successes
+    );
 
 
-    constructor(address _tokenAddress, uint256 _activityThreshold, uint256 _minuteThreshold) {
+    constructor(address _tokenAddress, uint256 _activityThreshold, uint256 _minuteThreshold, string memory _challengeName) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(MANAGER_ROLE, msg.sender);
         TokenAddress = IERC20(_tokenAddress);
         activityThreshold = _activityThreshold;
         minuteThreshold = _minuteThreshold;
+        challengeName = _challengeName;
     }
-    // need to include ID information during staking for check
+    // include uniqueID for check
     function createPledge(uint256 amount, string memory uniqueID) public {
         require(TokenAddress.transferFrom(msg.sender, address(this), amount), "Transfer failed");        
         if (!hasStaked[msg.sender]) {
@@ -50,18 +58,7 @@ contract TokenStakingFitChallenge is AccessControl { //pass msg.sender as initia
         totalStaked += amount;
         challengerCount += 1;
 
-    }
-
-    // add a check for the worldId token to be used once
-    function stakeToken(uint256 amount) private {
-        require(TokenAddress.transferFrom(msg.sender, address(this), amount), "Transfer failed");
-        if (!hasStaked[msg.sender]) {
-            participants.push(msg.sender);
-            hasStaked[msg.sender] = true;
-        }
-        stakedTokens[msg.sender] += amount;
-        totalStaked += amount;
-    }
+    }  
 
     //disable withdrawing if it is not available
     function withdrawAll() public {
@@ -103,6 +100,8 @@ contract TokenStakingFitChallenge is AccessControl { //pass msg.sender as initia
     function DistributeResultsBeginNextCycle() public onlyRole(MANAGER_ROLE) {
         //require(participants.length == amounts.length, "Mismatch between participants and amounts");
         //uint256 rewardTokens = 0;
+        require(checkResults(),"No results, unable to distribute");
+        setAllResult(parseStringToArray(lastSuccessfulIndices));
         uint256 successfulParticipants = 0;
         for (uint256 i = 0; i < participants.length; i++) {
             if(!resultThisCycle[participants[i]]){
@@ -137,31 +136,71 @@ contract TokenStakingFitChallenge is AccessControl { //pass msg.sender as initia
         }
 
         cycle += 1;
+        lastSuccessfulIndices = "none";
 
 
     }
 
     //make chainlink function call to get data api for the current event, api will need list of user IDs ??
-    function checkResults() public onlyRole(MANAGER_ROLE) {
+    function checkResults() public onlyRole(MANAGER_ROLE) view returns (bool result) {
         //get some API check...
         //_ api results in , ID, activity, time
-        
-
-        //success or failure... 
-
-        //get date from chainlink?
+        if(keccak256(abi.encodePacked(lastSuccessfulIndices)) == keccak256(abi.encodePacked("none"))){
+            return false;
+        }
+            return true;
     }
 
     function setResult(address _userAddress,bool resultstate) public onlyRole(MANAGER_ROLE) {
         resultThisCycle[_userAddress]=resultstate;
+        
+    }
+
+    function setLastSuccessfulIndices(string memory _successfulIndices) public onlyRole(MANAGER_ROLE) {
+        lastSuccessfulIndices = _successfulIndices;
+        // Emit an event to log the response
+        emit FitResults(_successfulIndices);
     }
 
     function setAllResult(uint[] memory _successfulIndices) public onlyRole(MANAGER_ROLE) {
         // Set resultThisCycle to true for successful participants
         for (uint256 i = 0; i < _successfulIndices.length; i++) {
-            resultThisCycle[participants[_successfulIndices[i]]] = true;
+            if(stakedTokens[participants[_successfulIndices[i]]]>0 && participants.length > _successfulIndices[i]){
+                resultThisCycle[participants[_successfulIndices[i]]] = true;
+            }
         }
     }
+
+    function bytesToUintArray(bytes memory data) public pure returns (uint256[] memory) {
+    string memory str = bytesToString(data);
+    return parseStringToArray(str);
+    }
+
+    function bytesToString(bytes memory data) public pure returns (string memory) {
+    return string(data);
+    }
+
+    function parseStringToArray(string memory str) public pure returns (uint256[] memory) {
+        bytes memory b = bytes(str);
+        uint256[] memory result = new uint256[](b.length);
+
+        uint256 counter = 0;
+        for (uint256 i = 0; i < b.length; i++) {
+            if (uint8(b[i]) >= 48 && uint8(b[i]) <= 57) {
+                uint256 number = uint256(uint8(b[i])) - 48; // convert to uint
+                result[counter] = number;
+                counter++;
+            }
+        }
+
+        // resize the array
+        uint256[] memory finalResult = new uint256[](counter);
+        for (uint256 i = 0; i < counter; i++) {
+            finalResult[i] = result[i];
+        }
+
+    return finalResult;
+}
 
     function getParticipants() public view returns (address[] memory) {
         return participants;
