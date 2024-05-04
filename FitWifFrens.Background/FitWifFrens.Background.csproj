@@ -5,6 +5,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <UserSecretsId>aspnet-FitWifFrens.Web-5bf2b8eb-e34d-474c-bf72-cf8ab8bbbdb2</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

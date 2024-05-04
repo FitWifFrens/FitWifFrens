@@ -21,7 +21,7 @@
         </div>
     </div>
     <div class="row">
-        @foreach (var commitment in _commitments.Where(c => !c.Complete))
+        @foreach (var commitment in _commitments.Where(c => !c.Complete).OrderBy(c => c.Title))
         {
             <div class="col-sm-3">
                 <div class="card">
