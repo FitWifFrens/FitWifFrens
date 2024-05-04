@@ -3,9 +3,12 @@ pragma solidity 0.8.23;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
 
-contract TokenStakingFitChallenge is Ownable(msg.sender) { //pass msg.sender as initialOwner
+contract TokenStakingFitChallenge is Ownable(msg.sender), AccessControl { //pass msg.sender as initialOwner
+    
+    bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
     IERC20 public TokenAddress;
     mapping(address => uint256) public stakedTokens;
     mapping(address => uint256) public rewardTokens;
@@ -41,6 +44,7 @@ contract TokenStakingFitChallenge is Ownable(msg.sender) { //pass msg.sender as 
         }
         resultThisCycle[msg.sender]=false;
         uniqueIDmap[msg.sender] = uniqueID;
+        stakeComplete[msg.sender]=false;
         stakedTokens[msg.sender] += amount;
         totalStaked += amount;
         challengerCount += 1;
@@ -59,21 +63,35 @@ contract TokenStakingFitChallenge is Ownable(msg.sender) { //pass msg.sender as 
     }
 
     //disable withdrawing if it is not available
-    function withdrawStake() public {
+    function withdrawAll() public {
+        require(stakeComplete[msg.sender],"staking period not over");
         require(allowWithdraw, "Withdraw not allowed");
         uint256 amount = stakedTokens[msg.sender];
+        uint256 rewardAmount = rewardTokens[msg.sender];
         require(amount>0, "Insufficient balance");
         stakedTokens[msg.sender] -= amount;
+        rewardTokens[msg.sender] -= rewardAmount;
         totalStaked -= amount;
-        require(TokenAddress.transfer(msg.sender, amount), "Transfer failed");
+
+        require(TokenAddress.transfer(msg.sender, amount + rewardAmount), "Transfer failed");
     }
 
-    //disable withdrawing on cotnract
+    function withdrawRewards() public {
+        require(allowWithdraw, "Withdraw not allowed");
+        uint256 rewardAmount = rewardTokens[msg.sender];
+        require(rewardAmount>0, "Insufficient balance");
+        rewardTokens[msg.sender] -= rewardAmount;
+
+        require(TokenAddress.transfer(msg.sender, rewardAmount), "Transfer failed");
+
+    }
+
+    //disable withdrawing on contract
     function disableWithdraw() public onlyOwner {
         allowWithdraw = false;
     }
 
-     //disable withdrawing on cotnract
+     //disable withdrawing on contract
     function enableWithdraw() public onlyOwner {
         allowWithdraw = true;
     }
@@ -81,7 +99,7 @@ contract TokenStakingFitChallenge is Ownable(msg.sender) { //pass msg.sender as 
     
 
     //reward resolution
-    function DistributeResultsBeginNextCycle() public onlyOwner {
+    function DistributeResultsBeginNextCycle() public onlyRole(MANAGER_ROLE) {
         //require(participants.length == amounts.length, "Mismatch between participants and amounts");
         //uint256 rewardTokens = 0;
         uint256 successfulParticipants = 0;
@@ -92,9 +110,11 @@ contract TokenStakingFitChallenge is Ownable(msg.sender) { //pass msg.sender as 
                 stakedTokens[participants[i]] = 0;
                 totalStaked -= amount;
                 rewardsPool += amount;
+                challengerCount -=1;
             } else {
                 //passed Test this cycle
-                successfulParticipants += 1;
+                successfulParticipants += 1;    
+                stakeComplete[parameter[i]]=true;            
 
             }
         }
@@ -121,7 +141,7 @@ contract TokenStakingFitChallenge is Ownable(msg.sender) { //pass msg.sender as 
     }
 
     //make chainlink function call to get data api for the current event, api will need list of user IDs ??
-    function checkResults() public onlyOwner {
+    function checkResults() public onlyRole(MANAGER_ROLE) {
         //get some API check...
         //_ api results in , ID, activity, time
         
@@ -131,7 +151,18 @@ contract TokenStakingFitChallenge is Ownable(msg.sender) { //pass msg.sender as 
         //get date from chainlink?
     }
 
-    function setResult(address _userAddress,bool resultstate) public onlyOwner {
+    function setResult(address _userAddress,bool resultstate) public onlyRole(MANAGER_ROLE) {
         resultThisCycle[_userAddress]=resultstate;
+    }
+
+    function setAllResult(uint[] memory _successfulIndices) public onlyRole(MANAGER_ROLE) {
+        // Set resultThisCycle to true for successful participants
+        for (uint256 i = 0; i < _successfulIndices.length; i++) {
+            resultThisCycle[participants[_successfulIndices[i]]] = true;
+        }
+    }
+
+    function getParticipants() public view returns (address[] memory) {
+        return participants;
     }
 }
