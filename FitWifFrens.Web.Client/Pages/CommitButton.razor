@@ -15,9 +15,9 @@
 
 <AuthorizeView Roles="EthereumConnected">
     <Authorized>
-        @if (ChallengerCount > 0 && TotalStaked > 0)
+        @if (ChallengerCount > 1)
         {
-            <p>There are currently @ChallengerCount challengers who have committed @TotalStaked FitDollar</p>
+            <p>Compete against @ChallengerCount challengers</p>
         }
 
         @if (SelectedAccountTotalStaked > 0)
@@ -26,6 +26,8 @@
         }
 
         <a href="/Commitment/@CommitmentId" class="btn btn-primary">Commit</a>
+        
+        <p class="card-text" style="margin-top: 10px;"><small class="text-muted">Round @RoundNumber, cycle ends Monday</small></p>
     </Authorized>
     <NotAuthorized>
         <a href="/Commitment/@CommitmentId" class="btn btn-primary">Commit</a>
@@ -51,6 +53,7 @@
     BigInteger SelectedAccountTotalStaked { get; set; }
     BigInteger TotalStaked { get; set; }
     BigInteger ChallengerCount { get; set; }
+    BigInteger RoundNumber { get; set; }
     IEthereumHostProvider _ethereumHostProvider;
 
     protected override void OnInitialized()
@@ -121,5 +124,6 @@
         SelectedAccountTotalStaked = await tokenStakingService.StakedTokensQueryAsync(SelectedAccount) / Constants.TokenDecimals;
         ChallengerCount = await tokenStakingService.ChallengerCountQueryAsync();
         TotalStaked = await tokenStakingService.TotalStakedQueryAsync() / Constants.TokenDecimals;
+        RoundNumber = await tokenStakingService.CycleQueryAsync();
     }
 }
