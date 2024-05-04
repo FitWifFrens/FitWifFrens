@@ -32,6 +32,14 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
         public virtual BigInteger MinuteThreshold { get; set; }
     }
 
+    public partial class DefaultAdminRoleFunction : DefaultAdminRoleFunctionBase { }
+
+    [Function("DEFAULT_ADMIN_ROLE", "bytes32")]
+    public class DefaultAdminRoleFunctionBase : FunctionMessage
+    {
+
+    }
+
     public partial class DistributeResultsBeginNextCycleFunction : DistributeResultsBeginNextCycleFunctionBase { }
 
     [Function("DistributeResultsBeginNextCycle")]
@@ -40,18 +48,18 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
 
     }
 
-    public partial class TokenAddressFunction : TokenAddressFunctionBase { }
+    public partial class ManagerRoleFunction : ManagerRoleFunctionBase { }
 
-    [Function("TokenAddress", "address")]
-    public class TokenAddressFunctionBase : FunctionMessage
+    [Function("MANAGER_ROLE", "bytes32")]
+    public class ManagerRoleFunctionBase : FunctionMessage
     {
 
     }
 
-    public partial class ActivityThresholdFunction : ActivityThresholdFunctionBase { }
+    public partial class TokenAddressFunction : TokenAddressFunctionBase { }
 
-    [Function("activityThreshold", "uint256")]
-    public class ActivityThresholdFunctionBase : FunctionMessage
+    [Function("TokenAddress", "address")]
+    public class TokenAddressFunctionBase : FunctionMessage
     {
 
     }
@@ -115,6 +123,45 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
 
     }
 
+    public partial class GetParticipantsFunction : GetParticipantsFunctionBase { }
+
+    [Function("getParticipants", "address[]")]
+    public class GetParticipantsFunctionBase : FunctionMessage
+    {
+
+    }
+
+    public partial class GetRoleAdminFunction : GetRoleAdminFunctionBase { }
+
+    [Function("getRoleAdmin", "bytes32")]
+    public class GetRoleAdminFunctionBase : FunctionMessage
+    {
+        [Parameter("bytes32", "role", 1)]
+        public virtual byte[] Role { get; set; }
+    }
+
+    public partial class GrantRoleFunction : GrantRoleFunctionBase { }
+
+    [Function("grantRole")]
+    public class GrantRoleFunctionBase : FunctionMessage
+    {
+        [Parameter("bytes32", "role", 1)]
+        public virtual byte[] Role { get; set; }
+        [Parameter("address", "account", 2)]
+        public virtual string Account { get; set; }
+    }
+
+    public partial class HasRoleFunction : HasRoleFunctionBase { }
+
+    [Function("hasRole", "bool")]
+    public class HasRoleFunctionBase : FunctionMessage
+    {
+        [Parameter("bytes32", "role", 1)]
+        public virtual byte[] Role { get; set; }
+        [Parameter("address", "account", 2)]
+        public virtual string Account { get; set; }
+    }
+
     public partial class HasStakedFunction : HasStakedFunctionBase { }
 
     [Function("hasStaked", "bool")]
@@ -122,22 +169,6 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
     {
         [Parameter("address", "", 1)]
         public virtual string ReturnValue1 { get; set; }
-    }
-
-    public partial class MinuteThresholdFunction : MinuteThresholdFunctionBase { }
-
-    [Function("minuteThreshold", "uint256")]
-    public class MinuteThresholdFunctionBase : FunctionMessage
-    {
-
-    }
-
-    public partial class OwnerFunction : OwnerFunctionBase { }
-
-    [Function("owner", "address")]
-    public class OwnerFunctionBase : FunctionMessage
-    {
-
     }
 
     public partial class ParticipantsFunction : ParticipantsFunctionBase { }
@@ -157,12 +188,15 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
 
     }
 
-    public partial class RenounceOwnershipFunction : RenounceOwnershipFunctionBase { }
+    public partial class RenounceRoleFunction : RenounceRoleFunctionBase { }
 
-    [Function("renounceOwnership")]
-    public class RenounceOwnershipFunctionBase : FunctionMessage
+    [Function("renounceRole")]
+    public class RenounceRoleFunctionBase : FunctionMessage
     {
-
+        [Parameter("bytes32", "role", 1)]
+        public virtual byte[] Role { get; set; }
+        [Parameter("address", "callerConfirmation", 2)]
+        public virtual string CallerConfirmation { get; set; }
     }
 
     public partial class ResultThisCycleFunction : ResultThisCycleFunctionBase { }
@@ -172,6 +206,17 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
     {
         [Parameter("address", "", 1)]
         public virtual string ReturnValue1 { get; set; }
+    }
+
+    public partial class RevokeRoleFunction : RevokeRoleFunctionBase { }
+
+    [Function("revokeRole")]
+    public class RevokeRoleFunctionBase : FunctionMessage
+    {
+        [Parameter("bytes32", "role", 1)]
+        public virtual byte[] Role { get; set; }
+        [Parameter("address", "account", 2)]
+        public virtual string Account { get; set; }
     }
 
     public partial class RewardTokensFunction : RewardTokensFunctionBase { }
@@ -189,6 +234,15 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
     public class RewardsPoolFunctionBase : FunctionMessage
     {
 
+    }
+
+    public partial class SetAllResultFunction : SetAllResultFunctionBase { }
+
+    [Function("setAllResult")]
+    public class SetAllResultFunctionBase : FunctionMessage
+    {
+        [Parameter("uint256[]", "_successfulIndices", 1)]
+        public virtual List<BigInteger> SuccessfulIndices { get; set; }
     }
 
     public partial class SetResultFunction : SetResultFunctionBase { }
@@ -220,21 +274,21 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
         public virtual string ReturnValue1 { get; set; }
     }
 
+    public partial class SupportsInterfaceFunction : SupportsInterfaceFunctionBase { }
+
+    [Function("supportsInterface", "bool")]
+    public class SupportsInterfaceFunctionBase : FunctionMessage
+    {
+        [Parameter("bytes4", "interfaceId", 1)]
+        public virtual byte[] InterfaceId { get; set; }
+    }
+
     public partial class TotalStakedFunction : TotalStakedFunctionBase { }
 
     [Function("totalStaked", "uint256")]
     public class TotalStakedFunctionBase : FunctionMessage
     {
 
-    }
-
-    public partial class TransferOwnershipFunction : TransferOwnershipFunctionBase { }
-
-    [Function("transferOwnership")]
-    public class TransferOwnershipFunctionBase : FunctionMessage
-    {
-        [Parameter("address", "newOwner", 1)]
-        public virtual string NewOwner { get; set; }
     }
 
     public partial class UniqueIDUsedFunction : UniqueIDUsedFunctionBase { }
@@ -255,44 +309,97 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
         public virtual string ReturnValue1 { get; set; }
     }
 
-    public partial class WithdrawStakeFunction : WithdrawStakeFunctionBase { }
+    public partial class WithdrawAllFunction : WithdrawAllFunctionBase { }
 
-    [Function("withdrawStake")]
-    public class WithdrawStakeFunctionBase : FunctionMessage
+    [Function("withdrawAll")]
+    public class WithdrawAllFunctionBase : FunctionMessage
     {
 
     }
 
-    public partial class OwnershipTransferredEventDTO : OwnershipTransferredEventDTOBase { }
+    public partial class WithdrawRewardsFunction : WithdrawRewardsFunctionBase { }
 
-    [Event("OwnershipTransferred")]
-    public class OwnershipTransferredEventDTOBase : IEventDTO
+    [Function("withdrawRewards")]
+    public class WithdrawRewardsFunctionBase : FunctionMessage
     {
-        [Parameter("address", "previousOwner", 1, true )]
-        public virtual string PreviousOwner { get; set; }
-        [Parameter("address", "newOwner", 2, true )]
-        public virtual string NewOwner { get; set; }
+
     }
 
-    public partial class OwnableInvalidOwnerError : OwnableInvalidOwnerErrorBase { }
+    public partial class RoleAdminChangedEventDTO : RoleAdminChangedEventDTOBase { }
 
-    [Error("OwnableInvalidOwner")]
-    public class OwnableInvalidOwnerErrorBase : IErrorDTO
+    [Event("RoleAdminChanged")]
+    public class RoleAdminChangedEventDTOBase : IEventDTO
     {
-        [Parameter("address", "owner", 1)]
-        public virtual string Owner { get; set; }
+        [Parameter("bytes32", "role", 1, true )]
+        public virtual byte[] Role { get; set; }
+        [Parameter("bytes32", "previousAdminRole", 2, true )]
+        public virtual byte[] PreviousAdminRole { get; set; }
+        [Parameter("bytes32", "newAdminRole", 3, true )]
+        public virtual byte[] NewAdminRole { get; set; }
     }
 
-    public partial class OwnableUnauthorizedAccountError : OwnableUnauthorizedAccountErrorBase { }
+    public partial class RoleGrantedEventDTO : RoleGrantedEventDTOBase { }
 
-    [Error("OwnableUnauthorizedAccount")]
-    public class OwnableUnauthorizedAccountErrorBase : IErrorDTO
+    [Event("RoleGranted")]
+    public class RoleGrantedEventDTOBase : IEventDTO
+    {
+        [Parameter("bytes32", "role", 1, true )]
+        public virtual byte[] Role { get; set; }
+        [Parameter("address", "account", 2, true )]
+        public virtual string Account { get; set; }
+        [Parameter("address", "sender", 3, true )]
+        public virtual string Sender { get; set; }
+    }
+
+    public partial class RoleRevokedEventDTO : RoleRevokedEventDTOBase { }
+
+    [Event("RoleRevoked")]
+    public class RoleRevokedEventDTOBase : IEventDTO
+    {
+        [Parameter("bytes32", "role", 1, true )]
+        public virtual byte[] Role { get; set; }
+        [Parameter("address", "account", 2, true )]
+        public virtual string Account { get; set; }
+        [Parameter("address", "sender", 3, true )]
+        public virtual string Sender { get; set; }
+    }
+
+    public partial class AccessControlBadConfirmationError : AccessControlBadConfirmationErrorBase { }
+    [Error("AccessControlBadConfirmation")]
+    public class AccessControlBadConfirmationErrorBase : IErrorDTO
+    {
+    }
+
+    public partial class AccessControlUnauthorizedAccountError : AccessControlUnauthorizedAccountErrorBase { }
+
+    [Error("AccessControlUnauthorizedAccount")]
+    public class AccessControlUnauthorizedAccountErrorBase : IErrorDTO
     {
         [Parameter("address", "account", 1)]
         public virtual string Account { get; set; }
+        [Parameter("bytes32", "neededRole", 2)]
+        public virtual byte[] NeededRole { get; set; }
+    }
+
+    public partial class DefaultAdminRoleOutputDTO : DefaultAdminRoleOutputDTOBase { }
+
+    [FunctionOutput]
+    public class DefaultAdminRoleOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("bytes32", "", 1)]
+        public virtual byte[] ReturnValue1 { get; set; }
     }
 
 
+
+    public partial class ManagerRoleOutputDTO : ManagerRoleOutputDTOBase { }
+
+    [FunctionOutput]
+    public class ManagerRoleOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("bytes32", "", 1)]
+        public virtual byte[] ReturnValue1 { get; set; }
+    }
 
     public partial class TokenAddressOutputDTO : TokenAddressOutputDTOBase { }
 
@@ -301,15 +408,6 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
     {
         [Parameter("address", "", 1)]
         public virtual string ReturnValue1 { get; set; }
-    }
-
-    public partial class ActivityThresholdOutputDTO : ActivityThresholdOutputDTOBase { }
-
-    [FunctionOutput]
-    public class ActivityThresholdOutputDTOBase : IFunctionOutputDTO 
-    {
-        [Parameter("uint256", "", 1)]
-        public virtual BigInteger ReturnValue1 { get; set; }
     }
 
     public partial class AllowWithdrawOutputDTO : AllowWithdrawOutputDTOBase { }
@@ -347,6 +445,35 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
 
 
 
+    public partial class GetParticipantsOutputDTO : GetParticipantsOutputDTOBase { }
+
+    [FunctionOutput]
+    public class GetParticipantsOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("address[]", "", 1)]
+        public virtual List<string> ReturnValue1 { get; set; }
+    }
+
+    public partial class GetRoleAdminOutputDTO : GetRoleAdminOutputDTOBase { }
+
+    [FunctionOutput]
+    public class GetRoleAdminOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("bytes32", "", 1)]
+        public virtual byte[] ReturnValue1 { get; set; }
+    }
+
+
+
+    public partial class HasRoleOutputDTO : HasRoleOutputDTOBase { }
+
+    [FunctionOutput]
+    public class HasRoleOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("bool", "", 1)]
+        public virtual bool ReturnValue1 { get; set; }
+    }
+
     public partial class HasStakedOutputDTO : HasStakedOutputDTOBase { }
 
     [FunctionOutput]
@@ -354,24 +481,6 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
     {
         [Parameter("bool", "", 1)]
         public virtual bool ReturnValue1 { get; set; }
-    }
-
-    public partial class MinuteThresholdOutputDTO : MinuteThresholdOutputDTOBase { }
-
-    [FunctionOutput]
-    public class MinuteThresholdOutputDTOBase : IFunctionOutputDTO 
-    {
-        [Parameter("uint256", "", 1)]
-        public virtual BigInteger ReturnValue1 { get; set; }
-    }
-
-    public partial class OwnerOutputDTO : OwnerOutputDTOBase { }
-
-    [FunctionOutput]
-    public class OwnerOutputDTOBase : IFunctionOutputDTO 
-    {
-        [Parameter("address", "", 1)]
-        public virtual string ReturnValue1 { get; set; }
     }
 
     public partial class ParticipantsOutputDTO : ParticipantsOutputDTOBase { }
@@ -403,6 +512,8 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
         public virtual bool ReturnValue1 { get; set; }
     }
 
+
+
     public partial class RewardTokensOutputDTO : RewardTokensOutputDTOBase { }
 
     [FunctionOutput]
@@ -420,6 +531,8 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
         [Parameter("uint256", "", 1)]
         public virtual BigInteger ReturnValue1 { get; set; }
     }
+
+
 
 
 
@@ -441,6 +554,15 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
         public virtual BigInteger ReturnValue1 { get; set; }
     }
 
+    public partial class SupportsInterfaceOutputDTO : SupportsInterfaceOutputDTOBase { }
+
+    [FunctionOutput]
+    public class SupportsInterfaceOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("bool", "", 1)]
+        public virtual bool ReturnValue1 { get; set; }
+    }
+
     public partial class TotalStakedOutputDTO : TotalStakedOutputDTOBase { }
 
     [FunctionOutput]
@@ -449,8 +571,6 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
         [Parameter("uint256", "", 1)]
         public virtual BigInteger ReturnValue1 { get; set; }
     }
-
-
 
     public partial class UniqueIDUsedOutputDTO : UniqueIDUsedOutputDTOBase { }
 
@@ -469,6 +589,8 @@ namespace FitWifFrens.Web.Client.Contract.TokenStaking.ContractDefinition
         [Parameter("string", "", 1)]
         public virtual string ReturnValue1 { get; set; }
     }
+
+
 
 
 }
