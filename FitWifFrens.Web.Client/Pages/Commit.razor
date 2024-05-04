@@ -1,6 +1,6 @@
 ﻿@page "/Commit/{ContractAddress}"
 @attribute [Authorize]
-@rendermode InteractiveWebAssembly
+@rendermode @(new InteractiveWebAssemblyRenderMode(prerender:false))
 
 @implements IDisposable;
 @inject IJSRuntime jsRuntime;
@@ -13,6 +13,7 @@
 @using FitWifFrens.Web.Client.Contract.TokenStaking
 @using Microsoft.AspNetCore.Authorization
 @using Nethereum.RPC.HostWallet
+@using System.Numerics
 
 
 <AuthorizeView Roles="EthereumConnected">
@@ -67,6 +68,20 @@
                 </div>
             </div>
 
+            @if (TotalStaked > 0)
+            {
+                <div class="card m-1">
+                    <div class="card-body">
+                        <div class="row">
+                            <label class="col-sm-4 col-form-label-md">Total Staked FitDollar:</label>
+                            <div class="col-sm-6">
+                                @TotalStaked
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
             <div class="card m-1">
                 <div class="card-body">
                     <div class="row">
@@ -93,7 +108,7 @@
     public string ContractAddress { get; set; }
 
     [CascadingParameter]
-    public Task<AuthenticationState> AuthenticationState { get; set; }
+    public Task<AuthenticationState?> AuthenticationState { get; set; }
 
     bool EthereumAvailable { get; set; }
     string SelectedAccount { get; set; }
@@ -104,6 +119,7 @@
     string ErrorAuthenticateMessage { get; set; }
     string UserName { get; set; }
     protected string AuthenticatedAccount { get; set; }
+    BigInteger TotalStaked { get; set; }
     IEthereumHostProvider _ethereumHostProvider;
 
     protected override void OnInitialized()
@@ -124,11 +140,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
         EthereumAvailable = await _ethereumHostProvider.CheckProviderAvailabilityAsync();
         if (EthereumAvailable)
         {
@@ -136,7 +147,7 @@
             await GetChainId();
         }
 
-        var authState = await AuthenticationState; ;
+        var authState = await AuthenticationState;
         if (authState != null)
         {
             UserName = authState.User.FindFirst(c => c.Type.Contains(ClaimTypes.NameIdentifier))?.Value;
@@ -148,7 +159,7 @@
         if (enabled)
         {
             await GetChainId();
-            this.StateHasChanged();
+            StateHasChanged();
         }
     }
 
@@ -157,19 +168,26 @@
         var web3 = await _ethereumHostProvider.GetWeb3Async();
         var chainId = await web3.Eth.ChainId.SendRequestAsync();
         SelectedChainId = (long)chainId.Value;
+
+        if (SelectedChainId == 84532)
+        {
+            Console.WriteLine($"SelectedChainId {SelectedChainId}");
+
+            await LoadStakingData();
+        }
     }
 
     private async Task HostProvider_SelectedAccountChanged(string account)
     {
         SelectedAccount = account;
         await GetChainId();
-        this.StateHasChanged();
+        StateHasChanged();
     }
 
     private async Task HostProvider_NetworkChanged(long chainId)
     {
         SelectedChainId = chainId;
-        this.StateHasChanged();
+        StateHasChanged();
     }
 
 
@@ -180,31 +198,13 @@
         BlockHash = block.BlockHash;
     }
 
-
-    protected async Task AddChain()
+    protected async Task LoadStakingData()
     {
         var web3 = await _ethereumHostProvider.GetWeb3Async();
-        var optimismChain = new AddEthereumChainParameter()
-            {
-                ChainId = new HexBigInteger(84532),
-                ChainName = "Base Sepolia",
-                NativeCurrency = new NativeCurrency()
-                {
-                    Decimals = 18,
-                    Name = "ETH",
-                    Symbol = "ETH"
-                },
-                RpcUrls = new List<string> { "https://sepolia.base.org" },
-                BlockExplorerUrls = new List<string> { "https://base-sepolia.blockscout.com" },
-            };
-        try
-        {
-            var result = await web3.Eth.HostWallet.AddEthereumChain.SendRequestAsync(optimismChain);
-        }
-        catch (Exception ex)
-        {
 
-        }
+        var tokenStakingService = new TokenStakingService(web3, ContractAddress);
+
+        TotalStaked = await tokenStakingService.TotalStakedQueryAsync();
     }
 
     protected async Task StakeFitDollar()
@@ -213,13 +213,41 @@
 
         var tokenStakingService = new TokenStakingService(web3, ContractAddress);
 
-        var x = await tokenStakingService.TotalStakedQueryAsync();
+        var transactionReceipt = await tokenStakingService.StakeTokenRequestAndWaitForReceiptAsync(1);
 
-        Console.WriteLine($"TotalStaked {x}");
-
-        var x1 = await tokenStakingService.StakeTokenRequestAsync(1);
+        if (transactionReceipt.HasErrors() == false)
+        {
+            await LoadStakingData();
+        }
     }
 
+    protected async Task AddChain()
+    {
+        var web3 = await _ethereumHostProvider.GetWeb3Async();
+
+        var baseSepolia = new AddEthereumChainParameter
+            {
+                ChainId = new HexBigInteger(84532),
+                ChainName = "Base Sepolia",
+                NativeCurrency = new NativeCurrency
+                {
+                    Decimals = 18,
+                    Name = "ETH",
+                    Symbol = "ETH"
+                },
+                RpcUrls = new List<string> { "https://sepolia.base.org" },
+                BlockExplorerUrls = new List<string> { "https://base-sepolia.blockscout.com" },
+            };
+
+        try
+        {
+            var result = await web3.Eth.HostWallet.AddEthereumChain.SendRequestAsync(baseSepolia);
+        }
+        catch
+        {
+            // Ignore
+        }
+    }
 }
 
 
