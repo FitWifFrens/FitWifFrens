@@ -1,6 +1,0 @@
-@FitWifFrens.Strava.Api_HostAddress = http://localhost:5077
-
-GET {{FitWifFrens.Strava.Api_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

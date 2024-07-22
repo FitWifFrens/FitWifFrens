@@ -32,11 +32,6 @@ namespace FitWifFrens.Web
                     options.DefaultScheme = IdentityConstants.ApplicationScheme;
                     options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
                 })
-                .AddWorldId(options =>
-                {
-                    options.ClientId = builder.Configuration.GetValue<string>("Authentication:WorldId:ClientId")!;
-                    options.ClientSecret = builder.Configuration.GetValue<string>("Authentication:WorldId:ClientSecret")!;
-                })
                 .AddStrava(options =>
                 {
                     options.ClientId = builder.Configuration.GetValue<string>("Authentication:Strava:ClientId")!;
@@ -48,11 +43,12 @@ namespace FitWifFrens.Web
 
                     options.SaveTokens = true;
                 })
-                .AddStackExchange(options =>
+                .AddWithings(options =>
                 {
-                    options.ClientId = builder.Configuration.GetValue<string>("Authentication:StackExchange:ClientId")!;
-                    options.ClientSecret = builder.Configuration.GetValue<string>("Authentication:StackExchange:ClientSecret")!;
-                    options.RequestKey = builder.Configuration.GetValue<string>("Authentication:StackExchange:RequestKey")!;
+                    options.ClientId = builder.Configuration.GetValue<string>("Authentication:Withings:ClientId")!;
+                    options.ClientSecret = builder.Configuration.GetValue<string>("Authentication:Withings:ClientSecret")!;
+
+                    options.Scope.Add("user.metrics");
 
                     options.SaveTokens = true;
                 })

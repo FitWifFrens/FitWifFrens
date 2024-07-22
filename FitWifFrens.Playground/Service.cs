@@ -6,7 +6,7 @@ namespace FitWifFrens.Playground
 {
     public class Service : IHostedService
     {
-        private readonly record struct NewUser(Guid Id, string Email, string WorldId, bool CompletedOldCommitment, bool JoinNewCommitment);
+        private readonly record struct NewUser(Guid Id, string Email, bool CompletedOldCommitment, bool JoinNewCommitment);
 
         private readonly IUserStore<User> _userStore;
         private readonly DataContext _dataContext;
@@ -24,87 +24,129 @@ namespace FitWifFrens.Playground
 
             var users = new List<NewUser>
             {
-                new NewUser(Guid.NewGuid(), "test1@gmail.com", "0x2fefb77e01d5019b7b2571b44d8cea84d0e1d83491d93ec3f9bb8871dedd7cdb", true, false),
-                new NewUser(Guid.NewGuid(), "test2@gmail.com", "0x1a66e7598f54a728f7db97983b226005aca9ecbc44928e519f0244a61303af20", true, true),
-                new NewUser(Guid.NewGuid(), "test3@gmail.com", "0x035646cc875f3b69fb4fbbb0e8a6f01805a52255d7619a0fddb71cea7ad49960", false, true),
+                new NewUser(Guid.NewGuid(), "test1@gmail.com", true, false),
+                new NewUser(Guid.NewGuid(), "test2@gmail.com", true, true),
+                new NewUser(Guid.NewGuid(), "test3@gmail.com", false, true),
             };
 
-            var oldCommitmentId = Guid.NewGuid();
+            var commitment1Id = Guid.Parse("f0ba65f0-b1bb-4a12-82e8-0a2c61e027a4");
 
             _dataContext.Commitments.Add(new Commitment
             {
-                Id = oldCommitmentId,
+                Id = commitment1Id,
                 Title = "60 minutes",
                 Description = "Record 2 activities on Strava with a total time of 60 minutes",
                 Image = "images/runner0.png",
-                Amount = 2,
-                Complete = true,
+                StartDate = new DateOnly(2024, 07, 15),
+                Days = 7,
                 ContractAddress = "0xDF5B443589e6a6f395602Baa722e906EF0e9f0e2",
-                Providers = new List<CommitmentProvider>
+                Goals = new List<Goal>
                 {
-                    new CommitmentProvider
+                    new Goal
                     {
-                        ProviderName = "Strava"
+                        ProviderName = "Strava",
+                        MetricName = "Running",
+                        MetricType = MetricType.Minutes,
+                        Rule = GoalRule.GreaterThanOrEqualTo,
+                        Value = 60
+                    },
+                    new Goal
+                    {
+                        ProviderName = "Strava",
+                        MetricName = "Running",
+                        MetricType = MetricType.Count,
+                        Rule = GoalRule.GreaterThanOrEqualTo,
+                        Value = 2
+                    }
+                },
+                Periods = new List<CommitmentPeriod>
+                {
+                    new CommitmentPeriod
+                    {
+                        StartDate = new DateOnly(2024, 07, 15),
+                        EndDate = new DateOnly(2024, 07, 22),
+                    },
+                    new CommitmentPeriod
+                    {
+                        StartDate = new DateOnly(2024, 07, 22),
+                        EndDate = new DateOnly(2024, 07, 29),
                     }
                 }
             });
 
-            // Fresh Contracts
-            // 0xE0c9a330050d361b6024f99092E65D52ccfcfCd8
-            // 0x7fAc91826D38CF8a70267848eE6f1017AB10423b
-            // 0x6decaF380123802B47C6DEE671461D7dd65aE235
-            // 0xd52e0a12ADF0e6Ba4b14D10449755245D1b3BA40
-            // 0xDF5B443589e6a6f395602Baa722e906EF0e9f0e2
-
-            var newCommitmentId = Guid.NewGuid();
+            var commitment2Id = Guid.Parse("46c06bf6-2e22-4e00-bf29-05050485d9a0");
 
             _dataContext.Commitments.Add(new Commitment
             {
-                Id = newCommitmentId,
+                Id = commitment2Id,
                 Title = "90 minutes",
                 Description = "Record 3 activities on Strava with a total time of 90 minutes",
                 Image = "images/runner1.png",
-                Amount = 5,
+                StartDate = new DateOnly(2024, 07, 29),
+                Days = 7,
                 ContractAddress = "0x2b937ba128d275E16E7f26De7d8524C21d0BB7cA", // 1
-                Providers = new List<CommitmentProvider>
+                Goals = new List<Goal>
                 {
-                    new CommitmentProvider
+                    new Goal
                     {
-                        ProviderName = "Strava"
+                        ProviderName = "Strava",
+                        MetricName = "Running",
+                        MetricType = MetricType.Minutes,
+                        Rule = GoalRule.GreaterThanOrEqualTo,
+                        Value = 90
+                    },
+                    new Goal
+                    {
+                        ProviderName = "Strava",
+                        MetricName = "Running",
+                        MetricType = MetricType.Count,
+                        Rule = GoalRule.GreaterThanOrEqualTo,
+                        Value = 3
+                    }
+                },
+                Periods = new List<CommitmentPeriod>
+                {
+                    new CommitmentPeriod
+                    {
+                        StartDate = new DateOnly(2024, 07, 29),
+                        EndDate = new DateOnly(2024, 08, 05),
                     }
                 }
             });
 
-            _dataContext.Commitments.Add(new Commitment
-            {
-                Id = Guid.NewGuid(),
-                Title = "120 minutes",
-                Description = "Record 4 activities on Strava with a total time of 120 minutes",
-                Image = "images/runner2.png",
-                Amount = 10,
-                ContractAddress = "0x6cC16743203C694f44Cf2698aa2537561832061e", // 2
-                Providers = new List<CommitmentProvider>
-                {
-                    new CommitmentProvider
-                    {
-                        ProviderName = "Strava"
-                    }
-                }
-            });
+            var commitment3Id = Guid.Parse("4d9a6fa4-6903-49dc-86a1-4780b826cd2a");
 
             _dataContext.Commitments.Add(new Commitment
             {
-                Id = Guid.NewGuid(),
-                Title = "Good Developer",
-                Description = "Answer 2 StackExchange questions a week",
+                Id = commitment3Id,
+                Title = "Weight Loss",
+                Description = "Lose at least a kilogram every 2 weeks",
                 Image = "images/developer0.png",
-                Amount = 42,
+                StartDate = new DateOnly(2024, 07, 22),
+                Days = 14,
                 ContractAddress = "0x947384ef21BB443416383A7FFeF3f1C3543c19eD",
-                Providers = new List<CommitmentProvider>
+                Goals = new List<Goal>
                 {
-                    new CommitmentProvider
+                    new Goal
                     {
-                        ProviderName = "StackExchange"
+                        ProviderName = "Withings",
+                        MetricName = "Weight",
+                        MetricType = MetricType.Value,
+                        Rule = GoalRule.LessThanOrEqualTo,
+                        Value = 1
+                    }
+                },
+                Periods = new List<CommitmentPeriod>
+                {
+                    new CommitmentPeriod
+                    {
+                        StartDate = new DateOnly(2024, 07, 22),
+                        EndDate = new DateOnly(2024, 08, 05),
+                    },
+                    new CommitmentPeriod
+                    {
+                        StartDate = new DateOnly(2024, 08, 05),
+                        EndDate = new DateOnly(2024, 08, 19),
                     }
                 }
             });
@@ -117,49 +159,67 @@ namespace FitWifFrens.Playground
                 {
                     Id = newUser.Id.ToString(),
                     Email = newUser.Email,
+                    Balance = 90
                 }, CancellationToken.None);
 
-                _dataContext.UserLogins.Add(new UserLogin
+                _dataContext.Deposits.Add(new Deposit
                 {
-                    LoginProvider = "WorldId",
-                    ProviderKey = newUser.WorldId,
-                    ProviderDisplayName = "World ID",
-                    UserId = newUser.Id.ToString()
+                    Transaction = "0x" + Guid.NewGuid().ToString().Replace("-", string.Empty),
+                    UserId = newUser.Id.ToString(),
+                    Amount = 100
                 });
 
-                if (newUser.CompletedOldCommitment)
+                _dataContext.CommitmentUsers.Add(new CommitmentUser
                 {
-                    _dataContext.CommittedUsers.Add(new CommittedUser
-                    {
-                        CommitmentId = oldCommitmentId,
-                        UserId = newUser.Id.ToString(),
-                        Transaction = Guid.NewGuid().ToString(),
-                        DistributedAmount = 3
-                    });
-                }
-                else
-                {
-                    _dataContext.CommittedUsers.Add(new CommittedUser
-                    {
-                        CommitmentId = oldCommitmentId,
-                        UserId = newUser.Id.ToString(),
-                        Transaction = Guid.NewGuid().ToString(),
-                        DistributedAmount = 0
-                    });
-                }
+                    CommitmentId = commitment1Id,
+                    UserId = newUser.Id.ToString(),
+                    Stake = 10,
+                });
 
-                if (newUser.JoinNewCommitment)
+                _dataContext.CommitmentPeriodUsers.Add(new CommitmentPeriodUser
                 {
-                    _dataContext.CommittedUsers.Add(new CommittedUser
-                    {
-                        CommitmentId = newCommitmentId,
-                        UserId = newUser.Id.ToString(),
-                        Transaction = Guid.NewGuid().ToString()
-                    });
-                }
+                    CommitmentId = commitment1Id,
+                    UserId = newUser.Id.ToString(),
+                    StartDate = new DateOnly(2024, 07, 15),
+                    EndDate = new DateOnly(2024, 07, 22),
+                    Stake = 10,
+                });
+
+                //if (newUser.CompletedOldCommitment)
+                //{
+                //    _dataContext.CommittedUsers.Add(new CommitmentUser
+                //    {
+                //        CommitmentId = oldCommitmentId,
+                //        UserId = newUser.Id.ToString(),
+                //        Transaction = Guid.NewGuid().ToString(),
+                //        DistributedAmount = 3
+                //    });
+                //}
+                //else
+                //{
+                //    _dataContext.CommittedUsers.Add(new CommitmentUser
+                //    {
+                //        CommitmentId = oldCommitmentId,
+                //        UserId = newUser.Id.ToString(),
+                //        Transaction = Guid.NewGuid().ToString(),
+                //        DistributedAmount = 0
+                //    });
+                //}
+
+                //if (newUser.JoinNewCommitment)
+                //{
+                //    _dataContext.CommittedUsers.Add(new CommitmentUser
+                //    {
+                //        CommitmentId = newCommitmentId,
+                //        UserId = newUser.Id.ToString(),
+                //        Transaction = Guid.NewGuid().ToString()
+                //    });
+                //}
 
                 await _dataContext.SaveChangesAsync(CancellationToken.None);
             }
+
+            Console.WriteLine("Done...");
         }
 
         public Task StopAsync(CancellationToken cancellationToken)

@@ -8,14 +8,15 @@
         public string Description { get; set; }
         public string Image { get; set; }
 
-        public int Amount { get; set; }
+        public DateOnly StartDate { get; set; }
+        public int Days { get; set; }
 
         public string ContractAddress { get; set; }
 
-        public bool Complete { get; set; }
+        public ICollection<Goal> Goals { get; set; }
 
-        public ICollection<CommitmentProvider> Providers { get; set; }
+        public ICollection<CommitmentPeriod> Periods { get; set; }
 
-        public ICollection<CommittedUser> Users { get; set; }
+        public ICollection<CommitmentUser> Users { get; set; }
     }
 }

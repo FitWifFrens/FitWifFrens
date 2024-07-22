@@ -28,15 +28,12 @@ namespace FitWifFrens.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Amount")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("Complete")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("ContractAddress")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("Days")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -45,6 +42,9 @@ namespace FitWifFrens.Data.Migrations
                     b.Property<string>("Image")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -55,22 +55,50 @@ namespace FitWifFrens.Data.Migrations
                     b.ToTable("Commitments");
                 });
 
-            modelBuilder.Entity("FitWifFrens.Data.CommitmentProvider", b =>
+            modelBuilder.Entity("FitWifFrens.Data.CommitmentPeriod", b =>
                 {
                     b.Property<Guid>("CommitmentId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("ProviderName")
-                        .HasColumnType("character varying(450)");
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
 
-                    b.HasKey("CommitmentId", "ProviderName");
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date");
 
-                    b.HasIndex("ProviderName");
+                    b.HasKey("CommitmentId", "StartDate", "EndDate");
 
-                    b.ToTable("CommitmentProviders");
+                    b.ToTable("CommitmentPeriods");
                 });
 
-            modelBuilder.Entity("FitWifFrens.Data.CommittedUser", b =>
+            modelBuilder.Entity("FitWifFrens.Data.CommitmentPeriodUser", b =>
+                {
+                    b.Property<Guid>("CommitmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Reward")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("Stake")
+                        .HasColumnType("numeric");
+
+                    b.HasKey("CommitmentId", "StartDate", "EndDate", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("CommitmentPeriodUsers");
+                });
+
+            modelBuilder.Entity("FitWifFrens.Data.CommitmentUser", b =>
                 {
                     b.Property<Guid>("CommitmentId")
                         .HasColumnType("uuid");
@@ -78,25 +106,137 @@ namespace FitWifFrens.Data.Migrations
                     b.Property<string>("UserId")
                         .HasColumnType("text");
 
-                    b.Property<int>("DistributedAmount")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Transaction")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<decimal>("Stake")
+                        .HasColumnType("numeric");
 
                     b.HasKey("CommitmentId", "UserId");
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("CommittedUsers");
+                    b.ToTable("CommitmentUsers");
+                });
+
+            modelBuilder.Entity("FitWifFrens.Data.Deposit", b =>
+                {
+                    b.Property<string>("Transaction")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Transaction");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Deposits");
+                });
+
+            modelBuilder.Entity("FitWifFrens.Data.Goal", b =>
+                {
+                    b.Property<Guid>("CommitmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProviderName")
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("MetricName")
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("MetricType")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("Rule")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<double>("Value")
+                        .HasColumnType("double precision");
+
+                    b.HasKey("CommitmentId", "ProviderName", "MetricName", "MetricType");
+
+                    b.HasIndex("ProviderName", "MetricName", "MetricType");
+
+                    b.ToTable("Goals");
+                });
+
+            modelBuilder.Entity("FitWifFrens.Data.Metric", b =>
+                {
+                    b.Property<string>("Name")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("Name");
+
+                    b.ToTable("Metrics");
+
+                    b.HasData(
+                        new
+                        {
+                            Name = "Exercise"
+                        },
+                        new
+                        {
+                            Name = "Running"
+                        },
+                        new
+                        {
+                            Name = "Weight"
+                        });
+                });
+
+            modelBuilder.Entity("FitWifFrens.Data.MetricValue", b =>
+                {
+                    b.Property<string>("MetricName")
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("Type")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("MetricName", "Type");
+
+                    b.ToTable("MetricValues");
+
+                    b.HasData(
+                        new
+                        {
+                            MetricName = "Exercise",
+                            Type = "Count"
+                        },
+                        new
+                        {
+                            MetricName = "Exercise",
+                            Type = "Minutes"
+                        },
+                        new
+                        {
+                            MetricName = "Running",
+                            Type = "Count"
+                        },
+                        new
+                        {
+                            MetricName = "Running",
+                            Type = "Minutes"
+                        },
+                        new
+                        {
+                            MetricName = "Weight",
+                            Type = "Value"
+                        });
                 });
 
             modelBuilder.Entity("FitWifFrens.Data.Provider", b =>
                 {
                     b.Property<string>("Name")
-                        .HasMaxLength(450)
-                        .HasColumnType("character varying(450)");
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
 
                     b.HasKey("Name");
 
@@ -105,15 +245,62 @@ namespace FitWifFrens.Data.Migrations
                     b.HasData(
                         new
                         {
-                            Name = "WorldId"
-                        },
-                        new
-                        {
-                            Name = "StackExchange"
-                        },
-                        new
-                        {
                             Name = "Strava"
+                        },
+                        new
+                        {
+                            Name = "Withings"
+                        });
+                });
+
+            modelBuilder.Entity("FitWifFrens.Data.ProviderMetricValue", b =>
+                {
+                    b.Property<string>("ProviderName")
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("MetricName")
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("MetricType")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("ProviderName", "MetricName", "MetricType");
+
+                    b.HasIndex("MetricName", "MetricType");
+
+                    b.ToTable("ProviderMetricValues");
+
+                    b.HasData(
+                        new
+                        {
+                            ProviderName = "Strava",
+                            MetricName = "Exercise",
+                            MetricType = "Count"
+                        },
+                        new
+                        {
+                            ProviderName = "Strava",
+                            MetricName = "Exercise",
+                            MetricType = "Minutes"
+                        },
+                        new
+                        {
+                            ProviderName = "Strava",
+                            MetricName = "Running",
+                            MetricType = "Count"
+                        },
+                        new
+                        {
+                            ProviderName = "Strava",
+                            MetricName = "Running",
+                            MetricType = "Minutes"
+                        },
+                        new
+                        {
+                            ProviderName = "Withings",
+                            MetricName = "Weight",
+                            MetricType = "Value"
                         });
                 });
 
@@ -175,6 +362,9 @@ namespace FitWifFrens.Data.Migrations
 
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("integer");
+
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("numeric");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
@@ -260,7 +450,7 @@ namespace FitWifFrens.Data.Migrations
             modelBuilder.Entity("FitWifFrens.Data.UserLogin", b =>
                 {
                     b.Property<string>("LoginProvider")
-                        .HasColumnType("character varying(450)");
+                        .HasColumnType("character varying(256)");
 
                     b.Property<string>("ProviderKey")
                         .HasColumnType("text");
@@ -313,26 +503,37 @@ namespace FitWifFrens.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("FitWifFrens.Data.CommitmentProvider", b =>
+            modelBuilder.Entity("FitWifFrens.Data.CommitmentPeriod", b =>
                 {
                     b.HasOne("FitWifFrens.Data.Commitment", "Commitment")
-                        .WithMany("Providers")
+                        .WithMany("Periods")
                         .HasForeignKey("CommitmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("FitWifFrens.Data.Provider", "Provider")
-                        .WithMany("Commitments")
-                        .HasForeignKey("ProviderName")
+                    b.Navigation("Commitment");
+                });
+
+            modelBuilder.Entity("FitWifFrens.Data.CommitmentPeriodUser", b =>
+                {
+                    b.HasOne("FitWifFrens.Data.User", "User")
+                        .WithMany("CommitmentPeriods")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FitWifFrens.Data.CommitmentPeriod", "Commitment")
+                        .WithMany("Users")
+                        .HasForeignKey("CommitmentId", "StartDate", "EndDate")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Commitment");
 
-                    b.Navigation("Provider");
+                    b.Navigation("User");
                 });
 
-            modelBuilder.Entity("FitWifFrens.Data.CommittedUser", b =>
+            modelBuilder.Entity("FitWifFrens.Data.CommitmentUser", b =>
                 {
                     b.HasOne("FitWifFrens.Data.Commitment", "Commitment")
                         .WithMany("Users")
@@ -349,6 +550,66 @@ namespace FitWifFrens.Data.Migrations
                     b.Navigation("Commitment");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FitWifFrens.Data.Deposit", b =>
+                {
+                    b.HasOne("FitWifFrens.Data.User", "User")
+                        .WithMany("Deposits")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FitWifFrens.Data.Goal", b =>
+                {
+                    b.HasOne("FitWifFrens.Data.Commitment", "Commitment")
+                        .WithMany("Goals")
+                        .HasForeignKey("CommitmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FitWifFrens.Data.ProviderMetricValue", "Metric")
+                        .WithMany("Goals")
+                        .HasForeignKey("ProviderName", "MetricName", "MetricType")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Commitment");
+
+                    b.Navigation("Metric");
+                });
+
+            modelBuilder.Entity("FitWifFrens.Data.MetricValue", b =>
+                {
+                    b.HasOne("FitWifFrens.Data.Metric", "Metric")
+                        .WithMany("Values")
+                        .HasForeignKey("MetricName")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Metric");
+                });
+
+            modelBuilder.Entity("FitWifFrens.Data.ProviderMetricValue", b =>
+                {
+                    b.HasOne("FitWifFrens.Data.Provider", "Provider")
+                        .WithMany("Metrics")
+                        .HasForeignKey("ProviderName")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FitWifFrens.Data.MetricValue", "MetricValue")
+                        .WithMany("Providers")
+                        .HasForeignKey("MetricName", "MetricType")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MetricValue");
+
+                    b.Navigation("Provider");
                 });
 
             modelBuilder.Entity("FitWifFrens.Data.RoleClaim", b =>
@@ -424,16 +685,38 @@ namespace FitWifFrens.Data.Migrations
 
             modelBuilder.Entity("FitWifFrens.Data.Commitment", b =>
                 {
-                    b.Navigation("Providers");
+                    b.Navigation("Goals");
+
+                    b.Navigation("Periods");
 
                     b.Navigation("Users");
                 });
 
+            modelBuilder.Entity("FitWifFrens.Data.CommitmentPeriod", b =>
+                {
+                    b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("FitWifFrens.Data.Metric", b =>
+                {
+                    b.Navigation("Values");
+                });
+
+            modelBuilder.Entity("FitWifFrens.Data.MetricValue", b =>
+                {
+                    b.Navigation("Providers");
+                });
+
             modelBuilder.Entity("FitWifFrens.Data.Provider", b =>
                 {
-                    b.Navigation("Commitments");
-
                     b.Navigation("Logins");
+
+                    b.Navigation("Metrics");
+                });
+
+            modelBuilder.Entity("FitWifFrens.Data.ProviderMetricValue", b =>
+                {
+                    b.Navigation("Goals");
                 });
 
             modelBuilder.Entity("FitWifFrens.Data.Role", b =>
@@ -447,7 +730,11 @@ namespace FitWifFrens.Data.Migrations
                 {
                     b.Navigation("Claims");
 
+                    b.Navigation("CommitmentPeriods");
+
                     b.Navigation("Commitments");
+
+                    b.Navigation("Deposits");
 
                     b.Navigation("Logins");
 

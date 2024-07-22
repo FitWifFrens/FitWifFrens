@@ -4,6 +4,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
+#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
+
 namespace FitWifFrens.Data.Migrations
 {
     /// <inheritdoc />
@@ -32,8 +34,9 @@ namespace FitWifFrens.Data.Migrations
                 {
                     Id = table.Column<string>(type: "text", nullable: false),
                     UserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
-                    NormalizedUserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    Balance = table.Column<decimal>(type: "numeric", nullable: false),
+                    NormalizedUserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     NormalizedEmail = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     EmailConfirmed = table.Column<bool>(type: "boolean", nullable: false),
                     PasswordHash = table.Column<string>(type: "text", nullable: true),
@@ -59,9 +62,9 @@ namespace FitWifFrens.Data.Migrations
                     Title = table.Column<string>(type: "text", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: false),
                     Image = table.Column<string>(type: "text", nullable: false),
-                    Amount = table.Column<int>(type: "integer", nullable: false),
-                    ContractAddress = table.Column<string>(type: "text", nullable: false),
-                    Complete = table.Column<bool>(type: "boolean", nullable: false)
+                    StartDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    Days = table.Column<int>(type: "integer", nullable: false),
+                    ContractAddress = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -69,10 +72,21 @@ namespace FitWifFrens.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Metrics",
+                columns: table => new
+                {
+                    Name = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Metrics", x => x.Name);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Providers",
                 columns: table => new
                 {
-                    Name = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: false)
+                    Name = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -166,25 +180,37 @@ namespace FitWifFrens.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "CommittedUsers",
+                name: "Deposits",
                 columns: table => new
                 {
-                    CommitmentId = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserId = table.Column<string>(type: "text", nullable: false),
-                    Transaction = table.Column<string>(type: "text", nullable: false),
-                    DistributedAmount = table.Column<int>(type: "integer", nullable: false)
+                    Transaction = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric", nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_CommittedUsers", x => new { x.CommitmentId, x.UserId });
+                    table.PrimaryKey("PK_Deposits", x => x.Transaction);
                     table.ForeignKey(
-                        name: "FK_CommittedUsers_AspNetUsers_UserId",
+                        name: "FK_Deposits_AspNetUsers_UserId",
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CommitmentPeriods",
+                columns: table => new
+                {
+                    CommitmentId = table.Column<Guid>(type: "uuid", nullable: false),
+                    StartDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    EndDate = table.Column<DateOnly>(type: "date", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CommitmentPeriods", x => new { x.CommitmentId, x.StartDate, x.EndDate });
                     table.ForeignKey(
-                        name: "FK_CommittedUsers_Commitments_CommitmentId",
+                        name: "FK_CommitmentPeriods_Commitments_CommitmentId",
                         column: x => x.CommitmentId,
                         principalTable: "Commitments",
                         principalColumn: "Id",
@@ -192,10 +218,53 @@ namespace FitWifFrens.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "CommitmentUsers",
+                columns: table => new
+                {
+                    CommitmentId = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    Stake = table.Column<decimal>(type: "numeric", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CommitmentUsers", x => new { x.CommitmentId, x.UserId });
+                    table.ForeignKey(
+                        name: "FK_CommitmentUsers_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_CommitmentUsers_Commitments_CommitmentId",
+                        column: x => x.CommitmentId,
+                        principalTable: "Commitments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MetricValues",
+                columns: table => new
+                {
+                    MetricName = table.Column<string>(type: "character varying(256)", nullable: false),
+                    Type = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MetricValues", x => new { x.MetricName, x.Type });
+                    table.ForeignKey(
+                        name: "FK_MetricValues_Metrics_MetricName",
+                        column: x => x.MetricName,
+                        principalTable: "Metrics",
+                        principalColumn: "Name",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "AspNetUserLogins",
                 columns: table => new
                 {
-                    LoginProvider = table.Column<string>(type: "character varying(450)", nullable: false),
+                    LoginProvider = table.Column<string>(type: "character varying(256)", nullable: false),
                     ProviderKey = table.Column<string>(type: "text", nullable: false),
                     ProviderDisplayName = table.Column<string>(type: "text", nullable: true),
                     UserId = table.Column<string>(type: "text", nullable: false)
@@ -218,27 +287,94 @@ namespace FitWifFrens.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "CommitmentProviders",
+                name: "CommitmentPeriodUsers",
                 columns: table => new
                 {
                     CommitmentId = table.Column<Guid>(type: "uuid", nullable: false),
-                    ProviderName = table.Column<string>(type: "character varying(450)", nullable: false)
+                    StartDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    EndDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    Stake = table.Column<decimal>(type: "numeric", nullable: false),
+                    Reward = table.Column<decimal>(type: "numeric", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_CommitmentProviders", x => new { x.CommitmentId, x.ProviderName });
+                    table.PrimaryKey("PK_CommitmentPeriodUsers", x => new { x.CommitmentId, x.StartDate, x.EndDate, x.UserId });
                     table.ForeignKey(
-                        name: "FK_CommitmentProviders_Commitments_CommitmentId",
+                        name: "FK_CommitmentPeriodUsers_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_CommitmentPeriodUsers_CommitmentPeriods_CommitmentId_StartD~",
+                        columns: x => new { x.CommitmentId, x.StartDate, x.EndDate },
+                        principalTable: "CommitmentPeriods",
+                        principalColumns: new[] { "CommitmentId", "StartDate", "EndDate" },
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ProviderMetricValues",
+                columns: table => new
+                {
+                    ProviderName = table.Column<string>(type: "character varying(256)", nullable: false),
+                    MetricName = table.Column<string>(type: "character varying(256)", nullable: false),
+                    MetricType = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProviderMetricValues", x => new { x.ProviderName, x.MetricName, x.MetricType });
+                    table.ForeignKey(
+                        name: "FK_ProviderMetricValues_MetricValues_MetricName_MetricType",
+                        columns: x => new { x.MetricName, x.MetricType },
+                        principalTable: "MetricValues",
+                        principalColumns: new[] { "MetricName", "Type" },
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ProviderMetricValues_Providers_ProviderName",
+                        column: x => x.ProviderName,
+                        principalTable: "Providers",
+                        principalColumn: "Name",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Goals",
+                columns: table => new
+                {
+                    CommitmentId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProviderName = table.Column<string>(type: "character varying(256)", nullable: false),
+                    MetricName = table.Column<string>(type: "character varying(256)", nullable: false),
+                    MetricType = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    Rule = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    Value = table.Column<double>(type: "double precision", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Goals", x => new { x.CommitmentId, x.ProviderName, x.MetricName, x.MetricType });
+                    table.ForeignKey(
+                        name: "FK_Goals_Commitments_CommitmentId",
                         column: x => x.CommitmentId,
                         principalTable: "Commitments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_CommitmentProviders_Providers_ProviderName",
-                        column: x => x.ProviderName,
-                        principalTable: "Providers",
-                        principalColumn: "Name",
+                        name: "FK_Goals_ProviderMetricValues_ProviderName_MetricName_MetricTy~",
+                        columns: x => new { x.ProviderName, x.MetricName, x.MetricType },
+                        principalTable: "ProviderMetricValues",
+                        principalColumns: new[] { "ProviderName", "MetricName", "MetricType" },
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.InsertData(
+                table: "Metrics",
+                column: "Name",
+                values: new object[]
+                {
+                    "Exercise",
+                    "Running",
+                    "Weight"
                 });
 
             migrationBuilder.InsertData(
@@ -246,9 +382,32 @@ namespace FitWifFrens.Data.Migrations
                 column: "Name",
                 values: new object[]
                 {
-                    "StackExchange",
                     "Strava",
-                    "WorldId"
+                    "Withings"
+                });
+
+            migrationBuilder.InsertData(
+                table: "MetricValues",
+                columns: new[] { "MetricName", "Type" },
+                values: new object[,]
+                {
+                    { "Exercise", "Count" },
+                    { "Exercise", "Minutes" },
+                    { "Running", "Count" },
+                    { "Running", "Minutes" },
+                    { "Weight", "Value" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "ProviderMetricValues",
+                columns: new[] { "MetricName", "MetricType", "ProviderName" },
+                values: new object[,]
+                {
+                    { "Exercise", "Count", "Strava" },
+                    { "Exercise", "Minutes", "Strava" },
+                    { "Running", "Count", "Strava" },
+                    { "Running", "Minutes", "Strava" },
+                    { "Weight", "Value", "Withings" }
                 });
 
             migrationBuilder.CreateIndex(
@@ -289,14 +448,29 @@ namespace FitWifFrens.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_CommitmentProviders_ProviderName",
-                table: "CommitmentProviders",
-                column: "ProviderName");
+                name: "IX_CommitmentPeriodUsers_UserId",
+                table: "CommitmentPeriodUsers",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_CommittedUsers_UserId",
-                table: "CommittedUsers",
+                name: "IX_CommitmentUsers_UserId",
+                table: "CommitmentUsers",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Deposits_UserId",
+                table: "Deposits",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Goals_ProviderName_MetricName_MetricType",
+                table: "Goals",
+                columns: new[] { "ProviderName", "MetricName", "MetricType" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProviderMetricValues_MetricName_MetricType",
+                table: "ProviderMetricValues",
+                columns: new[] { "MetricName", "MetricType" });
         }
 
         /// <inheritdoc />
@@ -318,22 +492,40 @@ namespace FitWifFrens.Data.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "CommitmentProviders");
+                name: "CommitmentPeriodUsers");
 
             migrationBuilder.DropTable(
-                name: "CommittedUsers");
+                name: "CommitmentUsers");
+
+            migrationBuilder.DropTable(
+                name: "Deposits");
+
+            migrationBuilder.DropTable(
+                name: "Goals");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
-                name: "Providers");
+                name: "CommitmentPeriods");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
 
             migrationBuilder.DropTable(
+                name: "ProviderMetricValues");
+
+            migrationBuilder.DropTable(
                 name: "Commitments");
+
+            migrationBuilder.DropTable(
+                name: "MetricValues");
+
+            migrationBuilder.DropTable(
+                name: "Providers");
+
+            migrationBuilder.DropTable(
+                name: "Metrics");
         }
     }
 }

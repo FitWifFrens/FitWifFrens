@@ -5,7 +5,17 @@ namespace FitWifFrens.Data
     // Add profile data for application users by adding properties to the User class
     public class User : IdentityUser
     {
-        public ICollection<CommittedUser> Commitments { get; set; }
+        [ProtectedPersonalData]
+        public override string? UserName { get; set; }
+
+        [ProtectedPersonalData]
+        public override string? Email { get; set; }
+
+        public decimal Balance { get; set; }
+
+        public ICollection<Deposit> Deposits { get; set; }
+        public ICollection<CommitmentUser> Commitments { get; set; }
+        public ICollection<CommitmentPeriodUser> CommitmentPeriods { get; set; }
 
         public ICollection<UserClaim> Claims { get; set; }
         public ICollection<UserLogin> Logins { get; set; }

@@ -15,7 +15,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FitWifFrens.Playground", "F
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FitWifFrens.Background", "FitWifFrens.Background\FitWifFrens.Background.csproj", "{4523AE0A-290F-4F16-B95A-7D8D19CE7507}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FitWifFrens.Strava.Api", "FitWifFrens.Strava.Api\FitWifFrens.Strava.Api.csproj", "{0349A459-13D3-4C92-A295-8F0BB3C3FB3B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspNet.Security.OAuth.Withings", "AspNet.Security.OAuth.Withings\AspNet.Security.OAuth.Withings.csproj", "{668E57FB-0254-4F6F-8510-A859701D2DB5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -47,10 +47,10 @@ Global
 		{4523AE0A-290F-4F16-B95A-7D8D19CE7507}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4523AE0A-290F-4F16-B95A-7D8D19CE7507}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4523AE0A-290F-4F16-B95A-7D8D19CE7507}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0349A459-13D3-4C92-A295-8F0BB3C3FB3B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0349A459-13D3-4C92-A295-8F0BB3C3FB3B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0349A459-13D3-4C92-A295-8F0BB3C3FB3B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0349A459-13D3-4C92-A295-8F0BB3C3FB3B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{668E57FB-0254-4F6F-8510-A859701D2DB5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{668E57FB-0254-4F6F-8510-A859701D2DB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{668E57FB-0254-4F6F-8510-A859701D2DB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{668E57FB-0254-4F6F-8510-A859701D2DB5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

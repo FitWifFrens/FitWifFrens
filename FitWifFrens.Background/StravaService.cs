@@ -1,5 +1,6 @@
 ﻿using FitWifFrens.Data;
 using Microsoft.EntityFrameworkCore;
+using RestSharp.Portable.OAuth2.Configuration;
 using StravaSharp;
 
 namespace FitWifFrens.Background
@@ -21,7 +22,7 @@ namespace FitWifFrens.Background
 
                 if (stravaToken != null)
                 {
-                    var client = new Client(new StravaAuthenticator(stravaToken.Value!));
+                    var client = new Client(new StravaAuthenticator(new StravaClient(new RequestFactory(), new RuntimeClientConfiguration())));
 
                     var athlete = await client.Athletes.GetCurrent();
 

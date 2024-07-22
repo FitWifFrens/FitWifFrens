@@ -68,7 +68,6 @@
 
     @if (!_commitment.Complete)
     {
-
         <div class="row">
             <div class="col-sm-12">
                 <Commit WorldId="@_worldId" ContractAddress="@_commitment.ContractAddress"></Commit>
@@ -122,14 +121,14 @@
     {
         var user = await UserAccessor.GetRequiredUserAsync(HttpContext);
 
-        var userCommitments = await DataContext.CommittedUsers.Where(cu => cu.UserId == user.Id).ToListAsync();
+        var userCommitments = await DataContext.CommitmentUsers.Where(cu => cu.UserId == user.Id).ToListAsync();
 
-        var userLogins = await DataContext.UserLogins.Where(cu => cu.UserId == user.Id).ToListAsync();
+        var userLoginProviders = await DataContext.UserLogins.Where(cu => cu.UserId == user.Id).Select(ul => ul.LoginProvider).ToListAsync();
 
-        _worldId = userLogins.Single(l => l.LoginProvider == "WorldId").ProviderKey;
+        _worldId = "0xWorldId";
 
         var commitment = await DataContext.Commitments
-            .Include(c => c.Providers)
+            .Include(c => c.Goals)
             .Include(c => c.Users).ThenInclude(u => u.User.Logins)
             .SingleAsync(c => c.Id == CommitmentId);
 
@@ -140,15 +139,14 @@
                 Description = commitment.Description,
                 Image = commitment.Image,
                 ContractAddress = commitment.ContractAddress,
-                Complete = commitment.Complete,
-                Providers = commitment.Providers.Select(p => p.ProviderName).ToArray(),
+                Providers = commitment.Goals.Select(p => p.ProviderName).Distinct().ToArray(),
             };
 
         _users = commitment.Users.Select(u => new CommittedUserData
             {
-                WorldId = u.User.Logins.Single(l => l.LoginProvider == "WorldId").ProviderKey,
-                Transaction = u.Transaction,
-                DistributedAmount = u.DistributedAmount
+                WorldId = _worldId,
+                // Transaction = u.Transaction,
+                // DistributedAmount = u.DistributedAmount
             }).ToList();
     }
 

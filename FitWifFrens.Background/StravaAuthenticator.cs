@@ -1,49 +1,49 @@
 ﻿using RestSharp.Portable;
+using RestSharp.Portable.OAuth2;
 using System.Net;
 
 namespace FitWifFrens.Background
 {
-    public class StravaAuthenticator : IAuthenticator
+    public class StravaAuthenticator : OAuth2Authenticator
     {
-        private readonly string _accessToken;
+        private readonly OAuth2Client _client;
+        public string AccessToken { get; private set; }
 
-        public StravaAuthenticator(string accessToken)
+        public StravaAuthenticator(OAuth2Client client)
+            : base(client)
         {
-            _accessToken = accessToken;
+            _client = client;
+            ArgumentNullException.ThrowIfNull(client, nameof(client));
         }
 
-        public bool CanPreAuthenticate(IRestClient client, IRestRequest request, ICredentials credentials)
-        {
-            return false;
-        }
-
-        public bool CanPreAuthenticate(IHttpClient client, IHttpRequestMessage request, ICredentials credentials)
+        public override bool CanPreAuthenticate(IRestClient client, IRestRequest request, ICredentials credentials)
         {
             return true;
         }
 
-        public bool CanHandleChallenge(IHttpClient client, IHttpRequestMessage request, ICredentials credentials,
-            IHttpResponseMessage response)
+        public override bool CanPreAuthenticate(IHttpClient client, IHttpRequestMessage request, ICredentials credentials)
         {
-            return false;
+            return true;
         }
 
-        public Task PreAuthenticate(IRestClient client, IRestRequest request, ICredentials credentials)
+        public override Task PreAuthenticate(IRestClient client, IRestRequest request, ICredentials credentials)
         {
-            throw new NotImplementedException();
-        }
-
-        public Task PreAuthenticate(IHttpClient client, IHttpRequestMessage request, ICredentials credentials)
-        {
-            request.Headers.Add("Authorization", "Bearer " + _accessToken);
+            if (!string.IsNullOrEmpty(_client.AccessToken))
+            {
+                request.AddHeader("Authorization", "Bearer " + _client.AccessToken);
+            }
 
             return Task.CompletedTask;
         }
 
-        public Task HandleChallenge(IHttpClient client, IHttpRequestMessage request, ICredentials credentials,
-            IHttpResponseMessage response)
+        public override Task PreAuthenticate(IHttpClient client, IHttpRequestMessage request, ICredentials credentials)
         {
-            throw new NotImplementedException();
+            if (!string.IsNullOrEmpty(_client.AccessToken))
+            {
+                request.Headers.Add("Authorization", "Bearer " + _client.AccessToken);
+            }
+
+            return Task.CompletedTask;
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿@page "/Account/Manage/ExternalLogins"
 
+@using System.Security.Claims
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 @using FitWifFrens.Data
@@ -13,12 +14,12 @@
 <PageTitle>Manage your external logins</PageTitle>
 
 <StatusMessage />
-@if (currentLogins?.Count(u => u.LoginProvider != "WorldId") > 0)
+@if (currentLogins?.Count > 0)
 {
     <h3>Registered Logins</h3>
     <table class="table">
         <tbody>
-            @foreach (var login in currentLogins.Where(u => u.LoginProvider != "WorldId"))
+            @foreach (var login in currentLogins)
             {
                 <tr>
                     <td>@login.ProviderDisplayName</td>

@@ -68,7 +68,10 @@
     {
         var user = await UserAccessor.GetUserAsync(HttpContext);
 
-        var commitments = await DataContext.Commitments.Include(c => c.Providers).Include(c => c.Users).ToListAsync();
+        var commitments = await DataContext.Commitments
+            .Include(c => c.Goals)
+            .Include(c => c.Users)
+            .ToListAsync();
 
         if (user == null)
         {
@@ -78,9 +81,7 @@
                     Title = c.Title,
                     Description = c.Description,
                     Image = c.Image,
-                    Amount = c.Amount,
                     ContractAddress = c.ContractAddress,
-                    Complete = c.Complete,
                     Committed = null,
                     HasRequiredProviders = null,
                     TotalCommitted = c.Users.Count
@@ -88,9 +89,9 @@
         }
         else
         {
-            var userCommitments = await DataContext.CommittedUsers.Where(cu => cu.UserId == user.Id).ToListAsync();
+            var userCommitments = await DataContext.CommitmentUsers.Where(cu => cu.UserId == user.Id).ToListAsync();
 
-            var userLogins = await DataContext.UserLogins.Where(cu => cu.UserId == user.Id).ToListAsync();
+            var userLoginProviders = await DataContext.UserLogins.Where(cu => cu.UserId == user.Id).Select(ul => ul.LoginProvider).ToListAsync();
 
             _commitments = commitments.Select(c => new CommitmentData
                 {
@@ -98,17 +99,13 @@
                     Title = c.Title,
                     Description = c.Description,
                     Image = c.Image,
-                    Amount = c.Amount,
                     ContractAddress = c.ContractAddress,
-                    Complete = c.Complete,
                     Committed = userCommitments.Any(uc => uc.CommitmentId == c.Id),
                     TotalCommitted = c.Users.Count,
-                    HasRequiredProviders = c.Providers.All(p => userLogins.Any(l => l.LoginProvider == p.ProviderName)),
-                    MissingProviders = c.Providers.Where(p => userLogins.Any(l => l.LoginProvider != p.ProviderName)).Select(p => p.ProviderName).ToArray()
+                    HasRequiredProviders = c.Goals.All(p => userLoginProviders.Contains(p.ProviderName)),
+                    MissingProviders = c.Goals.Where(p => !userLoginProviders.Contains(p.ProviderName)).Select(p => p.ProviderName).Distinct().ToArray()
                 }).OrderBy(c => !c.Committed).ToList();
         }
-
-
     }
 
 
