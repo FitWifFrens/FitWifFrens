@@ -13,6 +13,16 @@
 
 <PageTitle>Manage your external logins</PageTitle>
 
+<style>
+    button.btn-img {
+        padding: 0
+    }
+
+    img.btn-img {
+        height: 33.5px;
+    }
+</style>
+
 <StatusMessage />
 @if (currentLogins?.Count > 0)
 {
@@ -55,8 +65,15 @@
             <p>
                 @foreach (var provider in otherLogins)
                 {
-                    <button type="submit" class="btn btn-primary" style="margin-right: 5px;" name="Provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">
-                        @provider.DisplayName
+                    <button type="submit" class="btn @(provider.DisplayName == "Strava" ? "btn-link btn-img" : "btn-primary")" style="margin-right: 5px;" name="Provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">
+                        @if (provider.DisplayName == "Strava")
+                        {
+                            <img class="btn-img" src="images/strava.png" alt="@provider.DisplayName" />
+                        }
+                        else
+                        {
+                            @provider.DisplayName
+                        }
                     </button>
                 }
             </p>
