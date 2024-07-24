@@ -15,7 +15,7 @@ namespace FitWifFrens.Web.Background
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-#if !DEBUG
+#if DEBUG
             _backgroundJobClient.Schedule<StravaService>(s => s.UpdateProviderMetricValues(cancellationToken), TimeSpan.FromSeconds(1));
             _backgroundJobClient.Schedule<WithingsService>(s => s.UpdateProviderMetricValues(cancellationToken), TimeSpan.FromSeconds(1));
 
@@ -23,12 +23,12 @@ namespace FitWifFrens.Web.Background
             _backgroundJobClient.Schedule<CommitmentPeriodService>(s => s.UpdateCommitmentPeriodUserGoals(cancellationToken), TimeSpan.FromSeconds(30));
             _backgroundJobClient.Schedule<CommitmentPeriodService>(s => s.UpdateCommitmentPeriods(cancellationToken), TimeSpan.FromSeconds(45));
 #else
-            _recurringJobManager.AddOrUpdate<StravaService>(nameof(StravaService) + nameof(StravaService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Hourly(35));
-            _recurringJobManager.AddOrUpdate<WithingsService>(nameof(WithingsService) + nameof(WithingsService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Hourly(35));
+            _recurringJobManager.AddOrUpdate<StravaService>(nameof(StravaService) + nameof(StravaService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Hourly());
+            _recurringJobManager.AddOrUpdate<WithingsService>(nameof(WithingsService) + nameof(WithingsService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Hourly());
 
-            _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.CreateCommitmentPeriods), s => s.CreateCommitmentPeriods(cancellationToken), Cron.Hourly(40));
-            _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriodUserGoals), s => s.UpdateCommitmentPeriodUserGoals(cancellationToken), Cron.Hourly(45));
-            _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriods), s => s.UpdateCommitmentPeriods(cancellationToken), Cron.Hourly(50));
+            _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.CreateCommitmentPeriods), s => s.CreateCommitmentPeriods(cancellationToken), Cron.Hourly(5));
+            _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriodUserGoals), s => s.UpdateCommitmentPeriodUserGoals(cancellationToken), Cron.Hourly(10));
+            _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriods), s => s.UpdateCommitmentPeriods(cancellationToken), Cron.Hourly(15));
 #endif
             return Task.CompletedTask;
         }
