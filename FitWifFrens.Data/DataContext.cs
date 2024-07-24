@@ -121,6 +121,10 @@ namespace FitWifFrens.Data
                     },
                     new Metric
                     {
+                        Name = "Workout"
+                    },
+                    new Metric
+                    {
                         Name = "Weight"
                     });
             });
@@ -153,6 +157,16 @@ namespace FitWifFrens.Data
                     new MetricValue
                     {
                         MetricName = "Running",
+                        Type = MetricType.Minutes
+                    },
+                    new MetricValue
+                    {
+                        MetricName = "Workout",
+                        Type = MetricType.Count
+                    },
+                    new MetricValue
+                    {
+                        MetricName = "Workout",
                         Type = MetricType.Minutes
                     },
                     new MetricValue
@@ -225,6 +239,18 @@ namespace FitWifFrens.Data
                     {
                         ProviderName = "Strava",
                         MetricName = "Running",
+                        MetricType = MetricType.Minutes
+                    },
+                    new ProviderMetricValue
+                    {
+                        ProviderName = "Strava",
+                        MetricName = "Workout",
+                        MetricType = MetricType.Count
+                    },
+                    new ProviderMetricValue
+                    {
+                        ProviderName = "Strava",
+                        MetricName = "Workout",
                         MetricType = MetricType.Minutes
                     },
                     new ProviderMetricValue
