@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FitWifFrens.Playground
 {
-    public class Service : IHostedService
+    public class RecreateService : IHostedService
     {
         private readonly record struct NewUser(Guid Id, string Email, bool CompletedOldCommitment, bool JoinNewCommitment);
 
@@ -12,7 +12,7 @@ namespace FitWifFrens.Playground
         private readonly UserManager<User> _userManager;
         private readonly DataContext _dataContext;
 
-        public Service(IUserStore<User> userStore, UserManager<User> UserManager, DataContext dataContext)
+        public RecreateService(IUserStore<User> userStore, UserManager<User> UserManager, DataContext dataContext)
         {
             _userStore = userStore;
             _userManager = UserManager;
@@ -37,7 +37,7 @@ namespace FitWifFrens.Playground
             {
                 Id = commitment1Id,
                 Title = "60 minutes",
-                Description = "Record 2 activities on Strava with a total time of 60 minutes",
+                Description = "Record 2 runs on Strava with a total time of 60 minutes",
                 Image = "images/runner0.png",
                 StartDate = new DateOnly(2024, 07, 15),
                 Days = 7,
@@ -61,19 +61,7 @@ namespace FitWifFrens.Playground
                         Value = 2
                     }
                 },
-                Periods = new List<CommitmentPeriod>
-                {
-                    //new CommitmentPeriod
-                    //{
-                    //    StartDate = new DateOnly(2024, 07, 15),
-                    //    EndDate = new DateOnly(2024, 07, 22),
-                    //},
-                    //new CommitmentPeriod
-                    //{
-                    //    StartDate = new DateOnly(2024, 07, 22),
-                    //    EndDate = new DateOnly(2024, 07, 29),
-                    //}
-                }
+                Periods = new List<CommitmentPeriod>()
             });
 
             var commitment2Id = Guid.Parse("46c06bf6-2e22-4e00-bf29-05050485d9a0");
@@ -82,11 +70,11 @@ namespace FitWifFrens.Playground
             {
                 Id = commitment2Id,
                 Title = "90 minutes",
-                Description = "Record 3 activities on Strava with a total time of 90 minutes",
+                Description = "Record 3 runs on Strava with a total time of 90 minutes",
                 Image = "images/runner1.png",
                 StartDate = new DateOnly(2024, 07, 15),
                 Days = 7,
-                ContractAddress = "0x2b937ba128d275E16E7f26De7d8524C21d0BB7cA", // 1
+                ContractAddress = "0x2b937ba128d275E16E7f26De7d8524C21d0BB7cA",
                 Goals = new List<Goal>
                 {
                     new Goal
@@ -106,26 +94,40 @@ namespace FitWifFrens.Playground
                         Value = 3
                     }
                 },
-                Periods = new List<CommitmentPeriod>
-                {
-                    //new CommitmentPeriod
-                    //{
-                    //    StartDate = new DateOnly(2024, 07, 15),
-                    //    EndDate = new DateOnly(2024, 07, 22),
-                    //},
-                    //new CommitmentPeriod
-                    //{
-                    //    StartDate = new DateOnly(2024, 07, 22),
-                    //    EndDate = new DateOnly(2024, 07, 29),
-                    //}
-                }
+                Periods = new List<CommitmentPeriod>()
             });
 
-            var commitment3Id = Guid.Parse("4d9a6fa4-6903-49dc-86a1-4780b826cd2a");
+
+            var commitment3Id = Guid.Parse("20398161-7de8-4cdb-929a-165fe1e892da");
 
             _dataContext.Commitments.Add(new Commitment
             {
                 Id = commitment3Id,
+                Title = "4 workouts",
+                Description = "Record 4 workouts on Strava every week",
+                Image = "images/runner2.png",
+                StartDate = new DateOnly(2024, 07, 22),
+                Days = 7,
+                ContractAddress = "0x5b934ba128d275E16E7f26De7d8524C21d0BB7cA",
+                Goals = new List<Goal>
+                {
+                    new Goal
+                    {
+                        ProviderName = "Strava",
+                        MetricName = "Workout",
+                        MetricType = MetricType.Count,
+                        Rule = GoalRule.GreaterThanOrEqualTo,
+                        Value = 4
+                    }
+                },
+                Periods = new List<CommitmentPeriod>()
+            });
+
+            var commitment4Id = Guid.Parse("4d9a6fa4-6903-49dc-86a1-4780b826cd2a");
+
+            _dataContext.Commitments.Add(new Commitment
+            {
+                Id = commitment4Id,
                 Title = "Weight Loss",
                 Description = "Lose at least a kilogram every 2 weeks according to Withings",
                 Image = "images/developer0.png",
@@ -140,22 +142,10 @@ namespace FitWifFrens.Playground
                         MetricName = "Weight",
                         MetricType = MetricType.Value,
                         Rule = GoalRule.LessThanOrEqualTo,
-                        Value = 1
+                        Value = -1
                     }
                 },
-                Periods = new List<CommitmentPeriod>
-                {
-                    //new CommitmentPeriod
-                    //{
-                    //    StartDate = new DateOnly(2024, 07, 08),
-                    //    EndDate = new DateOnly(2024, 07, 22),
-                    //},
-                    //new CommitmentPeriod
-                    //{
-                    //    StartDate = new DateOnly(2024, 07, 22),
-                    //    EndDate = new DateOnly(2024, 08, 05),
-                    //}
-                }
+                Periods = new List<CommitmentPeriod>()
             });
 
             await _dataContext.SaveChangesAsync(CancellationToken.None);
@@ -194,7 +184,7 @@ namespace FitWifFrens.Playground
 
             _dataContext.CommitmentUsers.Add(new CommitmentUser
             {
-                CommitmentId = commitment3Id,
+                CommitmentId = commitment4Id,
                 UserId = user.Id,
                 Stake = 20,
             });

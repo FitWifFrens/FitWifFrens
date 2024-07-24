@@ -34,7 +34,8 @@ namespace FitWifFrens.Playground
                 .AddSignInManager()
                 .AddDefaultTokenProviders();
 
-            builder.Services.AddHostedService<Service>();
+            //builder.Services.AddHostedService<RecreateService>();
+            //builder.Services.AddHostedService<UpdateService>();
 
             var app = builder.Build();
 
