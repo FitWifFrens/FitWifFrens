@@ -22,10 +22,10 @@ jobs:
           dotnet-version: '8.x'
 
       - name: Build with dotnet
-        run: dotnet build -c Release ${{env.DOTNET_ROOT}}/FitWifFrens.Web/FitWifFrens.Web.csproj
+        run: dotnet build ${{env.DOTNET_ROOT}}/FitWifFrens.Web/FitWifFrens.Web.csproj -c Release
 
       - name: dotnet publish
-        run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp ${{env.DOTNET_ROOT}}/FitWifFrens.Web/FitWifFrens.Web.csproj
+        run: dotnet publish ${{env.DOTNET_ROOT}}/FitWifFrens.Web/FitWifFrens.Web.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
