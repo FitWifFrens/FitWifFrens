@@ -1,36 +1,22 @@
 ﻿using FitWifFrens.Data;
-using Hangfire;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using System.Net.Http.Headers;
 using System.Text.Json;
 
-namespace FitWifFrens.Background
+namespace FitWifFrens.Web.Background
 {
-    public class StravaService : IHostedService
+    public class StravaService
     {
-        private readonly IRecurringJobManager _recurringJobManager;
-        private readonly IBackgroundJobClient _backgroundJobClient;
         private readonly DataContext _dataContext;
         private readonly HttpClient _httpClient;
         private readonly ILogger<StravaService> _logger;
 
-        public StravaService(IRecurringJobManager recurringJobManager, IBackgroundJobClient backgroundJobClient, DataContext dataContext, IHttpClientFactory httpClientFactory, ILogger<StravaService> logger)
+        public StravaService(DataContext dataContext, IHttpClientFactory httpClientFactory, ILogger<StravaService> logger)
         {
-            _recurringJobManager = recurringJobManager;
-            _backgroundJobClient = backgroundJobClient;
             _dataContext = dataContext;
             _httpClient = httpClientFactory.CreateClient();
             _logger = logger;
-        }
-
-        public Task StartAsync(CancellationToken cancellationToken)
-        {
-            //_recurringJobManager.AddOrUpdate(nameof(StravaService), () => UpdateProviderMetricValues(cancellationToken), "*/1 * * * *"); // Cron.Hourly()
-
-            _backgroundJobClient.Schedule(() => UpdateProviderMetricValues(cancellationToken), TimeSpan.FromSeconds(1));
-
-            return Task.CompletedTask;
         }
 
         public async Task UpdateProviderMetricValues(CancellationToken cancellationToken)
@@ -148,13 +134,6 @@ namespace FitWifFrens.Background
                     }
                 }
             }
-        }
-
-        public Task StopAsync(CancellationToken cancellationToken)
-        {
-            _recurringJobManager.RemoveIfExists(nameof(StravaService));
-
-            return Task.CompletedTask;
         }
     }
 }

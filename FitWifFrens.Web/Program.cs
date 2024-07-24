@@ -1,6 +1,9 @@
 using FitWifFrens.Data;
+using FitWifFrens.Web.Background;
 using FitWifFrens.Web.Components;
 using FitWifFrens.Web.Components.Account;
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -72,6 +75,23 @@ namespace FitWifFrens.Web
                 .AddDefaultTokenProviders();
 
             builder.Services.AddSingleton<IEmailSender<User>, IdentityNoOpEmailSender>();
+
+            builder.Services.AddHttpClient();
+
+            builder.Services.AddHangfire(configuration =>
+            {
+                configuration.SetDataCompatibilityLevel(CompatibilityLevel.Version_180);
+                configuration.UseSimpleAssemblyNameTypeSerializer();
+                configuration.UseRecommendedSerializerSettings();
+                configuration.UsePostgreSqlStorage(postgresConnection);
+            });
+            builder.Services.AddHangfireServer();
+
+            builder.Services.AddHostedService<JobService>();
+
+            builder.Services.AddScoped<StravaService>();
+            builder.Services.AddScoped<WithingsService>();
+            builder.Services.AddScoped<CommitmentPeriodService>();
 
             builder.Services.AddScoped<IMetamaskInterop, MetamaskBlazorInterop>();
             builder.Services.AddScoped<MetamaskHostProvider>();

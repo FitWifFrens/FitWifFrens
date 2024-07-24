@@ -1,35 +1,21 @@
 ﻿using FitWifFrens.Data;
-using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using System.Net.Http.Headers;
 using System.Text.Json;
 
-namespace FitWifFrens.Background
+namespace FitWifFrens.Web.Background
 {
-    public class WithingsService : IHostedService
+    public class WithingsService
     {
-        private readonly IRecurringJobManager _recurringJobManager;
-        private readonly IBackgroundJobClient _backgroundJobClient;
         private readonly DataContext _dataContext;
         private readonly HttpClient _httpClient;
         private readonly ILogger<WithingsService> _logger;
 
-        public WithingsService(IRecurringJobManager recurringJobManager, IBackgroundJobClient backgroundJobClient, DataContext dataContext, IHttpClientFactory httpClientFactory, ILogger<WithingsService> logger)
+        public WithingsService(DataContext dataContext, IHttpClientFactory httpClientFactory, ILogger<WithingsService> logger)
         {
-            _recurringJobManager = recurringJobManager;
-            _backgroundJobClient = backgroundJobClient;
             _dataContext = dataContext;
             _httpClient = httpClientFactory.CreateClient();
             _logger = logger;
-        }
-
-        public Task StartAsync(CancellationToken cancellationToken)
-        {
-            //_recurringJobManager.AddOrUpdate(nameof(WithingsService), () => UpdateProviderMetricValues(cancellationToken), "*/1 * * * *"); // Cron.Hourly()
-
-            _backgroundJobClient.Schedule(() => UpdateProviderMetricValues(cancellationToken), TimeSpan.FromSeconds(1));
-
-            return Task.CompletedTask;
         }
 
         public async Task UpdateProviderMetricValues(CancellationToken cancellationToken)
@@ -114,13 +100,6 @@ namespace FitWifFrens.Background
                     }
                 }
             }
-        }
-
-        public Task StopAsync(CancellationToken cancellationToken)
-        {
-            _recurringJobManager.RemoveIfExists(nameof(WithingsService));
-
-            return Task.CompletedTask;
         }
     }
 }

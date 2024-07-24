@@ -1,37 +1,19 @@
 ﻿using FitWifFrens.Data;
-using Hangfire;
 using Microsoft.EntityFrameworkCore;
 
-namespace FitWifFrens.Background
+namespace FitWifFrens.Web.Background
 {
-    public class CommitmentPeriodService : IHostedService
+    public class CommitmentPeriodService
     {
-        private readonly IRecurringJobManager _recurringJobManager;
-        private readonly IBackgroundJobClient _backgroundJobClient;
         private readonly DataContext _dataContext;
         private readonly TimeProvider _timeProvider;
         private readonly ILogger<CommitmentPeriodService> _logger;
 
-        public CommitmentPeriodService(IRecurringJobManager recurringJobManager, IBackgroundJobClient backgroundJobClient, DataContext dataContext, TimeProvider timeProvider, ILogger<CommitmentPeriodService> logger)
+        public CommitmentPeriodService(DataContext dataContext, TimeProvider timeProvider, ILogger<CommitmentPeriodService> logger)
         {
-            _recurringJobManager = recurringJobManager;
-            _backgroundJobClient = backgroundJobClient;
             _dataContext = dataContext;
             _timeProvider = timeProvider;
             _logger = logger;
-        }
-
-        public Task StartAsync(CancellationToken cancellationToken)
-        {
-            //_recurringJobManager.AddOrUpdate(nameof(CommitmentPeriodService), () => UpdateCommitmentPeriods(cancellationToken), "*/1 * * * *"); // Cron.Hourly()
-
-            _backgroundJobClient.Schedule(() => CreateCommitmentPeriods(cancellationToken), TimeSpan.FromSeconds(15));
-
-            _backgroundJobClient.Schedule(() => UpdateCommitmentPeriodUserGoals(cancellationToken), TimeSpan.FromSeconds(30));
-
-            _backgroundJobClient.Schedule(() => UpdateCommitmentPeriods(cancellationToken), TimeSpan.FromSeconds(45));
-
-            return Task.CompletedTask;
         }
 
         public async Task CreateCommitmentPeriods(CancellationToken cancellationToken)
@@ -274,13 +256,6 @@ namespace FitWifFrens.Background
             }
 
             await _dataContext.SaveChangesAsync(cancellationToken);
-        }
-
-        public Task StopAsync(CancellationToken cancellationToken)
-        {
-            _recurringJobManager.RemoveIfExists(nameof(CommitmentPeriodService));
-
-            return Task.CompletedTask;
         }
     }
 }

@@ -17,6 +17,8 @@
   <ItemGroup>
     <PackageReference Include="AspNet.Security.OAuth.StackExchange" Version="8.0.0" />
     <PackageReference Include="AspNet.Security.OAuth.Strava" Version="8.0.0" />
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.*" />
+    <PackageReference Include="Hangfire.PostgreSql" Version="1.20.*" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.4" />

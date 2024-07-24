@@ -13,9 +13,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FitWifFrens.Data", "FitWifF
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FitWifFrens.Playground", "FitWifFrens.Playground\FitWifFrens.Playground.csproj", "{51417D4A-2C22-4AEB-873C-6590AB56F5B7}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FitWifFrens.Background", "FitWifFrens.Background\FitWifFrens.Background.csproj", "{4523AE0A-290F-4F16-B95A-7D8D19CE7507}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspNet.Security.OAuth.Withings", "AspNet.Security.OAuth.Withings\AspNet.Security.OAuth.Withings.csproj", "{668E57FB-0254-4F6F-8510-A859701D2DB5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspNet.Security.OAuth.Withings", "AspNet.Security.OAuth.Withings\AspNet.Security.OAuth.Withings.csproj", "{668E57FB-0254-4F6F-8510-A859701D2DB5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -43,10 +41,6 @@ Global
 		{51417D4A-2C22-4AEB-873C-6590AB56F5B7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{51417D4A-2C22-4AEB-873C-6590AB56F5B7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{51417D4A-2C22-4AEB-873C-6590AB56F5B7}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4523AE0A-290F-4F16-B95A-7D8D19CE7507}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4523AE0A-290F-4F16-B95A-7D8D19CE7507}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4523AE0A-290F-4F16-B95A-7D8D19CE7507}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4523AE0A-290F-4F16-B95A-7D8D19CE7507}.Release|Any CPU.Build.0 = Release|Any CPU
 		{668E57FB-0254-4F6F-8510-A859701D2DB5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{668E57FB-0254-4F6F-8510-A859701D2DB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{668E57FB-0254-4F6F-8510-A859701D2DB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
