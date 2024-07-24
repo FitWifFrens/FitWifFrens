@@ -151,7 +151,7 @@ namespace FitWifFrens.Web
 
             app.UseHangfireDashboard("/hangfire", new DashboardOptions
             {
-                Authorization = [new DashboardAuthorizationFilter()]
+                Authorization = [new HangfireDashboardAuthorizationFilter()]
             });
 
             app.Run();
