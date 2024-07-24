@@ -149,6 +149,11 @@ namespace FitWifFrens.Web
             // Add additional endpoints required by the Identity /Account Razor components.
             app.MapAdditionalIdentityEndpoints();
 
+            app.UseHangfireDashboard("/hangfire", new DashboardOptions
+            {
+                Authorization = [new DashboardAuthorizationFilter()]
+            });
+
             app.Run();
         }
     }
