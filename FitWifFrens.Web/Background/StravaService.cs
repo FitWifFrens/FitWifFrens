@@ -98,9 +98,34 @@ namespace FitWifFrens.Web.Background
                                 {
 
                                 }
-                                else if (activityType == "Workout" || activityType == "Yoga")
+                                else if (activityType == "Workout" || activityType == "WeightTraining" || activityType == "Yoga")
                                 {
+                                    var userProviderMetricValue = await _dataContext.UserProviderMetricValues
+                                        .SingleOrDefaultAsync(upmv => upmv.UserId == user.Id && upmv.ProviderName == "Strava" && upmv.MetricName == "Workout" &&
+                                                                      upmv.MetricType == MetricType.Minutes && upmv.Time == activityTime, cancellationToken: cancellationToken);
 
+                                    if (userProviderMetricValue == null)
+                                    {
+                                        _dataContext.UserProviderMetricValues.Add(new UserProviderMetricValue
+                                        {
+                                            UserId = user.Id,
+                                            ProviderName = "Strava",
+                                            MetricName = "Workout",
+                                            MetricType = MetricType.Minutes,
+                                            Time = activityTime,
+                                            Value = activityMinutes
+                                        });
+
+                                        await _dataContext.SaveChangesAsync(cancellationToken);
+                                    }
+                                    else if (userProviderMetricValue.Value != activityMinutes)
+                                    {
+                                        userProviderMetricValue.Value = activityMinutes;
+
+                                        _dataContext.Entry(userProviderMetricValue).State = EntityState.Modified;
+
+                                        await _dataContext.SaveChangesAsync(cancellationToken);
+                                    }
                                 }
 
                                 {
