@@ -13,6 +13,8 @@
 
         public string ContractAddress { get; set; }
 
+        public decimal Balance { get; set; }
+
         public ICollection<Goal> Goals { get; set; }
 
         public ICollection<CommitmentPeriod> Periods { get; set; }

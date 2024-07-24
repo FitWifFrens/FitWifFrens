@@ -1,4 +1,6 @@
 ﻿using FitWifFrens.Data;
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitWifFrens.Background
@@ -11,11 +13,28 @@ namespace FitWifFrens.Background
 
             builder.Configuration.AddUserSecrets<Program>();
 
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+            builder.Services.AddSingleton(TimeProvider.System);
+
+            var postgresConnection = builder.Configuration.GetConnectionString("PostgresConnection") ?? throw new InvalidOperationException("Connection string 'PostgresConnection' not found.");
             builder.Services.AddDbContext<DataContext>(options =>
-                options.UseNpgsql(connectionString, o => o.SetPostgresVersion(11, 0)));
+                options.UseNpgsql(postgresConnection, o => o.SetPostgresVersion(11, 0)));
+
+            builder.Services.AddHttpClient();
+
+            builder.Services.AddHangfire(configuration =>
+            {
+                //configuration.UseRedisStorage(redisConnectionString);
+                configuration.SetDataCompatibilityLevel(CompatibilityLevel.Version_180);
+                configuration.UseSimpleAssemblyNameTypeSerializer();
+                configuration.UseRecommendedSerializerSettings();
+                configuration.UsePostgreSqlStorage(postgresConnection);
+            });
+            builder.Services.AddHangfireServer();
 
             builder.Services.AddHostedService<StravaService>();
+            builder.Services.AddHostedService<WithingsService>();
+
+            builder.Services.AddHostedService<CommitmentPeriodService>();
 
             var app = builder.Build();
 

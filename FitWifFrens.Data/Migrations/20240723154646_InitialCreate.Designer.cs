@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FitWifFrens.Data.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20240722052215_InitialCreate")]
+    [Migration("20240723154646_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -30,6 +30,9 @@ namespace FitWifFrens.Data.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("numeric");
 
                     b.Property<string>("ContractAddress")
                         .IsRequired()
@@ -69,6 +72,11 @@ namespace FitWifFrens.Data.Migrations
                     b.Property<DateOnly>("EndDate")
                         .HasColumnType("date");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
                     b.HasKey("CommitmentId", "StartDate", "EndDate");
 
                     b.ToTable("CommitmentPeriods");
@@ -99,6 +107,43 @@ namespace FitWifFrens.Data.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("CommitmentPeriodUsers");
+                });
+
+            modelBuilder.Entity("FitWifFrens.Data.CommitmentPeriodUserGoal", b =>
+                {
+                    b.Property<Guid>("CommitmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProviderName")
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("MetricName")
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("MetricType")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<bool>("Success")
+                        .HasColumnType("boolean");
+
+                    b.Property<double?>("Value")
+                        .HasColumnType("double precision");
+
+                    b.HasKey("CommitmentId", "StartDate", "EndDate", "UserId", "ProviderName", "MetricName", "MetricType");
+
+                    b.HasIndex("CommitmentId", "ProviderName", "MetricName", "MetricType");
+
+                    b.ToTable("CommitmentPeriodUserGoals");
                 });
 
             modelBuilder.Entity("FitWifFrens.Data.CommitmentUser", b =>
@@ -472,6 +517,34 @@ namespace FitWifFrens.Data.Migrations
                     b.ToTable("AspNetUserLogins", (string)null);
                 });
 
+            modelBuilder.Entity("FitWifFrens.Data.UserProviderMetricValue", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProviderName")
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("MetricName")
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("MetricType")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime>("Time")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<double>("Value")
+                        .HasColumnType("double precision");
+
+                    b.HasKey("UserId", "ProviderName", "MetricName", "MetricType", "Time");
+
+                    b.HasIndex("ProviderName", "MetricName", "MetricType");
+
+                    b.ToTable("UserProviderMetricValues");
+                });
+
             modelBuilder.Entity("FitWifFrens.Data.UserRole", b =>
                 {
                     b.Property<string>("UserId")
@@ -532,6 +605,25 @@ namespace FitWifFrens.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Commitment");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FitWifFrens.Data.CommitmentPeriodUserGoal", b =>
+                {
+                    b.HasOne("FitWifFrens.Data.Goal", "Goal")
+                        .WithMany("Users")
+                        .HasForeignKey("CommitmentId", "ProviderName", "MetricName", "MetricType")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FitWifFrens.Data.CommitmentPeriodUser", "User")
+                        .WithMany("Goals")
+                        .HasForeignKey("CommitmentId", "StartDate", "EndDate", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Goal");
 
                     b.Navigation("User");
                 });
@@ -656,6 +748,25 @@ namespace FitWifFrens.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("FitWifFrens.Data.UserProviderMetricValue", b =>
+                {
+                    b.HasOne("FitWifFrens.Data.User", "User")
+                        .WithMany("ProviderMetricValues")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FitWifFrens.Data.ProviderMetricValue", "ProviderMetricValue")
+                        .WithMany("Users")
+                        .HasForeignKey("ProviderName", "MetricName", "MetricType")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProviderMetricValue");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("FitWifFrens.Data.UserRole", b =>
                 {
                     b.HasOne("FitWifFrens.Data.Role", "Role")
@@ -700,6 +811,16 @@ namespace FitWifFrens.Data.Migrations
                     b.Navigation("Users");
                 });
 
+            modelBuilder.Entity("FitWifFrens.Data.CommitmentPeriodUser", b =>
+                {
+                    b.Navigation("Goals");
+                });
+
+            modelBuilder.Entity("FitWifFrens.Data.Goal", b =>
+                {
+                    b.Navigation("Users");
+                });
+
             modelBuilder.Entity("FitWifFrens.Data.Metric", b =>
                 {
                     b.Navigation("Values");
@@ -720,6 +841,8 @@ namespace FitWifFrens.Data.Migrations
             modelBuilder.Entity("FitWifFrens.Data.ProviderMetricValue", b =>
                 {
                     b.Navigation("Goals");
+
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("FitWifFrens.Data.Role", b =>
@@ -740,6 +863,8 @@ namespace FitWifFrens.Data.Migrations
                     b.Navigation("Deposits");
 
                     b.Navigation("Logins");
+
+                    b.Navigation("ProviderMetricValues");
 
                     b.Navigation("Tokens");
 

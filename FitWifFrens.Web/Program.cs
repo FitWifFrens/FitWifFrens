@@ -54,9 +54,9 @@ namespace FitWifFrens.Web
                 })
                 .AddIdentityCookies();
 
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+            var postgresConnection = builder.Configuration.GetConnectionString("PostgresConnection") ?? throw new InvalidOperationException("Connection string 'PostgresConnection' not found.");
             builder.Services.AddDbContext<DataContext>(options =>
-                options.UseNpgsql(connectionString, o => o.SetPostgresVersion(11, 0)));
+                options.UseNpgsql(postgresConnection, o => o.SetPostgresVersion(11, 0)));
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
             builder.Services.AddIdentityCore<User>(options => options.SignIn.RequireConfirmedAccount = false)

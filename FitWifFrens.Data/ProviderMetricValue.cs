@@ -9,6 +9,8 @@
         public MetricType MetricType { get; set; }
         public MetricValue MetricValue { get; set; }
 
+        public ICollection<UserProviderMetricValue> Users { get; set; }
+
         public ICollection<Goal> Goals { get; set; }
     }
 }

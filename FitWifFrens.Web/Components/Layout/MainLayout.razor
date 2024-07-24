@@ -1,5 +1,9 @@
 ﻿@inherits LayoutComponentBase
 
+@using FitWifFrens.Web.Components.Account
+
+@inject IdentityUserAccessor UserAccessor
+
 <div class="page">
     <div class="sidebar">
         <NavMenu />
@@ -8,7 +12,7 @@
     <main>
         <div class="top-row px-4">
             <AuthorizeView>
-                @* <Metamask @rendermode="InteractiveWebAssembly"/> *@
+                <div>FitDollars: <span class="fw-bold">@_userBalance</span></div>
             </AuthorizeView>
         </div>
 
@@ -23,3 +27,22 @@
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
+
+
+@code {
+
+    private decimal _userBalance;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await UserAccessor.GetUserAsync(HttpContext);
+
+        if (user != null)
+        {
+            _userBalance = user.Balance;
+        }
+    }
+}

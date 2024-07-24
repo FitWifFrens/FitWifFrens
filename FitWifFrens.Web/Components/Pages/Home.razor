@@ -11,8 +11,7 @@
 
 <h1>FitWifFrens!</h1>
 
-<p>Where fitness goals meet a touch of scope creep,<br/> 
-	becoming your all-in-one commitment tracker with a side of camaraderie</p>
+<p>Where fitness goals meet a touch of scope creep,<br/> becoming your all-in-one commitment tracker with a side of camaraderie</p>
 
 @if (_commitments != null)
 {
@@ -22,27 +21,7 @@
         </div>
     </div>
     <div class="row">
-        @foreach (var commitment in _commitments.Where(c => !c.Complete))
-        {
-            <div class="col-sm-3">
-                <div class="card">
-                    <img src="@commitment.Image" class="card-img-top" alt="@commitment.Title">
-                    <div class="card-body">
-                        <h5 class="card-title">@commitment.Title</h5>
-                        <p class="card-text">@commitment.Description</p>
-                    </div>
-                </div>
-            </div>
-        }
-    </div>
-
-    <div class="row mt-5">
-        <div class="col">
-            <h3>Historical Commitments</h3>
-        </div>
-    </div>
-    <div class="row">
-        @foreach (var commitment in _commitments.Where(c => c.Complete))
+        @foreach (var commitment in _commitments.OrderBy(c => !c.Committed).ThenBy(c => c.Title))
         {
             <div class="col-sm-3">
                 <div class="card">
@@ -104,7 +83,7 @@
                     TotalCommitted = c.Users.Count,
                     HasRequiredProviders = c.Goals.All(p => userLoginProviders.Contains(p.ProviderName)),
                     MissingProviders = c.Goals.Where(p => !userLoginProviders.Contains(p.ProviderName)).Select(p => p.ProviderName).Distinct().ToArray()
-                }).OrderBy(c => !c.Committed).ToList();
+                }).ToList();
         }
     }
 
@@ -120,8 +99,6 @@
         public int Amount { get; set; }
 
         public string ContractAddress { get; set; }
-
-        public bool Complete { get; set; }
 
         public bool? Committed { get; set; }
         public bool? HasRequiredProviders { get; set; }

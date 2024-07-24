@@ -14,6 +14,7 @@ namespace FitWifFrens.Data
         public decimal Balance { get; set; }
 
         public ICollection<Deposit> Deposits { get; set; }
+        public ICollection<UserProviderMetricValue> ProviderMetricValues { get; set; }
         public ICollection<CommitmentUser> Commitments { get; set; }
         public ICollection<CommitmentPeriodUser> CommitmentPeriods { get; set; }
 

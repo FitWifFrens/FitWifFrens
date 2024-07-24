@@ -12,5 +12,7 @@
 
         public GoalRule Rule { get; set; }
         public double Value { get; set; }
+
+        public ICollection<CommitmentPeriodUserGoal> Users { get; set; }
     }
 }

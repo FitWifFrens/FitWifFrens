@@ -10,11 +10,13 @@ namespace FitWifFrens.Data
         public DbSet<MetricValue> MetricValues { get; set; }
         public DbSet<Provider> Providers { get; set; }
         public DbSet<ProviderMetricValue> ProviderMetricValues { get; set; }
+        public DbSet<UserProviderMetricValue> UserProviderMetricValues { get; set; }
         public DbSet<Commitment> Commitments { get; set; }
         public DbSet<Goal> Goals { get; set; }
         public DbSet<CommitmentPeriod> CommitmentPeriods { get; set; }
         public DbSet<CommitmentUser> CommitmentUsers { get; set; }
         public DbSet<CommitmentPeriodUser> CommitmentPeriodUsers { get; set; }
+        public DbSet<CommitmentPeriodUserGoal> CommitmentPeriodUserGoals { get; set; }
 
         public DataContext(DbContextOptions<DataContext> options)
             : base(options)
@@ -37,6 +39,10 @@ namespace FitWifFrens.Data
             builder.Entity<User>(b =>
             {
                 b.HasMany(m => m.Deposits)
+                    .WithOne(m => m.User)
+                    .HasForeignKey(m => m.UserId);
+
+                b.HasMany(m => m.ProviderMetricValues)
                     .WithOne(m => m.User)
                     .HasForeignKey(m => m.UserId);
 
@@ -188,6 +194,10 @@ namespace FitWifFrens.Data
             {
                 b.HasKey(m => new { m.ProviderName, m.MetricName, m.MetricType });
 
+                b.HasMany(m => m.Users)
+                    .WithOne(m => m.ProviderMetricValue)
+                    .HasForeignKey(m => new { m.ProviderName, m.MetricName, m.MetricType });
+
                 b.HasMany(m => m.Goals)
                     .WithOne(m => m.Metric)
                     .HasForeignKey(m => new { m.ProviderName, m.MetricName, m.MetricType });
@@ -225,6 +235,11 @@ namespace FitWifFrens.Data
                     });
             });
 
+            builder.Entity<UserProviderMetricValue>(b =>
+            {
+                b.HasKey(m => new { m.UserId, m.ProviderName, m.MetricName, m.MetricType, m.Time });
+            });
+
             builder.Entity<Commitment>(b =>
             {
                 b.HasKey(m => m.Id);
@@ -246,6 +261,10 @@ namespace FitWifFrens.Data
             builder.Entity<Goal>(b =>
             {
                 b.HasKey(m => new { m.CommitmentId, m.ProviderName, m.MetricName, m.MetricType });
+
+                b.HasMany(m => m.Users)
+                    .WithOne(m => m.Goal)
+                    .HasForeignKey(m => new { m.CommitmentId, m.ProviderName, m.MetricName, m.MetricType });
             });
 
 
@@ -268,6 +287,15 @@ namespace FitWifFrens.Data
             builder.Entity<CommitmentPeriodUser>(b =>
             {
                 b.HasKey(m => new { m.CommitmentId, m.StartDate, m.EndDate, m.UserId });
+
+                b.HasMany(m => m.Goals)
+                    .WithOne(m => m.User)
+                    .HasForeignKey(m => new { m.CommitmentId, m.StartDate, m.EndDate, m.UserId });
+            });
+
+            builder.Entity<CommitmentPeriodUserGoal>(b =>
+            {
+                b.HasKey(m => new { m.CommitmentId, m.StartDate, m.EndDate, m.UserId, m.ProviderName, m.MetricName, m.MetricType });
             });
         }
 

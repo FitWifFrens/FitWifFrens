@@ -8,6 +8,8 @@
         public DateOnly StartDate { get; set; }
         public DateOnly EndDate { get; set; }
 
+        public CommitmentPeriodStatus Status { get; set; }
+
         public ICollection<CommitmentPeriodUser> Users { get; set; }
     }
 }

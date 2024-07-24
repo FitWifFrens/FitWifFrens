@@ -12,9 +12,15 @@ namespace FitWifFrens.Playground
 
             builder.Configuration.AddUserSecrets<Program>();
 
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+            var postgresConnection = builder.Configuration.GetConnectionString("PostgresConnection") ?? throw new InvalidOperationException("Connection string 'PostgresConnection' not found.");
             builder.Services.AddDbContext<DataContext>(options =>
-                options.UseNpgsql(connectionString, o => o.SetPostgresVersion(11, 0)));
+                options.UseNpgsql(postgresConnection, o => o.SetPostgresVersion(11, 0)));
+
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultScheme = IdentityConstants.ApplicationScheme;
+                options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+            });
 
             builder.Services.AddIdentityCore<User>(options => options.SignIn.RequireConfirmedAccount = false)
                 .AddEntityFrameworkStores<DataContext>()

@@ -1,7 +1,6 @@
 ﻿@page "/Commitments"
 @attribute [Authorize]
 
-@using FitWifFrens.Web.Client.Pages
 @using Microsoft.AspNetCore.Authorization
 @using FitWifFrens.Data
 @using FitWifFrens.Web.Components.Account
@@ -20,7 +19,7 @@
         </div>
     </div>
     <div class="row">
-        @foreach (var commitment in _commitments.Where(c => !c.Complete).OrderBy(c => c.Title))
+        @foreach (var commitment in _commitments.OrderBy(c => !c.Committed).ThenBy(c => c.Title))
         {
             <div class="col-sm-3">
                 <div class="card">
@@ -34,7 +33,7 @@
                         }
                         else if (commitment.HasRequiredProviders)
                         {
-                            <CommitButton CommitmentId="commitment.Id" WorldId="@_worldId" ContractAddress="@commitment.ContractAddress"></CommitButton>
+                            <a href="/Commitment/@commitment.Id" class="btn btn-primary">Commit</a>
                         }
                         else if (commitment.MissingProviders.Length == 1)
                         {
@@ -44,27 +43,6 @@
                         {
                             <a href="/Account/Manage/ExternalLogins" class="btn btn-warning">Connect Providers</a>
                         }
-                    </div>
-                </div>
-            </div>
-        }
-    </div>
-
-    <div class="row mt-5">
-        <div class="col">
-            <h3>Historical Commitments</h3>
-        </div>
-    </div>
-    <div class="row">
-        @foreach (var commitment in _commitments.Where(c => c.Complete))
-        {
-            <div class="col-sm-3">
-                <div class="card">
-                    <img src="@commitment.Image" class="card-img-top" alt="@commitment.Title">
-                    <div class="card-body">
-                        <h5 class="card-title">@commitment.Title</h5>
-                        <p class="card-text">@commitment.Description</p>
-                        <a href="/Commitment/@commitment.Id" class="btn btn-secondary">View</a>
                     </div>
                 </div>
             </div>
@@ -102,7 +80,7 @@
                 Committed = userCommitments.Any(uc => uc.CommitmentId == c.Id),
                 HasRequiredProviders = c.Goals.All(p => userLoginProviders.Contains(p.ProviderName)),
                 MissingProviders = c.Goals.Where(p => !userLoginProviders.Contains(p.ProviderName)).Select(p => p.ProviderName).Distinct().ToArray()
-            }).OrderBy(c => !c.Committed).ToList();
+            }).ToList();
     }
 
 
@@ -117,8 +95,6 @@
         public int Amount { get; set; }
 
         public string ContractAddress { get; set; }
-
-        public bool Complete { get; set; }
 
         public bool Committed { get; set; }
         public bool HasRequiredProviders { get; set; }

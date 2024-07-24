@@ -3,23 +3,43 @@ using Microsoft.AspNetCore.Identity;
 
 namespace FitWifFrens.Web.Components.Account
 {
-    internal sealed class IdentityUserAccessor(UserManager<User> userManager, IdentityRedirectManager redirectManager)
+    public sealed class IdentityUserAccessor(UserManager<User> userManager, IdentityRedirectManager redirectManager)
     {
-        public Task<User?> GetUserAsync(HttpContext context)
+        private readonly SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1);
+
+        public async Task<User?> GetUserAsync(HttpContext context)
         {
-            return userManager.GetUserAsync(context.User);
+            await _semaphoreSlim.WaitAsync();
+
+            try
+            {
+                return await userManager.GetUserAsync(context.User);
+            }
+            finally
+            {
+                _semaphoreSlim.Release();
+            }
         }
 
         public async Task<User> GetRequiredUserAsync(HttpContext context)
         {
-            var user = await userManager.GetUserAsync(context.User);
+            await _semaphoreSlim.WaitAsync();
 
-            if (user is null)
+            try
             {
-                redirectManager.RedirectToWithStatus("Account/InvalidUser", $"Error: Unable to load user with ID '{userManager.GetUserId(context.User)}'.", context);
-            }
+                var user = await userManager.GetUserAsync(context.User);
 
-            return user;
+                if (user is null)
+                {
+                    redirectManager.RedirectToWithStatus("Account/InvalidUser", $"Error: Unable to load user with ID '{userManager.GetUserId(context.User)}'.", context);
+                }
+
+                return user;
+            }
+            finally
+            {
+                _semaphoreSlim.Release();
+            }
         }
     }
 }

@@ -2,12 +2,13 @@
 
 @attribute [Authorize]
 
-@using FitWifFrens.Web.Client.Pages
+@using System.ComponentModel.DataAnnotations
 @using FitWifFrens.Web.Components.Account
 @using FitWifFrens.Data
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.EntityFrameworkCore
 
+@inject IdentityRedirectManager RedirectManager
 @inject IdentityUserAccessor UserAccessor
 @inject DataContext DataContext
 
@@ -66,33 +67,138 @@
         </div>
     </div>
 
-    @if (!_commitment.Complete)
-    {
-        <div class="row">
-            <div class="col-sm-12">
-                <Commit WorldId="@_worldId" ContractAddress="@_commitment.ContractAddress"></Commit>
+    <div class="row">
+        <div class="col-sm-12">
+
+            <div class="card m-1">
+                <div class="card-body">
+                    <div class="row">
+                        <label class="col-sm-4 col-form-label-md">Total Users:</label>
+                        <div class="col-sm-8">
+                            @_commitment.TotalUsers
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label class="col-sm-4 col-form-label-md">Total Staked FitDollar:</label>
+                        <div class="col-sm-8">
+                            @_commitment.TotalStake
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            <div class="card m-1">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <h5 class="card-title">Update FitDollar Stake</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">This value will be used as the stake of the next period</h6>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="Stake" FormName="stake" OnValidSubmit="StakeFitDollar" method="post">
+                        <DataAnnotationsValidator />
+                        <div class="row">
+                            <label class="col-sm-4 col-form-label-md">Stake FitDollar:</label>
+
+                            <div class="col-sm-3">
+                                <InputNumber @bind-Value="Stake.Amount" type="number" class="form-control" placeholder="Stake Amount" />
+                            </div>
+
+                            <div class="col-sm-3">
+                                <button type="submit" class="btn btn-primary">@(_commitment.Stake != null ? "Update Stake" : "Stake")</button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <ValidationMessage For="() => Stake.Amount" class="text-danger" />
+                            </div>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+
+            @if (_commitmentPeriod != null && _commitmentPeriod.Goals.Any())
+            {
+                <div class="card m-1">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-12">
+                                <h5 class="card-title">Current Period</h5>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <label class="col-sm-4 col-form-label-md">Period:</label>
+                            <div class="col-sm-8">
+                                @(_commitmentPeriod.StartDate + " - " + _commitmentPeriod.EndDate)
+                            </div>
+
+                            <label class="col-sm-4 col-form-label-md">Total Users:</label>
+                            <div class="col-sm-8">
+                                @_commitmentPeriod.TotalUsers
+                            </div>
+
+                            <label class="col-sm-4 col-form-label-md">Total Staked FitDollar:</label>
+                            <div class="col-sm-8">
+                                @_commitmentPeriod.TotalStake
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-12">
+                                <h5 class="card-title">Current Period Goals</h5>
+                            </div>
+                        </div>
+                        @foreach (var userGoal in _commitmentPeriod.Goals.OrderBy(g => g.ProviderName).ThenBy(g => g.MetricType))
+                        {
+                            <div class="row">
+                                <label class="col-sm-4 col-form-label-md">
+                                    @(userGoal.MetricName + " " + userGoal.MetricType + " " + userGoal.GoalRule.ToDisplayString() + " " + userGoal.GoalValue)
+                                </label>
+                                <div class="col-sm-8 fw-bold">
+                                    @userGoal.Value
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
         </div>
-    }
-    else
-    {
-        @if (_users != null)
+    </div>
+
+    <div>
+        @if (_commitmentPeriods != null && _commitmentPeriods.Count > 0)
         {
             <div class="card m-1">
                 <div class="card-body">
                     <table class="table">
                         <thead>
                             <tr>
-                                <th>WorldId</th>
-                                <th>Distributed Amount</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Stake</th>
+                                <th>Reward</th>
+                                <th>Total Stake</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var user in _users)
+                            @foreach (var commitmentPeriod in _commitmentPeriods)
                             {
-                                <tr>
-                                    <td>@user.WorldId</td>
-                                    <td>@user.DistributedAmount</td>
+                                <tr class="@(commitmentPeriod.Status == CommitmentPeriodStatus.Current ? "table-primary" : string.Empty)">
+                                    <td>@commitmentPeriod.StartDate</td>
+                                    <td>@commitmentPeriod.EndDate</td>
+                                    <td>@commitmentPeriod.Stake</td>
+                                    <td>
+                                        @if (commitmentPeriod.Status == CommitmentPeriodStatus.Complete)
+                                        {
+                                            @commitmentPeriod.Reward
+                                        }
+                                    </td>
+                                    <td>@commitmentPeriod.TotalStake</td>
+                                    <td>@commitmentPeriod.Status</td>
                                 </tr>
                             }
                         </tbody>
@@ -100,7 +206,7 @@
                 </div>
             </div>
         }
-    }
+    </div>
 }
 
 @code {
@@ -108,11 +214,15 @@
     [Parameter]
     public Guid CommitmentId { get; set; }
 
-    private string _worldId;
+    [SupplyParameterFromForm]
+    private StakeModel Stake { get; set; } = new();
+
+    private string _userId;
 
     private CommitmentData? _commitment;
+    private CommitmentPeriodUserData? _commitmentPeriod;
 
-    private List<CommittedUserData>? _users;
+    private List<CommitmentPeriodUserData>? _commitmentPeriods;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -121,16 +231,20 @@
     {
         var user = await UserAccessor.GetRequiredUserAsync(HttpContext);
 
-        var userCommitments = await DataContext.CommitmentUsers.Where(cu => cu.UserId == user.Id).ToListAsync();
+        _userId = user.Id;
 
-        var userLoginProviders = await DataContext.UserLogins.Where(cu => cu.UserId == user.Id).Select(ul => ul.LoginProvider).ToListAsync();
+        var userCommitments = await DataContext.CommitmentUsers.Where(cu => cu.UserId == _userId).ToListAsync();
 
-        _worldId = "0xWorldId";
+        var userLoginProviders = await DataContext.UserLogins.Where(cu => cu.UserId == _userId).Select(ul => ul.LoginProvider).ToListAsync();
 
         var commitment = await DataContext.Commitments
             .Include(c => c.Goals)
             .Include(c => c.Users).ThenInclude(u => u.User.Logins)
             .SingleAsync(c => c.Id == CommitmentId);
+
+        var commitmentUser = commitment.Users.SingleOrDefault(cu => cu.UserId == _userId);
+        var commitmentUsers = commitment.Users;
+        var commitmentOtherUsers = commitment.Users.Where(cu => cu.UserId != _userId).ToList();
 
         _commitment = new CommitmentData
             {
@@ -140,14 +254,105 @@
                 Image = commitment.Image,
                 ContractAddress = commitment.ContractAddress,
                 Providers = commitment.Goals.Select(p => p.ProviderName).Distinct().ToArray(),
+                Stake = commitmentUser?.Stake,
+                TotalUsers = commitmentUsers.Count,
+                TotalStake = commitmentUsers.Sum(cpu => cpu.Stake),
             };
 
-        _users = commitment.Users.Select(u => new CommittedUserData
+        Stake.Amount ??= _commitment.Stake ?? null;
+
+        var commitmentPeriods = await DataContext.CommitmentPeriods
+            .Include(cp => cp.Users)
+            .Where(cp => cp.CommitmentId == CommitmentId)
+            .ToListAsync();
+
+        var now = DateTime.Now;
+
+        _commitmentPeriods = commitmentPeriods.Select(cp =>
+        {
+            var commitmentPeriodUser = cp.Users.SingleOrDefault(cpu => cpu.UserId == _userId);
+            var commitmentPeriodUsers = cp.Users;
+            var commitmentPeriodOtherUsers = cp.Users.Where(cpu => cpu.UserId != _userId).ToList();
+
+            return new CommitmentPeriodUserData
+                {
+                    StartDate = cp.StartDate,
+                    EndDate = cp.EndDate,
+                    Stake = commitmentPeriodUser?.Stake,
+                    Reward = commitmentPeriodUser?.Reward,
+                    Status = cp.Status,
+                    TotalUsers = commitmentPeriodUsers.Count,
+                    TotalStake = commitmentPeriodUsers.Sum(cpu => cpu.Stake),
+                };
+        }).OrderByDescending(cp => cp.StartDate).ToList();
+
+        _commitmentPeriod = _commitmentPeriods.SingleOrDefault(cp => cp.Status == CommitmentPeriodStatus.Current);
+
+        if (_commitmentPeriod != null)
+        {
+            var commitmentPeriodUserGoals = await DataContext.CommitmentPeriodUserGoals
+                .Include(cpug => cpug.Goal)
+                .Where(cpug => cpug.CommitmentId == CommitmentId && cpug.StartDate == _commitmentPeriod.StartDate &&
+                               cpug.EndDate == _commitmentPeriod.EndDate && cpug.UserId == _userId).ToListAsync();
+
+            _commitmentPeriod.Goals = commitmentPeriodUserGoals.Select(cpug => new CommitmentPeriodUserGoalData
+                {
+                    ProviderName = cpug.ProviderName,
+                    MetricName = cpug.MetricName,
+                    MetricType = cpug.MetricType,
+                    GoalRule = cpug.Goal.Rule,
+                    GoalValue = cpug.Goal.Value,
+                    Value = cpug.Value,
+                }).ToList();
+        }
+    }
+
+    private sealed class StakeModel
+    {
+        [Required]
+        [Range(0, 100)]
+        public decimal? Amount { get; set; }
+    }
+
+    private async Task StakeFitDollar()
+    {
+        var commitmentUser = await DataContext.CommitmentUsers.SingleOrDefaultAsync(cu => cu.CommitmentId == CommitmentId && cu.UserId == _userId);
+        if (Stake.Amount == 0)
+        {
+            if (commitmentUser != null)
             {
-                WorldId = _worldId,
-                // Transaction = u.Transaction,
-                // DistributedAmount = u.DistributedAmount
-            }).ToList();
+                DataContext.Entry(commitmentUser).State = EntityState.Deleted;
+
+                await DataContext.SaveChangesAsync();
+            }
+        }
+        else
+        {
+            if (commitmentUser != null)
+            {
+                if (commitmentUser.Stake != Stake.Amount)
+                {
+                    commitmentUser.Stake = Stake.Amount!.Value;
+
+                    DataContext.Entry(commitmentUser).State = EntityState.Modified;
+
+                    await DataContext.SaveChangesAsync();
+                }
+            }
+            else
+            {
+                DataContext.CommitmentUsers.Add(new CommitmentUser
+                    {
+                        CommitmentId = CommitmentId,
+                        UserId = _userId,
+                        Stake = Stake.Amount!.Value,
+                    });
+
+                await DataContext.SaveChangesAsync();
+            }
+        }
+
+        RedirectManager.RedirectToCurrentPage();
     }
 
     private class CommitmentData
@@ -160,17 +365,35 @@
 
         public string ContractAddress { get; set; }
 
-        public bool Complete { get; set; }
-
         public string[] Providers { get; set; }
+
+        public decimal? Stake { get; set; }
+
+        public int TotalUsers { get; set; }
+        public decimal TotalStake { get; set; }
     }
 
-    private class CommittedUserData
+    private class CommitmentPeriodUserData
     {
-        public string WorldId { get; set; }
+        public DateOnly StartDate { get; set; }
+        public DateOnly EndDate { get; set; }
 
-        public string Transaction { get; set; }
+        public decimal? Stake { get; set; }
+        public decimal? Reward { get; set; }
+        public ICollection<CommitmentPeriodUserGoalData> Goals { get; set; }
 
-        public int DistributedAmount { get; set; }
+        public CommitmentPeriodStatus Status { get; set; }
+        public int TotalUsers { get; set; }
+        public decimal TotalStake { get; set; }
+    }
+
+    private class CommitmentPeriodUserGoalData
+    {
+        public string ProviderName { get; set; }
+        public string MetricName { get; set; }
+        public MetricType MetricType { get; set; }
+        public GoalRule GoalRule { get; set; }
+        public double GoalValue { get; set; }
+        public double? Value { get; set; } // TODO: Measure?
     }
 }

@@ -9,11 +9,13 @@ namespace FitWifFrens.Playground
         private readonly record struct NewUser(Guid Id, string Email, bool CompletedOldCommitment, bool JoinNewCommitment);
 
         private readonly IUserStore<User> _userStore;
+        private readonly UserManager<User> _userManager;
         private readonly DataContext _dataContext;
 
-        public Service(IUserStore<User> userStore, DataContext dataContext)
+        public Service(IUserStore<User> userStore, UserManager<User> UserManager, DataContext dataContext)
         {
             _userStore = userStore;
+            _userManager = UserManager;
             _dataContext = dataContext;
         }
 
@@ -61,16 +63,16 @@ namespace FitWifFrens.Playground
                 },
                 Periods = new List<CommitmentPeriod>
                 {
-                    new CommitmentPeriod
-                    {
-                        StartDate = new DateOnly(2024, 07, 15),
-                        EndDate = new DateOnly(2024, 07, 22),
-                    },
-                    new CommitmentPeriod
-                    {
-                        StartDate = new DateOnly(2024, 07, 22),
-                        EndDate = new DateOnly(2024, 07, 29),
-                    }
+                    //new CommitmentPeriod
+                    //{
+                    //    StartDate = new DateOnly(2024, 07, 15),
+                    //    EndDate = new DateOnly(2024, 07, 22),
+                    //},
+                    //new CommitmentPeriod
+                    //{
+                    //    StartDate = new DateOnly(2024, 07, 22),
+                    //    EndDate = new DateOnly(2024, 07, 29),
+                    //}
                 }
             });
 
@@ -82,7 +84,7 @@ namespace FitWifFrens.Playground
                 Title = "90 minutes",
                 Description = "Record 3 activities on Strava with a total time of 90 minutes",
                 Image = "images/runner1.png",
-                StartDate = new DateOnly(2024, 07, 29),
+                StartDate = new DateOnly(2024, 07, 15),
                 Days = 7,
                 ContractAddress = "0x2b937ba128d275E16E7f26De7d8524C21d0BB7cA", // 1
                 Goals = new List<Goal>
@@ -106,11 +108,16 @@ namespace FitWifFrens.Playground
                 },
                 Periods = new List<CommitmentPeriod>
                 {
-                    new CommitmentPeriod
-                    {
-                        StartDate = new DateOnly(2024, 07, 29),
-                        EndDate = new DateOnly(2024, 08, 05),
-                    }
+                    //new CommitmentPeriod
+                    //{
+                    //    StartDate = new DateOnly(2024, 07, 15),
+                    //    EndDate = new DateOnly(2024, 07, 22),
+                    //},
+                    //new CommitmentPeriod
+                    //{
+                    //    StartDate = new DateOnly(2024, 07, 22),
+                    //    EndDate = new DateOnly(2024, 07, 29),
+                    //}
                 }
             });
 
@@ -120,9 +127,9 @@ namespace FitWifFrens.Playground
             {
                 Id = commitment3Id,
                 Title = "Weight Loss",
-                Description = "Lose at least a kilogram every 2 weeks",
+                Description = "Lose at least a kilogram every 2 weeks according to Withings",
                 Image = "images/developer0.png",
-                StartDate = new DateOnly(2024, 07, 22),
+                StartDate = new DateOnly(2024, 07, 08),
                 Days = 14,
                 ContractAddress = "0x947384ef21BB443416383A7FFeF3f1C3543c19eD",
                 Goals = new List<Goal>
@@ -138,20 +145,59 @@ namespace FitWifFrens.Playground
                 },
                 Periods = new List<CommitmentPeriod>
                 {
-                    new CommitmentPeriod
-                    {
-                        StartDate = new DateOnly(2024, 07, 22),
-                        EndDate = new DateOnly(2024, 08, 05),
-                    },
-                    new CommitmentPeriod
-                    {
-                        StartDate = new DateOnly(2024, 08, 05),
-                        EndDate = new DateOnly(2024, 08, 19),
-                    }
+                    //new CommitmentPeriod
+                    //{
+                    //    StartDate = new DateOnly(2024, 07, 08),
+                    //    EndDate = new DateOnly(2024, 07, 22),
+                    //},
+                    //new CommitmentPeriod
+                    //{
+                    //    StartDate = new DateOnly(2024, 07, 22),
+                    //    EndDate = new DateOnly(2024, 08, 05),
+                    //}
                 }
             });
 
             await _dataContext.SaveChangesAsync(CancellationToken.None);
+
+
+            var email = "didge1987@gmail.com";
+            var password = "Pass!234";
+            var user = new User
+            {
+                Id = "65c79331-17f4-498c-bd91-7236518324ee",
+                Balance = 100
+            };
+
+            await _userStore.SetUserNameAsync(user, email, CancellationToken.None);
+            await _userManager.SetEmailAsync(user, email);
+            var result = await _userManager.CreateAsync(user, password);
+
+            if (result != IdentityResult.Success)
+            {
+                throw new Exception("104644b7-c482-49a0-b6d7-502ed79ea594");
+            }
+
+            _dataContext.Deposits.Add(new Deposit
+            {
+                Transaction = "0x" + Guid.NewGuid().ToString().Replace("-", string.Empty),
+                UserId = user.Id,
+                Amount = 100
+            });
+
+            _dataContext.CommitmentUsers.Add(new CommitmentUser
+            {
+                CommitmentId = commitment1Id,
+                UserId = user.Id,
+                Stake = 10,
+            });
+
+            _dataContext.CommitmentUsers.Add(new CommitmentUser
+            {
+                CommitmentId = commitment3Id,
+                UserId = user.Id,
+                Stake = 20,
+            });
 
             foreach (var newUser in users)
             {
@@ -159,7 +205,7 @@ namespace FitWifFrens.Playground
                 {
                     Id = newUser.Id.ToString(),
                     Email = newUser.Email,
-                    Balance = 90
+                    Balance = 100
                 }, CancellationToken.None);
 
                 _dataContext.Deposits.Add(new Deposit
@@ -176,45 +222,12 @@ namespace FitWifFrens.Playground
                     Stake = 10,
                 });
 
-                _dataContext.CommitmentPeriodUsers.Add(new CommitmentPeriodUser
+                _dataContext.CommitmentUsers.Add(new CommitmentUser
                 {
-                    CommitmentId = commitment1Id,
+                    CommitmentId = commitment2Id,
                     UserId = newUser.Id.ToString(),
-                    StartDate = new DateOnly(2024, 07, 15),
-                    EndDate = new DateOnly(2024, 07, 22),
-                    Stake = 10,
+                    Stake = 20,
                 });
-
-                //if (newUser.CompletedOldCommitment)
-                //{
-                //    _dataContext.CommittedUsers.Add(new CommitmentUser
-                //    {
-                //        CommitmentId = oldCommitmentId,
-                //        UserId = newUser.Id.ToString(),
-                //        Transaction = Guid.NewGuid().ToString(),
-                //        DistributedAmount = 3
-                //    });
-                //}
-                //else
-                //{
-                //    _dataContext.CommittedUsers.Add(new CommitmentUser
-                //    {
-                //        CommitmentId = oldCommitmentId,
-                //        UserId = newUser.Id.ToString(),
-                //        Transaction = Guid.NewGuid().ToString(),
-                //        DistributedAmount = 0
-                //    });
-                //}
-
-                //if (newUser.JoinNewCommitment)
-                //{
-                //    _dataContext.CommittedUsers.Add(new CommitmentUser
-                //    {
-                //        CommitmentId = newCommitmentId,
-                //        UserId = newUser.Id.ToString(),
-                //        Transaction = Guid.NewGuid().ToString()
-                //    });
-                //}
 
                 await _dataContext.SaveChangesAsync(CancellationToken.None);
             }

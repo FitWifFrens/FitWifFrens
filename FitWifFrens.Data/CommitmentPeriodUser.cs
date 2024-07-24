@@ -12,5 +12,7 @@
 
         public decimal Stake { get; set; }
         public decimal Reward { get; set; }
+
+        public ICollection<CommitmentPeriodUserGoal> Goals { get; set; }
     }
 }
