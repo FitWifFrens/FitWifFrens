@@ -19,6 +19,21 @@ namespace FitWifFrens.Web
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            builder.Services.AddApplicationInsightsTelemetry(options =>
+            {
+                options.EnablePerformanceCounterCollectionModule = false;
+                options.EnableRequestTrackingTelemetryModule = false;
+                options.EnableEventCounterCollectionModule = false;
+                options.EnableDependencyTrackingTelemetryModule = false;
+                options.EnableAppServicesHeartbeatTelemetryModule = false;
+                options.EnableAzureInstanceMetadataTelemetryModule = false;
+                options.EnableQuickPulseMetricStream = false;
+                options.EnableAdaptiveSampling = true;
+                options.EnableHeartbeat = false;
+                options.AddAutoCollectedMetricExtractor = false;
+                options.EnableDiagnosticsTelemetryModule = false;
+            });
+
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents()
