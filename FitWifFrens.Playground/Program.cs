@@ -14,7 +14,14 @@ namespace FitWifFrens.Playground
 
             var postgresConnection = builder.Configuration.GetConnectionString("PostgresConnection") ?? throw new InvalidOperationException("Connection string 'PostgresConnection' not found.");
             builder.Services.AddDbContext<DataContext>(options =>
-                options.UseNpgsql(postgresConnection, o => o.SetPostgresVersion(11, 0)));
+                options.UseNpgsql(postgresConnection, o =>
+                {
+#if DEBUG
+                    o.SetPostgresVersion(11, 0);
+#else
+                    o.SetPostgresVersion(16, 3);
+#endif
+                }));
 
             builder.Services.AddAuthentication(options =>
             {
