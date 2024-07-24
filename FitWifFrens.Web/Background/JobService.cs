@@ -15,6 +15,8 @@ namespace FitWifFrens.Web.Background
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
+            return Task.CompletedTask;
+
 #if DEBUG
             _backgroundJobClient.Schedule<StravaService>(s => s.UpdateProviderMetricValues(cancellationToken), TimeSpan.FromSeconds(1));
             _backgroundJobClient.Schedule<WithingsService>(s => s.UpdateProviderMetricValues(cancellationToken), TimeSpan.FromSeconds(1));
