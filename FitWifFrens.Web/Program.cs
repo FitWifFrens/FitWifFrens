@@ -95,11 +95,13 @@ namespace FitWifFrens.Web
 
             builder.Services.AddHttpClient();
 
-            builder.Services.AddHangfire(configuration =>
+            builder.Services.AddSingleton<AutomaticRetryAttribute>(new AutomaticRetryAttribute { Attempts = 3 });
+            builder.Services.AddHangfire((provider, configuration) =>
             {
                 configuration.SetDataCompatibilityLevel(CompatibilityLevel.Version_180);
                 configuration.UseSimpleAssemblyNameTypeSerializer();
                 configuration.UseRecommendedSerializerSettings();
+                configuration.UseFilter(provider.GetRequiredService<AutomaticRetryAttribute>());
                 configuration.UsePostgreSqlStorage(postgresConnection);
             });
             builder.Services.AddHangfireServer();
