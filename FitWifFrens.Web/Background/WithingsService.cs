@@ -62,6 +62,8 @@ namespace FitWifFrens.Web.Background
                 {
                     MaxRetryAttempts = 2,
                     Delay = TimeSpan.FromSeconds(2),
+
+                    ShouldHandle = new PredicateBuilder<ResponseJsonDocument>().HandleResult(rd => !rd.Response.IsSuccessStatusCode)
                 })
                 .AddTimeout(TimeSpan.FromSeconds(10))
                 .Build();
