@@ -27,6 +27,7 @@
     <PackageReference Include="Nethereum.Metamask.Blazor" Version="4.20.0" />
     <PackageReference Include="Nethereum.UI" Version="4.20.0" />
     <PackageReference Include="Nethereum.Web3" Version="4.20.0" />
+    <PackageReference Include="Polly" Version="8.4.1" />
   </ItemGroup>
 
   <ItemGroup>

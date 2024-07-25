@@ -1,3 +1,5 @@
+using AspNet.Security.OAuth.Strava;
+using AspNet.Security.OAuth.Withings;
 using FitWifFrens.Data;
 using FitWifFrens.Web.Background;
 using FitWifFrens.Web.Components;
@@ -101,6 +103,19 @@ namespace FitWifFrens.Web
                 configuration.UsePostgreSqlStorage(postgresConnection);
             });
             builder.Services.AddHangfireServer();
+
+            builder.Services.AddSingleton<RefreshTokenServiceConfiguration>(new RefreshTokenServiceConfiguration
+            {
+                Strava = new RefreshTokenServiceConfiguration.RefreshTokenConfiguration(
+                    StravaAuthenticationDefaults.TokenEndpoint,
+                    builder.Configuration.GetValue<string>("Authentication:Strava:ClientId")!,
+                    builder.Configuration.GetValue<string>("Authentication:Strava:ClientSecret")!),
+                Withings = new RefreshTokenServiceConfiguration.RefreshTokenConfiguration(
+                    WithingsAuthenticationDefaults.TokenEndpoint,
+                    builder.Configuration.GetValue<string>("Authentication:Withings:ClientId")!,
+                    builder.Configuration.GetValue<string>("Authentication:Withings:ClientSecret")!)
+            });
+            builder.Services.AddScoped<RefreshTokenService>();
 
             builder.Services.AddHostedService<JobService>();
 

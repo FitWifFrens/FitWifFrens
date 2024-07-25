@@ -55,15 +55,15 @@ namespace AspNet.Security.OAuth.Withings
             // TODO: "{\"status\":503,\"body\":{},\"error\":\"Invalid Params: invalid code\"}"
             return response.IsSuccessStatusCode switch
             {
-                true => PrepareSuccessOAuthTokenReponse(response, body),
+                true => PrepareSuccessOAuthTokenResponse(response, body),
                 false => throw new Exception(),
-                //false => PrepareFailedOAuthTokenReponse(response, body)
+                //false => PrepareFailedOAuthTokenResponse(response, body)
             };
         }
 
-        private static OAuthTokenResponse PrepareSuccessOAuthTokenReponse(HttpResponseMessage response, string body)
+        private static OAuthTokenResponse PrepareSuccessOAuthTokenResponse(HttpResponseMessage response, string body)
         {
-            var responseJson = JsonDocument.Parse(body);
+            using var responseJson = JsonDocument.Parse(body);
 
             if (responseJson.RootElement.GetProperty("status").GetInt32() == 0)
             {
