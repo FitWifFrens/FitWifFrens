@@ -30,12 +30,12 @@ namespace FitWifFrens.Web.Background
 
         public Task<string> GetStravaToken(string userId, CancellationToken cancellationToken)
         {
-            return GetToken("Withings", userId, cancellationToken);
+            return GetToken("Strava", userId, cancellationToken);
         }
 
         public Task<string> GetWithingsToken(string userId, CancellationToken cancellationToken)
         {
-            return GetToken("Strava", userId, cancellationToken);
+            return GetToken("Withings", userId, cancellationToken);
         }
 
         private async Task<string> GetToken(string providerName, string userId, CancellationToken cancellationToken)
