@@ -35,12 +35,12 @@ namespace FitWifFrens.Web.Background
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _recurringJobManager.RemoveIfExists(nameof(StravaService) + nameof(StravaService.UpdateProviderMetricValues));
-            _recurringJobManager.RemoveIfExists(nameof(WithingsService) + nameof(WithingsService.UpdateProviderMetricValues));
+            //_recurringJobManager.RemoveIfExists(nameof(StravaService) + nameof(StravaService.UpdateProviderMetricValues));
+            //_recurringJobManager.RemoveIfExists(nameof(WithingsService) + nameof(WithingsService.UpdateProviderMetricValues));
 
-            _recurringJobManager.RemoveIfExists(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.CreateCommitmentPeriods));
-            _recurringJobManager.RemoveIfExists(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriodUserGoals));
-            _recurringJobManager.RemoveIfExists(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriods));
+            //_recurringJobManager.RemoveIfExists(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.CreateCommitmentPeriods));
+            //_recurringJobManager.RemoveIfExists(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriodUserGoals));
+            //_recurringJobManager.RemoveIfExists(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriods));
 
             return Task.CompletedTask;
         }
