@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Text;
 
 namespace FitWifFrens.Web.Controllers
 {
@@ -44,14 +45,23 @@ namespace FitWifFrens.Web.Controllers
 
             var startTime = _timeProvider.GetUtcNow().AddDays(-7);
 
+            var stringBuilder = new StringBuilder();
+
             var userProviderMetricValues = await _dataContext.UserProviderMetricValues.Where(upmv => upmv.UserId == userDisplay.UserId && upmv.Time > startTime).ToListAsync();
 
             var runningMinutes = Math.Round(userProviderMetricValues.Where(upmv => upmv.MetricName == "Running" && upmv.MetricType == MetricType.Minutes).Sum(upmv => upmv.Value), 0);
             var workoutMinutes = Math.Round(userProviderMetricValues.Where(upmv => upmv.MetricName == "Workout" && upmv.MetricType == MetricType.Minutes).Sum(upmv => upmv.Value), 0);
 
-            var weightChange = Math.Round(
-                userProviderMetricValues.Where(upmv => upmv.MetricName == "Weight" && upmv.MetricType == MetricType.Value).OrderBy(upmv => upmv.Time).Last().Value -
-                userProviderMetricValues.Where(upmv => upmv.MetricName == "Weight" && upmv.MetricType == MetricType.Value).OrderBy(upmv => upmv.Time).First().Value, 1);
+            stringBuilder.Append($"Running: {runningMinutes} mins\n\nWorkout: {workoutMinutes} mins");
+
+            var userProviderWeightValues = userProviderMetricValues.Where(upmv => upmv.MetricName == "Weight" && upmv.MetricType == MetricType.Value).OrderBy(upmv => upmv.Time).ToList();
+
+            if (userProviderWeightValues.Count >= 2)
+            {
+                var weightChange = Math.Round(userProviderWeightValues.Last().Value - userProviderWeightValues.First().Value, 1);
+                stringBuilder.Append($"\n\nWeight: {weightChange} kg");
+            }
+
 
             image.Mutate(x =>
             {
@@ -60,7 +70,7 @@ namespace FitWifFrens.Web.Controllers
                     g.Antialias = false;
                 });
                 x.Fill(Color.Black, star);
-                x.DrawText($"Running: {runningMinutes} mins\n\nWorkout: {workoutMinutes} mins\n\nWeight: {weightChange} kg", font, Color.Black, new PointF(10, 10));
+                x.DrawText(stringBuilder.ToString(), font, Color.Black, new PointF(10, 10));
             });
 
 
