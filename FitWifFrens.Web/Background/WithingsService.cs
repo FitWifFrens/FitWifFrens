@@ -98,8 +98,8 @@ namespace FitWifFrens.Web.Background
                                 request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
                                 {
                                     { "action", "getmeas" },
-                                    { "meastypes", "1" },
-                                    { "startdate", DateTime.UtcNow.AddDays(-30).ToUnixTimeSeconds().ToString() },
+                                    { "meastypes", "1,9" },
+                                    //{ "startdate", DateTime.UtcNow.AddDays(-30).ToUnixTimeSeconds().ToString() },
                                 });
                                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));
