@@ -53,14 +53,26 @@ namespace FitWifFrens.Web.Controllers
                 userProviderMetricValues.Where(upmv => upmv.MetricName == "Weight" && upmv.MetricType == MetricType.Value).OrderBy(upmv => upmv.Time).Last().Value -
                 userProviderMetricValues.Where(upmv => upmv.MetricName == "Weight" && upmv.MetricType == MetricType.Value).OrderBy(upmv => upmv.Time).First().Value, 1);
 
-            image.Mutate(x => x.Fill(Color.Black, star).DrawText($"Running: {runningMinutes} mins\n\nWorkout: {workoutMinutes} mins\n\nWeight: {weightChange} kg", font, Color.Black, new PointF(10, 10)));
+            image.Mutate(x =>
+            {
+                x.Configuration.SetGraphicsOptions(g =>
+                {
+                    g.Antialias = false;
+                });
+                x.Fill(Color.Black, star);
+                x.DrawText($"Running: {runningMinutes} mins\n\nWorkout: {workoutMinutes} mins\n\nWeight: {weightChange} kg", font, Color.Black, new PointF(10, 10));
+            });
+
 
             var outputStream = new MemoryStream();
-            await image.SaveAsBmpAsync(outputStream, new BmpEncoder
+
+            var bmpEncoder = new BmpEncoder
             {
                 BitsPerPixel = BmpBitsPerPixel.Pixel8,
                 SupportTransparency = false
-            });
+            };
+
+            await image.SaveAsBmpAsync(outputStream, bmpEncoder);
 
             outputStream.Seek(0, SeekOrigin.Begin);
             return File(outputStream, "image/bmp");
