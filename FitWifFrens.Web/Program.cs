@@ -72,11 +72,17 @@ namespace FitWifFrens.Web
 
                     options.Scope.Add("user.metrics");
                     options.Scope.Add("user.activity");
-                    options.Scope.Add("user.sleepevents");
 
                     options.SaveTokens = true;
                 })
-                .AddIdentityCookies();
+                .AddIdentityCookies(options =>
+                {
+                    options.ApplicationCookie!.Configure(cookieOptions =>
+                    {
+                        cookieOptions.ExpireTimeSpan = TimeSpan.FromDays(14);
+                        cookieOptions.SlidingExpiration = true;
+                    });
+                });
 
             var postgresConnection = builder.Configuration.GetConnectionString("PostgresConnection") ?? throw new InvalidOperationException("Connection string 'PostgresConnection' not found.");
             builder.Services.AddDbContext<DataContext>(options =>
@@ -90,7 +96,10 @@ namespace FitWifFrens.Web
                 }));
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-            builder.Services.AddIdentityCore<User>(options => options.SignIn.RequireConfirmedAccount = false)
+            builder.Services.AddIdentityCore<User>(options =>
+                {
+                    options.SignIn.RequireConfirmedAccount = false;
+                })
                 .AddEntityFrameworkStores<DataContext>()
                 .AddSignInManager()
                 .AddDefaultTokenProviders();
