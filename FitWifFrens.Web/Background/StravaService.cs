@@ -1,5 +1,6 @@
 ﻿using FitWifFrens.Data;
 using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Polly;
@@ -75,6 +76,8 @@ namespace FitWifFrens.Web.Background
 
                         if (tokens.Any())
                         {
+                            _telemetryClient.TrackTrace($"Updating Strava data for user {user.Id} with token {tokens.Single(t => t.Name == "access_token").Value}", SeverityLevel.Information);
+
                             var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
                             resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
 
