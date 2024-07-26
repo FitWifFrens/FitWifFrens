@@ -27,6 +27,13 @@ namespace FitWifFrens.Web.Controllers
         [HttpGet("{macAddress}")]
         public async Task<IActionResult> Get(string macAddress)
         {
+            var userDisplay = await _dataContext.UserDisplays.SingleOrDefaultAsync(ud => ud.MacAddress == macAddress);
+
+            if (userDisplay == null)
+            {
+                return NotFound();
+            }
+
             var collection = new FontCollection();
             var family = collection.Add("wwwroot/fonts/Poppins-Regular.ttf");
             var font = family.CreateFont(16, FontStyle.Regular);
@@ -37,7 +44,7 @@ namespace FitWifFrens.Web.Controllers
 
             var startTime = _timeProvider.GetUtcNow().AddDays(-7);
 
-            var userProviderMetricValues = await _dataContext.UserProviderMetricValues.Where(upmv => upmv.UserId == "65c79331-17f4-498c-bd91-7236518324ee" && upmv.Time > startTime).ToListAsync();
+            var userProviderMetricValues = await _dataContext.UserProviderMetricValues.Where(upmv => upmv.UserId == userDisplay.UserId && upmv.Time > startTime).ToListAsync();
 
             var runningMinutes = Math.Round(userProviderMetricValues.Where(upmv => upmv.MetricName == "Running" && upmv.MetricType == MetricType.Minutes).Sum(upmv => upmv.Value), 0);
             var workoutMinutes = Math.Round(userProviderMetricValues.Where(upmv => upmv.MetricName == "Workout" && upmv.MetricType == MetricType.Minutes).Sum(upmv => upmv.Value), 0);

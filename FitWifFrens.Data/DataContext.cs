@@ -17,6 +17,8 @@ namespace FitWifFrens.Data
         public DbSet<CommitmentUser> CommitmentUsers { get; set; }
         public DbSet<CommitmentPeriodUser> CommitmentPeriodUsers { get; set; }
         public DbSet<CommitmentPeriodUserGoal> CommitmentPeriodUserGoals { get; set; }
+        public DbSet<Display> Displays { get; set; }
+        public DbSet<UserDisplay> UserDisplays { get; set; }
 
         public DataContext(DbContextOptions<DataContext> options)
             : base(options)
@@ -51,6 +53,10 @@ namespace FitWifFrens.Data
                     .HasForeignKey(m => m.UserId);
 
                 b.HasMany(m => m.CommitmentPeriods)
+                    .WithOne(m => m.User)
+                    .HasForeignKey(m => m.UserId);
+
+                b.HasMany(m => m.Displays)
                     .WithOne(m => m.User)
                     .HasForeignKey(m => m.UserId);
 
@@ -322,6 +328,26 @@ namespace FitWifFrens.Data
             builder.Entity<CommitmentPeriodUserGoal>(b =>
             {
                 b.HasKey(m => new { m.CommitmentId, m.StartDate, m.EndDate, m.UserId, m.ProviderName, m.MetricName, m.MetricType });
+            });
+
+
+            builder.Entity<Display>(b =>
+            {
+                b.HasKey(m => new { m.MacAddress });
+
+                b.Property(m => m.MacAddress)
+                    .HasMaxLength(17)
+                    .IsFixedLength();
+
+                b.HasOne(m => m.User)
+                    .WithOne(m => m.Display)
+                    .HasForeignKey<UserDisplay>(m => m.MacAddress);
+            });
+
+
+            builder.Entity<UserDisplay>(b =>
+            {
+                b.HasKey(m => new { m.UserId, m.MacAddress });
             });
         }
 

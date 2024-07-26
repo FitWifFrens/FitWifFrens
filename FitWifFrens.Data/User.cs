@@ -17,6 +17,7 @@ namespace FitWifFrens.Data
         public ICollection<UserProviderMetricValue> ProviderMetricValues { get; set; }
         public ICollection<CommitmentUser> Commitments { get; set; }
         public ICollection<CommitmentPeriodUser> CommitmentPeriods { get; set; }
+        public ICollection<UserDisplay> Displays { get; set; }
 
         public ICollection<UserClaim> Claims { get; set; }
         public ICollection<UserLogin> Logins { get; set; }
