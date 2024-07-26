@@ -16,8 +16,12 @@ namespace FitWifFrens.Web.Controllers
         public async Task<IActionResult> Get()
         {
             using var image = new Image<Rgba32>(264, 176);
-            var star = new Star(50, 50, 5, 20, 45);
-            image.Mutate(x => x.Fill(Color.White, star));
+
+            var star1 = new Star(50, 50, 5, 20, 45);
+            image.Mutate(x => x.Fill(Color.Black, star1));
+
+            var star2 = new Star(100, 100, 5, 20, 45);
+            image.Mutate(x => x.Fill(Color.White, star2));
 
             var outputStream = new MemoryStream();
             await image.SaveAsBmpAsync(outputStream, new BmpEncoder
