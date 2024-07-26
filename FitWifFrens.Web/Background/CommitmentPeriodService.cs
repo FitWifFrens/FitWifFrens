@@ -26,13 +26,14 @@ namespace FitWifFrens.Web.Background
                 var date = DateOnly.FromDateTime(_timeProvider.GetUtcNow().DateTime);
 
                 var commitments = await _dataContext.Commitments
-                    .Include(c => c.Users).ThenInclude(cu => cu.User)
+                    .Include(c => c.Users).ThenInclude(cu => cu.User.MetricProviders)
                     .Include(c => c.Goals)
                     .ToListAsync(cancellationToken);
 
                 foreach (var commitment in commitments)
                 {
                     // TODO: THROW CancellationToken
+                    var metricName = commitment.Goals.Select(g => g.MetricName).Distinct().ToList();
 
                     var commitmentPeriod = await _dataContext.CommitmentPeriods
                         .Include(cp => cp.Users)
@@ -69,7 +70,7 @@ namespace FitWifFrens.Web.Background
 
                         _dataContext.CommitmentPeriods.Add(commitmentPeriod);
 
-                        foreach (var commitmentUser in commitment.Users)
+                        foreach (var commitmentUser in commitment.Users.Where(u => metricName.All(mn => u.User.MetricProviders.Any(mp => mp.MetricName == mn))))
                         {
                             commitmentUser.User.Balance -= commitmentUser.Stake; // TODO: negative balance?
 
@@ -86,9 +87,9 @@ namespace FitWifFrens.Web.Background
                                     StartDate = commitmentPeriod.StartDate,
                                     EndDate = commitmentPeriod.EndDate,
                                     UserId = commitmentUser.UserId,
-                                    ProviderName = g.ProviderName,
                                     MetricName = g.MetricName,
                                     MetricType = g.MetricType,
+                                    ProviderName = commitmentUser.User.MetricProviders.Single(mp => mp.MetricName == g.MetricName).ProviderName,
                                 }).ToList()
                             });
                         }
@@ -98,7 +99,9 @@ namespace FitWifFrens.Web.Background
                     else if (commitmentPeriod != null)
                     {
                         // HACK: for testing so users are added after a period starts
-                        foreach (var commitmentUser in commitment.Users.Where(cu => commitmentPeriod.Users.All(cpu => cpu.UserId != cu.UserId)))
+                        foreach (var commitmentUser in commitment.Users
+                                     .Where(cu => commitmentPeriod.Users.All(cpu => cpu.UserId != cu.UserId))
+                                     .Where(u => metricName.All(mn => u.User.MetricProviders.Any(mp => mp.MetricName == mn))))
                         {
                             commitmentUser.User.Balance -= commitmentUser.Stake;
 
@@ -115,9 +118,9 @@ namespace FitWifFrens.Web.Background
                                     StartDate = commitmentPeriod.StartDate,
                                     EndDate = commitmentPeriod.EndDate,
                                     UserId = commitmentUser.UserId,
-                                    ProviderName = g.ProviderName,
                                     MetricName = g.MetricName,
                                     MetricType = g.MetricType,
+                                    ProviderName = commitmentUser.User.MetricProviders.Single(mp => mp.MetricName == g.MetricName).ProviderName,
                                 }).ToList()
                             });
                         }
@@ -153,54 +156,50 @@ namespace FitWifFrens.Web.Background
 
                     foreach (var commitmentPeriodUser in commitmentPeriod.Users)
                     {
-                        foreach (var commitmentGoals in commitmentPeriod.Commitment.Goals.GroupBy(g => (g.ProviderName, g.MetricName)))
+                        foreach (var commitmentPeriodUserGoals in commitmentPeriodUser.Goals.GroupBy(g => (g.MetricName, g.ProviderName)))
                         {
-                            var userProviderMetricValues = await _dataContext.UserProviderMetricValues
-                                .Where(upmv => upmv.UserId == commitmentPeriodUser.UserId && upmv.ProviderName == commitmentGoals.Key.ProviderName &&
-                                               upmv.MetricName == commitmentGoals.Key.MetricName && upmv.Time >= startTime && upmv.Time < endTime)
+                            var userMetricProviderValues = await _dataContext.UserMetricProviderValues
+                                .Where(umpv => umpv.UserId == commitmentPeriodUser.UserId && umpv.MetricName == commitmentPeriodUserGoals.Key.MetricName &&
+                                               umpv.ProviderName == commitmentPeriodUserGoals.Key.ProviderName && umpv.Time >= startTime && umpv.Time < endTime)
                                 .ToListAsync(cancellationToken);
 
-                            foreach (var commitmentGoal in commitmentGoals)
+                            foreach (var commitmentPeriodUserGoal in commitmentPeriodUserGoals)
                             {
                                 var value = default(double?);
-                                if (commitmentGoal.MetricType == MetricType.Count)
+                                if (commitmentPeriodUserGoal.MetricType == MetricType.Count)
                                 {
-                                    var values = userProviderMetricValues.Where(upmv => upmv.MetricType == MetricType.Minutes).ToList();
+                                    var values = userMetricProviderValues.Where(upmv => upmv.MetricType == MetricType.Minutes).ToList();
 
                                     value = values.Any() ? values.Count : null;
                                 }
-                                else if (commitmentGoal.MetricType == MetricType.Minutes)
+                                else if (commitmentPeriodUserGoal.MetricType == MetricType.Minutes)
                                 {
-                                    var values = userProviderMetricValues.Where(upmv => upmv.MetricType == MetricType.Minutes).ToList();
+                                    var values = userMetricProviderValues.Where(upmv => upmv.MetricType == MetricType.Minutes).ToList();
 
                                     value = values.Any() ? values.Sum(upmv => upmv.Value) : null;
                                 }
-                                else if (commitmentGoal.MetricType == MetricType.Value)
+                                else if (commitmentPeriodUserGoal.MetricType == MetricType.Value)
                                 {
-                                    var endUserProviderMetricValue = userProviderMetricValues.MaxBy(upmv => upmv.Time);
+                                    var endUserProviderMetricValue = userMetricProviderValues.MaxBy(upmv => upmv.Time);
 
                                     if (endUserProviderMetricValue != null)
                                     {
-                                        var startUserProviderMetricValue = await _dataContext.UserProviderMetricValues
-                                            .Where(upmv => upmv.UserId == commitmentPeriodUser.UserId && upmv.ProviderName == commitmentGoal.ProviderName &&
-                                                           upmv.MetricName == commitmentGoal.MetricName && upmv.MetricType == MetricType.Value && upmv.Time <= startTime)
+                                        var startUserMetricProviderValue = await _dataContext.UserMetricProviderValues
+                                            .Where(umpv => umpv.UserId == commitmentPeriodUser.UserId && umpv.MetricName == commitmentPeriodUserGoal.MetricName &&
+                                                           umpv.ProviderName == commitmentPeriodUserGoal.ProviderName && umpv.MetricType == MetricType.Value && umpv.Time <= startTime)
                                             .OrderByDescending(upmv => upmv.Time)
                                             .FirstOrDefaultAsync(cancellationToken);
 
-                                        if (startUserProviderMetricValue != null)
+                                        if (startUserMetricProviderValue != null)
                                         {
-                                            value = Math.Round(endUserProviderMetricValue.Value - startUserProviderMetricValue.Value, 1);
+                                            value = Math.Round(endUserProviderMetricValue.Value - startUserMetricProviderValue.Value, 1);
                                         }
                                     }
                                 }
                                 else
                                 {
-                                    throw new ArgumentOutOfRangeException(nameof(commitmentGoal.MetricType), commitmentGoal.MetricType, "220d6ad7-0701-4118-92ed-94bff8f984fb");
+                                    throw new ArgumentOutOfRangeException(nameof(commitmentPeriodUserGoal.MetricType), commitmentPeriodUserGoal.MetricType, "220d6ad7-0701-4118-92ed-94bff8f984fb");
                                 }
-
-                                var commitmentPeriodUserGoal = commitmentPeriodUser.Goals
-                                    .Single(cpug => cpug.UserId == commitmentPeriodUser.UserId && cpug.ProviderName == commitmentGoal.ProviderName &&
-                                                    cpug.MetricName == commitmentGoal.MetricName && cpug.MetricType == commitmentGoal.MetricType);
 
                                 if (commitmentPeriodUserGoal.Value != value)
                                 {
@@ -222,6 +221,7 @@ namespace FitWifFrens.Web.Background
             }
         }
 
+        // TODO: only complete once we know we have all the data
         public async Task UpdateCommitmentPeriods(CancellationToken cancellationToken)
         {
             try

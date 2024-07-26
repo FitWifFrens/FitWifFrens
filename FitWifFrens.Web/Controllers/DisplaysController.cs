@@ -47,7 +47,7 @@ namespace FitWifFrens.Web.Controllers
 
             var stringBuilder = new StringBuilder();
 
-            var userProviderMetricValues = await _dataContext.UserProviderMetricValues.Where(upmv => upmv.UserId == userDisplay.UserId && upmv.Time > startTime).ToListAsync();
+            var userProviderMetricValues = await _dataContext.UserMetricProviderValues.Where(umpv => umpv.UserId == userDisplay.UserId && umpv.Time > startTime).ToListAsync();
 
             var runningMinutes = Math.Round(userProviderMetricValues.Where(upmv => upmv.MetricName == "Running" && upmv.MetricType == MetricType.Minutes).Sum(upmv => upmv.Value), 0);
             var workoutMinutes = Math.Round(userProviderMetricValues.Where(upmv => upmv.MetricName == "Workout" && upmv.MetricType == MetricType.Minutes).Sum(upmv => upmv.Value), 0);

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FitWifFrens.Data.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20240726134747_InitialCreate")]
+    [Migration("20240726155700_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -174,6 +174,9 @@ namespace FitWifFrens.Data.Migrations
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("numeric");
+
+                    b.Property<DateTime>("Time")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UserId")
                         .IsRequired()

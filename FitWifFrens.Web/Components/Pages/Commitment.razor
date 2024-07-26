@@ -61,7 +61,7 @@
                 <div class="col-sm-12">
                     <h2 class="bg-header">@_commitment.Title</h2>
                     <p class="bg-text">@_commitment.Description</p>
-                    <p class="bg-text">Connects to <strong>@string.Join(", ", _commitment.Providers)</strong></p>
+                    <p class="bg-text">Requires <strong>@string.Join(", ", _commitment.Metrics)</strong> data</p>
                 </div>
             </div>
         </div>
@@ -253,7 +253,7 @@
                 Description = commitment.Description,
                 Image = commitment.Image,
                 ContractAddress = commitment.ContractAddress,
-                Providers = commitment.Goals.Select(p => p.ProviderName).Distinct().ToArray(),
+                Metrics = commitment.Goals.Select(p => p.MetricName).Distinct().ToArray(),
                 Stake = commitmentUser?.Stake,
                 TotalUsers = commitmentUsers.Count,
                 TotalStake = commitmentUsers.Sum(cpu => cpu.Stake),
@@ -365,7 +365,7 @@
 
         public string ContractAddress { get; set; }
 
-        public string[] Providers { get; set; }
+        public string[] Metrics { get; set; }
 
         public decimal? Stake { get; set; }
 

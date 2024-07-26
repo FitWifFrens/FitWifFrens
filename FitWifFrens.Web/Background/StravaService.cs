@@ -64,11 +64,11 @@ namespace FitWifFrens.Web.Background
         {
             try
             {
-                var providerMetricValues = await _dataContext.ProviderMetricValues.Where(pmv => pmv.ProviderName == "Strava").ToListAsync(cancellationToken);
+                var metricProviders = await _dataContext.MetricProviders.Where(mp => mp.ProviderName == "Strava").ToListAsync(cancellationToken);
 
-                if (providerMetricValues.Any())
+                if (metricProviders.Any())
                 {
-                    foreach (var user in await _dataContext.Users.Include(u => u.Tokens).ToListAsync(cancellationToken))
+                    foreach (var user in await _dataContext.Users.Where(u => u.Logins.Any(l => l.LoginProvider == "Strava")).Include(u => u.Tokens).ToListAsync(cancellationToken))
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
@@ -108,17 +108,17 @@ namespace FitWifFrens.Web.Background
 
                                 if (activityType == "Run" || activityType == "VirtualRun")
                                 {
-                                    var userProviderMetricValue = await _dataContext.UserProviderMetricValues
-                                        .SingleOrDefaultAsync(upmv => upmv.UserId == user.Id && upmv.ProviderName == "Strava" && upmv.MetricName == "Running" &&
-                                                                      upmv.MetricType == MetricType.Minutes && upmv.Time == activityTime, cancellationToken: cancellationToken);
+                                    var userMetricProviderValue = await _dataContext.UserMetricProviderValues
+                                        .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Running" && umpv.ProviderName == "Strava" &&
+                                                                      umpv.MetricType == MetricType.Minutes && umpv.Time == activityTime, cancellationToken: cancellationToken);
 
-                                    if (userProviderMetricValue == null)
+                                    if (userMetricProviderValue == null)
                                     {
-                                        _dataContext.UserProviderMetricValues.Add(new UserProviderMetricValue
+                                        _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
                                         {
                                             UserId = user.Id,
-                                            ProviderName = "Strava",
                                             MetricName = "Running",
+                                            ProviderName = "Strava",
                                             MetricType = MetricType.Minutes,
                                             Time = activityTime,
                                             Value = activityMinutes
@@ -126,11 +126,11 @@ namespace FitWifFrens.Web.Background
 
                                         await _dataContext.SaveChangesAsync(cancellationToken);
                                     }
-                                    else if (userProviderMetricValue.Value != activityMinutes)
+                                    else if (userMetricProviderValue.Value != activityMinutes)
                                     {
-                                        userProviderMetricValue.Value = activityMinutes;
+                                        userMetricProviderValue.Value = activityMinutes;
 
-                                        _dataContext.Entry(userProviderMetricValue).State = EntityState.Modified;
+                                        _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
 
                                         await _dataContext.SaveChangesAsync(cancellationToken);
                                     }
@@ -141,17 +141,17 @@ namespace FitWifFrens.Web.Background
                                 }
                                 else if (activityType == "Workout" || activityType == "WeightTraining" || activityType == "Yoga")
                                 {
-                                    var userProviderMetricValue = await _dataContext.UserProviderMetricValues
-                                        .SingleOrDefaultAsync(upmv => upmv.UserId == user.Id && upmv.ProviderName == "Strava" && upmv.MetricName == "Workout" &&
-                                                                      upmv.MetricType == MetricType.Minutes && upmv.Time == activityTime, cancellationToken: cancellationToken);
+                                    var userMetricProviderValue = await _dataContext.UserMetricProviderValues
+                                        .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Workout" && umpv.ProviderName == "Strava" &&
+                                                                      umpv.MetricType == MetricType.Minutes && umpv.Time == activityTime, cancellationToken: cancellationToken);
 
-                                    if (userProviderMetricValue == null)
+                                    if (userMetricProviderValue == null)
                                     {
-                                        _dataContext.UserProviderMetricValues.Add(new UserProviderMetricValue
+                                        _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
                                         {
                                             UserId = user.Id,
-                                            ProviderName = "Strava",
                                             MetricName = "Workout",
+                                            ProviderName = "Strava",
                                             MetricType = MetricType.Minutes,
                                             Time = activityTime,
                                             Value = activityMinutes
@@ -159,28 +159,28 @@ namespace FitWifFrens.Web.Background
 
                                         await _dataContext.SaveChangesAsync(cancellationToken);
                                     }
-                                    else if (userProviderMetricValue.Value != activityMinutes)
+                                    else if (userMetricProviderValue.Value != activityMinutes)
                                     {
-                                        userProviderMetricValue.Value = activityMinutes;
+                                        userMetricProviderValue.Value = activityMinutes;
 
-                                        _dataContext.Entry(userProviderMetricValue).State = EntityState.Modified;
+                                        _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
 
                                         await _dataContext.SaveChangesAsync(cancellationToken);
                                     }
                                 }
 
                                 {
-                                    var userProviderMetricValue = await _dataContext.UserProviderMetricValues
-                                        .SingleOrDefaultAsync(upmv => upmv.UserId == user.Id && upmv.ProviderName == "Strava" && upmv.MetricName == "Exercise" &&
-                                                                      upmv.MetricType == MetricType.Minutes && upmv.Time == activityTime, cancellationToken: cancellationToken);
+                                    var userMetricProviderValue = await _dataContext.UserMetricProviderValues
+                                        .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Exercise" && umpv.ProviderName == "Strava" &&
+                                                                      umpv.MetricType == MetricType.Minutes && umpv.Time == activityTime, cancellationToken: cancellationToken);
 
-                                    if (userProviderMetricValue == null)
+                                    if (userMetricProviderValue == null)
                                     {
-                                        _dataContext.UserProviderMetricValues.Add(new UserProviderMetricValue
+                                        _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
                                         {
                                             UserId = user.Id,
-                                            ProviderName = "Strava",
                                             MetricName = "Exercise",
+                                            ProviderName = "Strava",
                                             MetricType = MetricType.Minutes,
                                             Time = activityTime,
                                             Value = activityMinutes
@@ -188,11 +188,11 @@ namespace FitWifFrens.Web.Background
 
                                         await _dataContext.SaveChangesAsync(cancellationToken);
                                     }
-                                    else if (userProviderMetricValue.Value != activityMinutes)
+                                    else if (userMetricProviderValue.Value != activityMinutes)
                                     {
-                                        userProviderMetricValue.Value = activityMinutes;
+                                        userMetricProviderValue.Value = activityMinutes;
 
-                                        _dataContext.Entry(userProviderMetricValue).State = EntityState.Modified;
+                                        _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
 
                                         await _dataContext.SaveChangesAsync(cancellationToken);
                                     }

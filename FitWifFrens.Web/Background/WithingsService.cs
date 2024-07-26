@@ -74,11 +74,11 @@ namespace FitWifFrens.Web.Background
         {
             try
             {
-                var providerMetricValues = await _dataContext.ProviderMetricValues.Where(pmv => pmv.ProviderName == "Withings").ToListAsync(cancellationToken);
+                var metricProviders = await _dataContext.MetricProviders.Where(mp => mp.ProviderName == "Withings").ToListAsync(cancellationToken);
 
-                if (providerMetricValues.Any())
+                if (metricProviders.Any())
                 {
-                    foreach (var user in await _dataContext.Users.Include(u => u.Tokens).ToListAsync(cancellationToken))
+                    foreach (var user in await _dataContext.Users.Where(u => u.Logins.Any(l => l.LoginProvider == "Withings")).Include(u => u.Tokens).ToListAsync(cancellationToken))
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
@@ -126,17 +126,17 @@ namespace FitWifFrens.Web.Background
                                     {
                                         var measureValue = Math.Round(measureJson.GetProperty("value").GetInt32() / 1000.0, 1);
 
-                                        var userProviderMetricValue = await _dataContext.UserProviderMetricValues
-                                            .SingleOrDefaultAsync(upmv => upmv.UserId == user.Id && upmv.ProviderName == "Withings" && upmv.MetricName == "Weight" &&
-                                                                          upmv.MetricType == MetricType.Value && upmv.Time == measureGroupTime, cancellationToken: cancellationToken);
+                                        var userMetricProviderValue = await _dataContext.UserMetricProviderValues
+                                            .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Weight" && umpv.ProviderName == "Withings" &&
+                                                                          umpv.MetricType == MetricType.Value && umpv.Time == measureGroupTime, cancellationToken: cancellationToken);
 
-                                        if (userProviderMetricValue == null)
+                                        if (userMetricProviderValue == null)
                                         {
-                                            _dataContext.UserProviderMetricValues.Add(new UserProviderMetricValue
+                                            _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
                                             {
                                                 UserId = user.Id,
-                                                ProviderName = "Withings",
                                                 MetricName = "Weight",
+                                                ProviderName = "Withings",
                                                 MetricType = MetricType.Value,
                                                 Time = measureGroupTime,
                                                 Value = measureValue
@@ -144,11 +144,11 @@ namespace FitWifFrens.Web.Background
 
                                             await _dataContext.SaveChangesAsync(cancellationToken);
                                         }
-                                        else if (userProviderMetricValue.Value != measureValue)
+                                        else if (userMetricProviderValue.Value != measureValue)
                                         {
-                                            userProviderMetricValue.Value = measureValue;
+                                            userMetricProviderValue.Value = measureValue;
 
-                                            _dataContext.Entry(userProviderMetricValue).State = EntityState.Modified;
+                                            _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
 
                                             await _dataContext.SaveChangesAsync(cancellationToken);
                                         }

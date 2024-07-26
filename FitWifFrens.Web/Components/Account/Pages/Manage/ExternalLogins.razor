@@ -4,12 +4,14 @@
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 @using FitWifFrens.Data
+@using Microsoft.EntityFrameworkCore
 
 @inject UserManager<User> UserManager
 @inject SignInManager<User> SignInManager
 @inject IdentityUserAccessor UserAccessor
 @inject IUserStore<User> UserStore
 @inject IdentityRedirectManager RedirectManager
+@inject DataContext DataContext
 
 <PageTitle>Manage your external logins</PageTitle>
 
@@ -150,11 +152,37 @@
             RedirectManager.RedirectToCurrentPageWithStatus("Error: The external login was not added. External logins can only be associated with one account.", HttpContext);
         }
 
-        // TODO:
+        // TODO: this saves the tokens?
         _ = await SignInManager.UpdateExternalAuthenticationTokensAsync(info);
 
+        var metricProviders = await DataContext.MetricProviders.Where(mp => mp.ProviderName == info.LoginProvider).ToListAsync();
+
+        var userMetricProviders = await DataContext.UserMetricProviders.Where(ump => ump.UserId == userId).ToListAsync();
+
+        foreach (var metricProvider in metricProviders)
+        {
+            var userMetricProvider = userMetricProviders.SingleOrDefault(ump => ump.MetricName == metricProvider.MetricName);
+            if (userMetricProvider != null)
+            {
+                userMetricProvider.ProviderName = metricProvider.ProviderName;
+
+                DataContext.Entry(userMetricProvider).State = EntityState.Modified;
+            }
+            else
+            {
+                DataContext.UserMetricProviders.Add(new UserMetricProvider
+                    {
+                        UserId = userId,
+                        MetricName = metricProvider.MetricName,
+                        ProviderName = metricProvider.ProviderName,
+                    });
+            }
+        }
+
+        await DataContext.SaveChangesAsync();
+
         // Clear the existing external cookie to ensure a clean login process
-        await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+        await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme); // TODO: Am i using this to sign in???
 
         RedirectManager.RedirectToCurrentPageWithStatus("The external login was added.", HttpContext);
     }

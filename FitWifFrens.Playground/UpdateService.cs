@@ -16,30 +16,22 @@ namespace FitWifFrens.Playground
         {
             await _dataContext.Database.MigrateAsync(cancellationToken);
 
-            var commitment3Id = Guid.Parse("20398161-7de8-4cdb-929a-165fe1e892da");
+            var users = await _dataContext.Users.Where(u => u.Balance <= 0).ToListAsync(cancellationToken);
 
-            _dataContext.Commitments.Add(new Commitment
+            foreach (var user in users)
             {
-                Id = commitment3Id,
-                Title = "4 workouts",
-                Description = "Record 4 workouts on Strava every week",
-                Image = "images/runner2.png",
-                StartDate = new DateOnly(2024, 07, 22),
-                Days = 7,
-                ContractAddress = "0x5b934ba128d275E16E7f26De7d8524C21d0BB7cA",
-                Goals = new List<Goal>
+                user.Balance += 100;
+
+                _dataContext.Entry(user).State = EntityState.Modified;
+
+                _dataContext.Deposits.Add(new Deposit
                 {
-                    new Goal
-                    {
-                        ProviderName = "Strava",
-                        MetricName = "Workout",
-                        MetricType = MetricType.Count,
-                        Rule = GoalRule.GreaterThanOrEqualTo,
-                        Value = 4
-                    }
-                },
-                Periods = new List<CommitmentPeriod>()
-            });
+                    Transaction = "0x" + Guid.NewGuid().ToString().Replace("-", string.Empty),
+                    UserId = user.Id,
+                    Amount = 100,
+                    Time = DateTime.UtcNow
+                });
+            }
 
             await _dataContext.SaveChangesAsync(cancellationToken);
         }

@@ -21,7 +21,7 @@
         </div>
     </div>
     <div class="row">
-        @foreach (var commitment in _commitments.OrderBy(c => !c.Committed).ThenBy(c => c.Title))
+        @foreach (var commitment in _commitments.OrderBy(c => c.Title))
         {
             <div class="col-sm-3">
                 <div class="card">
@@ -58,46 +58,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var user = await UserAccessor.GetUserAsync(HttpContext);
-
-        var commitments = await DataContext.Commitments
-            .Include(c => c.Goals)
-            .Include(c => c.Users)
-            .ToListAsync();
-
-        if (user == null)
+        _commitments = await DataContext.Commitments.Select(c => new CommitmentData
         {
-            _commitments = await DataContext.Commitments.Select(c => new CommitmentData
-                {
-                    Id = c.Id,
-                    Title = c.Title,
-                    Description = c.Description,
-                    Image = c.Image,
-                    ContractAddress = c.ContractAddress,
-                    Committed = null,
-                    HasRequiredProviders = null,
-                    TotalCommitted = c.Users.Count
-                }).ToListAsync();
-        }
-        else
-        {
-            var userCommitments = await DataContext.CommitmentUsers.Where(cu => cu.UserId == user.Id).ToListAsync();
-
-            var userLoginProviders = await DataContext.UserLogins.Where(cu => cu.UserId == user.Id).Select(ul => ul.LoginProvider).ToListAsync();
-
-            _commitments = commitments.Select(c => new CommitmentData
-                {
-                    Id = c.Id,
-                    Title = c.Title,
-                    Description = c.Description,
-                    Image = c.Image,
-                    ContractAddress = c.ContractAddress,
-                    Committed = userCommitments.Any(uc => uc.CommitmentId == c.Id),
-                    TotalCommitted = c.Users.Count,
-                    HasRequiredProviders = c.Goals.All(p => userLoginProviders.Contains(p.ProviderName)),
-                    MissingProviders = c.Goals.Where(p => !userLoginProviders.Contains(p.ProviderName)).Select(p => p.ProviderName).Distinct().ToArray()
-                }).ToList();
-        }
+            Id = c.Id,
+            Title = c.Title,
+            Description = c.Description,
+            Image = c.Image
+        }).ToListAsync();
     }
 
 
@@ -108,14 +75,5 @@
         public string Title { get; set; }
         public string Description { get; set; }
         public string Image { get; set; }
-
-        public int Amount { get; set; }
-
-        public string ContractAddress { get; set; }
-
-        public bool? Committed { get; set; }
-        public bool? HasRequiredProviders { get; set; }
-        public string[]? MissingProviders { get; set; }
-        public int TotalCommitted { get; set; }
     }
 }

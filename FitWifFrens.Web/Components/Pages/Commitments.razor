@@ -31,13 +31,13 @@
                         {
                             <a href="/Commitment/@commitment.Id" class="btn btn-secondary">View</a>
                         }
-                        else if (commitment.HasRequiredProviders)
+                        else if (commitment.HasRequiredMetricProviders)
                         {
                             <a href="/Commitment/@commitment.Id" class="btn btn-primary">Commit</a>
                         }
-                        else if (commitment.MissingProviders.Length == 1)
+                        else if (commitment.MissingMetricProviders.Length == 1)
                         {
-                            <a href="/Account/Manage/ExternalLogins" class="btn btn-warning">Connect @commitment.MissingProviders[0]</a>
+                            <a href="/Account/Manage/ExternalLogins" class="btn btn-warning">Requires @commitment.MissingMetricProviders[0]</a>
                         }
                         else
                         {
@@ -66,6 +66,8 @@
 
         var userLoginProviders = await DataContext.UserLogins.Where(cu => cu.UserId == user.Id).Select(ul => ul.LoginProvider).ToListAsync();
 
+        var userMetricProviders = await DataContext.UserMetricProviders.Where(ump => ump.UserId == user.Id).Select(ul => ul.MetricName).ToListAsync();
+
         _worldId = "0xWorldId";
 
         var commitments = await DataContext.Commitments.Include(c => c.Goals).ToListAsync();
@@ -78,8 +80,8 @@
                 Image = c.Image,
                 ContractAddress = c.ContractAddress,
                 Committed = userCommitments.Any(uc => uc.CommitmentId == c.Id),
-                HasRequiredProviders = c.Goals.All(p => userLoginProviders.Contains(p.ProviderName)),
-                MissingProviders = c.Goals.Where(p => !userLoginProviders.Contains(p.ProviderName)).Select(p => p.ProviderName).Distinct().ToArray()
+                HasRequiredMetricProviders = c.Goals.All(p => userMetricProviders.Contains(p.MetricName)),
+                MissingMetricProviders = c.Goals.Where(p => !userMetricProviders.Contains(p.MetricName)).Select(p => p.MetricName).Distinct().ToArray()
             }).ToList();
     }
 
@@ -97,7 +99,7 @@
         public string ContractAddress { get; set; }
 
         public bool Committed { get; set; }
-        public bool HasRequiredProviders { get; set; }
-        public string[] MissingProviders { get; set; }
+        public bool HasRequiredMetricProviders { get; set; }
+        public string[] MissingMetricProviders { get; set; }
     }
 }

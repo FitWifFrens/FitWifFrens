@@ -172,6 +172,9 @@ namespace FitWifFrens.Data.Migrations
                     b.Property<decimal>("Amount")
                         .HasColumnType("numeric");
 
+                    b.Property<DateTime>("Time")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("text");
