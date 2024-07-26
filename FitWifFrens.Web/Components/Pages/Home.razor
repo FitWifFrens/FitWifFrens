@@ -58,6 +58,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // TODO: Hack for the single DataContext issue...
+        var user = await UserAccessor.GetUserAsync(HttpContext);
+
         _commitments = await DataContext.Commitments.Select(c => new CommitmentData
         {
             Id = c.Id,
