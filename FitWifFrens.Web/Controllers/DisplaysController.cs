@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using FitWifFrens.Data;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
@@ -12,16 +15,38 @@ namespace FitWifFrens.Web.Controllers
     [Route("api/displays")]
     public class DisplaysController : Controller
     {
+        private readonly DataContext _dataContext;
+        private readonly TimeProvider _timeProvider;
+
+        public DisplaysController(DataContext dataContext, TimeProvider timeProvider)
+        {
+            _dataContext = dataContext;
+            _timeProvider = timeProvider;
+        }
+
         [HttpGet("{macAddress}")]
         public async Task<IActionResult> Get(string macAddress)
         {
+            var collection = new FontCollection();
+            var family = collection.Add("wwwroot/fonts/Poppins-Regular.ttf");
+            var font = family.CreateFont(16, FontStyle.Regular);
+
             using var image = new Image<L8>(264, 176, new L8(byte.MaxValue));
 
-            var star1 = new Star(50, 50, 5, 20, 45);
-            image.Mutate(x => x.Fill(Color.Black, star1));
+            var star = new Star(230, 140, 7, 10, 25);
 
-            var star2 = new Star(100, 100, 5, 20, 45);
-            image.Mutate(x => x.Fill(Color.White, star2));
+            var startTime = _timeProvider.GetUtcNow().AddDays(-7);
+
+            var userProviderMetricValues = await _dataContext.UserProviderMetricValues.Where(upmv => upmv.UserId == "65c79331-17f4-498c-bd91-7236518324ee" && upmv.Time > startTime).ToListAsync();
+
+            var runningMinutes = Math.Round(userProviderMetricValues.Where(upmv => upmv.MetricName == "Running" && upmv.MetricType == MetricType.Minutes).Sum(upmv => upmv.Value), 0);
+            var workoutMinutes = Math.Round(userProviderMetricValues.Where(upmv => upmv.MetricName == "Workout" && upmv.MetricType == MetricType.Minutes).Sum(upmv => upmv.Value), 0);
+
+            var weightChange = Math.Round(
+                userProviderMetricValues.Where(upmv => upmv.MetricName == "Weight" && upmv.MetricType == MetricType.Value).OrderBy(upmv => upmv.Time).Last().Value -
+                userProviderMetricValues.Where(upmv => upmv.MetricName == "Weight" && upmv.MetricType == MetricType.Value).OrderBy(upmv => upmv.Time).First().Value, 1);
+
+            image.Mutate(x => x.Fill(Color.Black, star).DrawText($"Running: {runningMinutes} mins\n\nWorkout: {workoutMinutes} mins\n\nWeight: {weightChange} kg", font, Color.Black, new PointF(10, 10)));
 
             var outputStream = new MemoryStream();
             await image.SaveAsBmpAsync(outputStream, new BmpEncoder
