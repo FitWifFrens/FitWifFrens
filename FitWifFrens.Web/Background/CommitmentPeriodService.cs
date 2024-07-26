@@ -35,6 +35,7 @@ namespace FitWifFrens.Web.Background
                     // TODO: THROW CancellationToken
 
                     var commitmentPeriod = await _dataContext.CommitmentPeriods
+                        .Include(cp => cp.Users)
                         .Where(cp => cp.CommitmentId == commitment.Id && date >= cp.StartDate && cp.Status == CommitmentPeriodStatus.Current) // TODO: ???
                         .SingleOrDefaultAsync(cancellationToken);
 
@@ -71,6 +72,35 @@ namespace FitWifFrens.Web.Background
                         foreach (var commitmentUser in commitment.Users)
                         {
                             commitmentUser.User.Balance -= commitmentUser.Stake; // TODO: negative balance?
+
+                            _dataContext.CommitmentPeriodUsers.Add(new CommitmentPeriodUser
+                            {
+                                CommitmentId = commitmentPeriod.CommitmentId,
+                                StartDate = commitmentPeriod.StartDate,
+                                EndDate = commitmentPeriod.EndDate,
+                                UserId = commitmentUser.UserId,
+                                Stake = commitmentUser.Stake,
+                                Goals = commitment.Goals.Select(g => new CommitmentPeriodUserGoal
+                                {
+                                    CommitmentId = commitmentPeriod.CommitmentId,
+                                    StartDate = commitmentPeriod.StartDate,
+                                    EndDate = commitmentPeriod.EndDate,
+                                    UserId = commitmentUser.UserId,
+                                    ProviderName = g.ProviderName,
+                                    MetricName = g.MetricName,
+                                    MetricType = g.MetricType,
+                                }).ToList()
+                            });
+                        }
+
+                        await _dataContext.SaveChangesAsync(cancellationToken);
+                    }
+                    else if (commitmentPeriod != null)
+                    {
+                        // HACK: for testing so users are added after a period starts
+                        foreach (var commitmentUser in commitment.Users.Where(cu => commitmentPeriod.Users.All(cpu => cpu.UserId != cu.UserId)))
+                        {
+                            commitmentUser.User.Balance -= commitmentUser.Stake;
 
                             _dataContext.CommitmentPeriodUsers.Add(new CommitmentPeriodUser
                             {
