@@ -112,6 +112,8 @@ namespace FitWifFrens.Web.Background
 
                             ResilienceContextPool.Shared.Return(resilienceContext);
 
+                            _telemetryClient.TrackTrace(responseJsonDocument.JsonDocument.RootElement.GetRawText(), SeverityLevel.Verbose);
+
                             foreach (var measureGroupJson in responseJsonDocument.JsonDocument.RootElement.GetProperty("body").GetProperty("measuregrps").EnumerateArray())
                             {
                                 var measureGroupTime = DateTimeExs.FromUnixTimeSeconds(measureGroupJson.GetProperty("created").GetInt64(), DateTimeKind.Utc);
