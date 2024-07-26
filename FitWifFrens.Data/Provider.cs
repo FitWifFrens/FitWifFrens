@@ -6,6 +6,6 @@
 
         public ICollection<UserLogin> Logins { get; set; }
 
-        public ICollection<ProviderMetricValue> Metrics { get; set; }
+        public ICollection<MetricProvider> Metrics { get; set; }
     }
 }

@@ -8,10 +8,12 @@
         public string UserId { get; set; }
         public CommitmentPeriodUser User { get; set; }
 
-        public string ProviderName { get; set; }
         public string MetricName { get; set; }
         public MetricType MetricType { get; set; }
         public Goal Goal { get; set; }
+
+        public string ProviderName { get; set; }
+        public MetricProvider MetricProvider { get; set; }
 
         public double? Value { get; set; } // TODO: Measure?
         public bool Success { get; set; }

@@ -7,6 +7,7 @@
 
         public MetricType Type { get; set; }
 
-        public ICollection<ProviderMetricValue> Providers { get; set; }
+        public ICollection<Goal> Goals { get; set; }
+        public ICollection<UserMetricProviderValue> Values { get; set; }
     }
 }

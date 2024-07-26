@@ -6,11 +6,12 @@ namespace FitWifFrens.Data
     public class DataContext : IdentityDbContext<User, Role, string, UserClaim, UserRole, UserLogin, RoleClaim, UserToken>
     {
         public DbSet<Deposit> Deposits { get; set; }
+        public DbSet<Provider> Providers { get; set; }
         public DbSet<Metric> Metrics { get; set; }
         public DbSet<MetricValue> MetricValues { get; set; }
-        public DbSet<Provider> Providers { get; set; }
-        public DbSet<ProviderMetricValue> ProviderMetricValues { get; set; }
-        public DbSet<UserProviderMetricValue> UserProviderMetricValues { get; set; }
+        public DbSet<MetricProvider> MetricProviders { get; set; }
+        public DbSet<UserMetricProvider> UserMetricProviders { get; set; }
+        public DbSet<UserMetricProviderValue> UserMetricProviderValues { get; set; }
         public DbSet<Commitment> Commitments { get; set; }
         public DbSet<Goal> Goals { get; set; }
         public DbSet<CommitmentPeriod> CommitmentPeriods { get; set; }
@@ -44,7 +45,11 @@ namespace FitWifFrens.Data
                     .WithOne(m => m.User)
                     .HasForeignKey(m => m.UserId);
 
-                b.HasMany(m => m.ProviderMetricValues)
+                b.HasMany(m => m.MetricProviders)
+                    .WithOne(m => m.User)
+                    .HasForeignKey(m => m.UserId);
+
+                b.HasMany(m => m.MetricProviderValues)
                     .WithOne(m => m.User)
                     .HasForeignKey(m => m.UserId);
 
@@ -112,27 +117,13 @@ namespace FitWifFrens.Data
                 b.Property(m => m.Name)
                     .HasMaxLength(256);
 
-                b.HasMany(m => m.Values)
+                b.HasMany(m => m.Providers)
                     .WithOne(m => m.Metric)
                     .HasForeignKey(m => m.MetricName);
 
-                b.HasData(
-                    new Metric
-                    {
-                        Name = "Exercise"
-                    },
-                    new Metric
-                    {
-                        Name = "Running"
-                    },
-                    new Metric
-                    {
-                        Name = "Workout"
-                    },
-                    new Metric
-                    {
-                        Name = "Weight"
-                    });
+                b.HasMany(m => m.Values)
+                    .WithOne(m => m.Metric)
+                    .HasForeignKey(m => m.MetricName);
             });
 
 
@@ -140,46 +131,13 @@ namespace FitWifFrens.Data
             {
                 b.HasKey(m => new { m.MetricName, m.Type });
 
-                b.HasMany(m => m.Providers)
+                b.HasMany(m => m.Goals)
                     .WithOne(m => m.MetricValue)
                     .HasForeignKey(m => new { m.MetricName, m.MetricType });
 
-                b.HasData(
-                    new MetricValue
-                    {
-                        MetricName = "Exercise",
-                        Type = MetricType.Count
-                    },
-                    new MetricValue
-                    {
-                        MetricName = "Exercise",
-                        Type = MetricType.Minutes
-                    },
-                    new MetricValue
-                    {
-                        MetricName = "Running",
-                        Type = MetricType.Count
-                    },
-                    new MetricValue
-                    {
-                        MetricName = "Running",
-                        Type = MetricType.Minutes
-                    },
-                    new MetricValue
-                    {
-                        MetricName = "Workout",
-                        Type = MetricType.Count
-                    },
-                    new MetricValue
-                    {
-                        MetricName = "Workout",
-                        Type = MetricType.Minutes
-                    },
-                    new MetricValue
-                    {
-                        MetricName = "Weight",
-                        Type = MetricType.Value
-                    });
+                b.HasMany(m => m.Values)
+                    .WithOne(m => m.MetricValue)
+                    .HasForeignKey(m => new { m.MetricName, m.MetricType });
             });
 
 
@@ -197,79 +155,34 @@ namespace FitWifFrens.Data
                 b.HasMany(m => m.Metrics)
                     .WithOne(m => m.Provider)
                     .HasForeignKey(m => m.ProviderName);
-
-                b.HasData(
-                    new Provider
-                    {
-                        Name = "Strava"
-                    },
-                    new Provider
-                    {
-                        Name = "Withings"
-                    });
             });
 
 
-            builder.Entity<ProviderMetricValue>(b =>
+            builder.Entity<MetricProvider>(b =>
             {
-                b.HasKey(m => new { m.ProviderName, m.MetricName, m.MetricType });
+                b.HasKey(m => new { m.MetricName, m.ProviderName });
 
                 b.HasMany(m => m.Users)
-                    .WithOne(m => m.ProviderMetricValue)
-                    .HasForeignKey(m => new { m.ProviderName, m.MetricName, m.MetricType });
+                    .WithOne(m => m.MetricProvider)
+                    .HasForeignKey(m => new { m.MetricName, m.ProviderName });
+
+                b.HasMany(m => m.Values)
+                    .WithOne(m => m.MetricProvider)
+                    .HasForeignKey(m => new { m.MetricName, m.ProviderName });
 
                 b.HasMany(m => m.Goals)
-                    .WithOne(m => m.Metric)
-                    .HasForeignKey(m => new { m.ProviderName, m.MetricName, m.MetricType });
-
-                b.HasData(
-                    new ProviderMetricValue
-                    {
-                        ProviderName = "Strava",
-                        MetricName = "Exercise",
-                        MetricType = MetricType.Count
-                    },
-                    new ProviderMetricValue
-                    {
-                        ProviderName = "Strava",
-                        MetricName = "Exercise",
-                        MetricType = MetricType.Minutes
-                    },
-                    new ProviderMetricValue
-                    {
-                        ProviderName = "Strava",
-                        MetricName = "Running",
-                        MetricType = MetricType.Count
-                    },
-                    new ProviderMetricValue
-                    {
-                        ProviderName = "Strava",
-                        MetricName = "Running",
-                        MetricType = MetricType.Minutes
-                    },
-                    new ProviderMetricValue
-                    {
-                        ProviderName = "Strava",
-                        MetricName = "Workout",
-                        MetricType = MetricType.Count
-                    },
-                    new ProviderMetricValue
-                    {
-                        ProviderName = "Strava",
-                        MetricName = "Workout",
-                        MetricType = MetricType.Minutes
-                    },
-                    new ProviderMetricValue
-                    {
-                        ProviderName = "Withings",
-                        MetricName = "Weight",
-                        MetricType = MetricType.Value
-                    });
+                    .WithOne(m => m.MetricProvider)
+                    .HasForeignKey(m => new { m.MetricName, m.ProviderName });
             });
 
-            builder.Entity<UserProviderMetricValue>(b =>
+            builder.Entity<UserMetricProvider>(b =>
             {
-                b.HasKey(m => new { m.UserId, m.ProviderName, m.MetricName, m.MetricType, m.Time });
+                b.HasKey(m => new { m.UserId, m.MetricName });
+            });
+
+            builder.Entity<UserMetricProviderValue>(b =>
+            {
+                b.HasKey(m => new { m.UserId, m.MetricName, m.ProviderName, m.MetricType, m.Time });
             });
 
             builder.Entity<Commitment>(b =>
@@ -292,11 +205,11 @@ namespace FitWifFrens.Data
 
             builder.Entity<Goal>(b =>
             {
-                b.HasKey(m => new { m.CommitmentId, m.ProviderName, m.MetricName, m.MetricType });
+                b.HasKey(m => new { m.CommitmentId, m.MetricName, m.MetricType });
 
                 b.HasMany(m => m.Users)
                     .WithOne(m => m.Goal)
-                    .HasForeignKey(m => new { m.CommitmentId, m.ProviderName, m.MetricName, m.MetricType });
+                    .HasForeignKey(m => new { m.CommitmentId, m.MetricName, m.MetricType });
             });
 
 
@@ -327,7 +240,7 @@ namespace FitWifFrens.Data
 
             builder.Entity<CommitmentPeriodUserGoal>(b =>
             {
-                b.HasKey(m => new { m.CommitmentId, m.StartDate, m.EndDate, m.UserId, m.ProviderName, m.MetricName, m.MetricType });
+                b.HasKey(m => new { m.CommitmentId, m.StartDate, m.EndDate, m.UserId, m.MetricName, m.MetricType, m.ProviderName });
             });
 
 
