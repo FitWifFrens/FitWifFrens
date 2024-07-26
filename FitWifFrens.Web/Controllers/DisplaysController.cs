@@ -12,10 +12,10 @@ namespace FitWifFrens.Web.Controllers
     [Route("api/displays")]
     public class DisplaysController : Controller
     {
-        [HttpGet]
-        public async Task<IActionResult> Get()
+        [HttpGet("{macAddress}")]
+        public async Task<IActionResult> Get(string macAddress)
         {
-            using var image = new Image<Rgba32>(264, 176);
+            using var image = new Image<L8>(264, 176, new L8(byte.MaxValue));
 
             var star1 = new Star(50, 50, 5, 20, 45);
             image.Mutate(x => x.Fill(Color.Black, star1));
