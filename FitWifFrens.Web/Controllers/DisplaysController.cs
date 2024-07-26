@@ -36,11 +36,11 @@ namespace FitWifFrens.Web.Controllers
 
             var collection = new FontCollection();
             var family = collection.Add("wwwroot/fonts/Poppins-Regular.ttf");
-            var font = family.CreateFont(16, FontStyle.Regular);
+            var font = family.CreateFont(26, FontStyle.Bold);
 
             using var image = new Image<L8>(264, 176, new L8(byte.MaxValue));
 
-            var star = new Star(230, 140, 7, 10, 25);
+            var star = new Star(240, 150, 5, 10, 20);
 
             var startTime = _timeProvider.GetUtcNow().AddDays(-7);
 
