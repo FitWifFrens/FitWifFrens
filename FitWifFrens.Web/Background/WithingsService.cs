@@ -99,7 +99,7 @@ namespace FitWifFrens.Web.Background
                                 {
                                     { "action", "getmeas" },
                                     { "meastypes", "1,9" },
-                                    //{ "startdate", DateTime.UtcNow.AddDays(-30).ToUnixTimeSeconds().ToString() },
+                                    { "startdate", DateTime.UtcNow.AddDays(-30).ToUnixTimeSeconds().ToString() },
                                 });
                                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));

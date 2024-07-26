@@ -41,6 +41,8 @@ namespace FitWifFrens.Web
                 .AddInteractiveServerComponents()
                 .AddInteractiveWebAssemblyComponents();
 
+            builder.Services.AddControllers();
+
             builder.Services.AddCascadingAuthenticationState();
             builder.Services.AddScoped<IdentityUserAccessor>();
             builder.Services.AddScoped<IdentityRedirectManager>();
@@ -117,7 +119,7 @@ namespace FitWifFrens.Web
                     builder.Configuration.GetValue<string>("Authentication:Withings:ClientId")!,
                     builder.Configuration.GetValue<string>("Authentication:Withings:ClientSecret")!)
             });
-            builder.Services.AddScoped<RefreshTokenService>();
+            builder.Services.AddScoped<RefreshTokenService>(); // TODO: singleton?
 
             builder.Services.AddHostedService<JobService>();
 
@@ -165,6 +167,8 @@ namespace FitWifFrens.Web
 
             // Add additional endpoints required by the Identity /Account Razor components.
             app.MapAdditionalIdentityEndpoints();
+
+            app.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
 
             app.UseHangfireDashboard("/hangfire", new DashboardOptions
             {
