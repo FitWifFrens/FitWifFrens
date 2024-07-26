@@ -72,7 +72,6 @@ namespace FitWifFrens.Web
 
                     options.Scope.Add("user.metrics");
                     options.Scope.Add("user.activity");
-                    options.Scope.Add("user.sleepevents");
 
                     options.SaveTokens = true;
                 })
