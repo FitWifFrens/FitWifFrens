@@ -88,6 +88,8 @@ namespace AspNet.Security.OAuth.Withings
             return new AuthenticationTicket(context.Principal!, context.Properties, Scheme.Name);
         }
 
+        protected override string FormatScope(IEnumerable<string> scopes) => string.Join(',', scopes);
+
         private static partial class Log
         {
             internal static async Task UserProfileErrorAsync(ILogger logger, HttpResponseMessage response, CancellationToken cancellationToken)
