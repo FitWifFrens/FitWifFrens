@@ -23,7 +23,7 @@ namespace FitWifFrens.Web.Background
         {
             try
             {
-                var date = DateOnly.FromDateTime(_timeProvider.GetUtcNow().DateTime);
+                var date = DateOnly.FromDateTime(_timeProvider.GetUtcNow().DateTime.Subtract(Constants.StartOfPeriodDelay).ConvertTimeFromUtc());
 
                 var commitments = await _dataContext.Commitments
                     .Include(c => c.Users).ThenInclude(cu => cu.User.MetricProviders)
@@ -151,9 +151,9 @@ namespace FitWifFrens.Web.Background
 
                 foreach (var commitmentPeriod in commitmentPeriods)
                 {
-                    var startTime = commitmentPeriod.StartDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-                    var endTime = commitmentPeriod.EndDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-
+                    var startTime = commitmentPeriod.StartDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified).ConvertTimeToUtc();
+                    var endTime = commitmentPeriod.EndDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified).ConvertTimeToUtc();
+                    ;
                     foreach (var commitmentPeriodUser in commitmentPeriod.Users)
                     {
                         foreach (var commitmentPeriodUserGoals in commitmentPeriodUser.Goals.GroupBy(g => (g.MetricName, g.ProviderName)))
@@ -226,7 +226,7 @@ namespace FitWifFrens.Web.Background
         {
             try
             {
-                var date = DateOnly.FromDateTime(_timeProvider.GetUtcNow().DateTime);
+                var date = DateOnly.FromDateTime(_timeProvider.GetUtcNow().DateTime.Subtract(Constants.EndOfPeriodDelay).ConvertTimeFromUtc());
 
                 var commitmentPeriods = await _dataContext.CommitmentPeriods
                     .Include(cp => cp.Commitment).ThenInclude(c => c.Users)

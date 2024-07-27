@@ -2,7 +2,7 @@
 {
     public static class TimeZoneUtils
     {
-        public static TimeZoneInfo LocalTimeZone = TimeZoneInfo.FindSystemTimeZoneById("AUS Eastern Standard Time");
+        public static readonly TimeZoneInfo LocalTimeZone = TimeZoneInfo.FindSystemTimeZoneById(Constants.LocalTimeZoneId);
 
         public static DateTime ConvertTimeFromUtc(this DateTime dateTime)
         {
