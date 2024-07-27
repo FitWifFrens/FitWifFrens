@@ -165,7 +165,7 @@ namespace FitWifFrens.Web.Background
 
                                 using var responseJsonDocument = await _resiliencePipeline.ExecuteAsync(async rc =>
                                 {
-                                    using var request = new HttpRequestMessage(HttpMethod.Post, "https://wbsapi.withings.net/measure");
+                                    using var request = new HttpRequestMessage(HttpMethod.Post, "https://wbsapi.withings.net/v2/measure");
                                     request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
                                     {
                                         { "action", "getworkouts" },
