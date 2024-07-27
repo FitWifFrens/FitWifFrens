@@ -19,6 +19,9 @@ namespace FitWifFrens.Web
     {
         public static void Main(string[] args)
         {
+            //CultureInfo.DefaultThreadCurrentCulture = new CultureInfo("en-AU");
+            //CultureInfo.DefaultThreadCurrentUICulture = new CultureInfo("en-AU");
+
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddLocalization();
@@ -154,6 +157,8 @@ namespace FitWifFrens.Web
             builder.Services.AddScoped<IEthereumHostProvider, MetamaskHostProvider>();
 
             var app = builder.Build();
+
+            app.UseRequestLocalization("en-AU");
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
