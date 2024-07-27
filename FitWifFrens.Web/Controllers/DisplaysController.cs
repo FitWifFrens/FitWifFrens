@@ -44,25 +44,13 @@ namespace FitWifFrens.Web.Controllers
 
             using var image = new Image<L8>((int)displayWidth, (int)displayHeight, new L8(byte.MaxValue));
 
-            var time = _timeProvider.GetUtcNow().DateTime;
-            var startTime = time.StartOfWeek(DayOfWeek.Monday).SpecifyUtcKind();
-
-            //var stringBuilder = new StringBuilder();
+            var time = _timeProvider.GetUtcNow().DateTime.ConvertTimeFromUtc();
+            var startTime = time.StartOfWeek(DayOfWeek.Monday).ConvertTimeToUtc();
 
             var userMetricProviderValues = await _dataContext.UserMetricProviderValues.Where(umpv => umpv.UserId == userDisplay.UserId && umpv.Time > startTime).ToListAsync();
 
-            //var runningMinutes = Math.Round(userProviderMetricValues.Where(upmv => upmv.MetricName == "Running" && upmv.MetricType == MetricType.Minutes).Sum(upmv => upmv.Value), 0);
-            //var workoutMinutes = Math.Round(userProviderMetricValues.Where(upmv => upmv.MetricName == "Workout" && upmv.MetricType == MetricType.Minutes).Sum(upmv => upmv.Value), 0);
-
-            //stringBuilder.Append($"Running: {runningMinutes} mins\n\nWorkout: {workoutMinutes} mins");
-
-            //var userProviderWeightValues = userProviderMetricValues.Where(upmv => upmv.MetricName == "Weight" && upmv.MetricType == MetricType.Value).OrderBy(upmv => upmv.Time).ToList();
-
-            //if (userProviderWeightValues.Count >= 2)
-            //{
-            //    var weightChange = Math.Round(userProviderWeightValues.Last().Value - userProviderWeightValues.First().Value, 1);
-            //    stringBuilder.Append($"\n\nWeight: {weightChange} kg");
-            //}
+            startTime = startTime.ConvertTimeFromUtc();
+            userMetricProviderValues.ForEach(umpv => umpv.Time = umpv.Time.ConvertTimeFromUtc());
 
             const int metricCount = 5;
             const float daysInWeek = 7F;
@@ -84,7 +72,6 @@ namespace FitWifFrens.Web.Controllers
 
             const float valueNudgeX = 4F;
             const float valueNudgeY = 7F;
-
 
             var currentDay = (int)(time - startTime).TotalDays;
             List<PointF> CreateChart(List<(int Day, float Value)> valueByDay, PointF position, float width, float height)
