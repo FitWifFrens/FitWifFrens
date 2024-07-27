@@ -1,4 +1,4 @@
-﻿@page "/Commitments"
+﻿@page "/commitments"
 @attribute [Authorize]
 
 @using Microsoft.AspNetCore.Authorization
@@ -29,11 +29,11 @@
                         <p class="card-text">@commitment.Description</p>
                         @if (commitment.Committed)
                         {
-                            <a href="/Commitment/@commitment.Id" class="btn btn-secondary">View</a>
+                            <a href="/commitments/@commitment.Id" class="btn btn-secondary">View</a>
                         }
                         else if (commitment.HasRequiredMetricProviders)
                         {
-                            <a href="/Commitment/@commitment.Id" class="btn btn-primary">Commit</a>
+                            <a href="/commitments/@commitment.Id" class="btn btn-primary">Commit</a>
                         }
                         else if (commitment.MissingMetricProviders.Length == 1)
                         {
