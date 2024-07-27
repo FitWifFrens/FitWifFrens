@@ -17,20 +17,11 @@
 
 <PageTitle>Register</PageTitle>
 
-<style>
-    .form-register {
-        width: 100%;
-        max-width: 400px;
-        padding: 15px;
-        margin: auto;
-    }
-</style>
-
 <div class="row">
-    <div class="col-md-12">
+    <div class="col-12">
         <StatusMessage Message="@Message" />
-        <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register" class="form-register">
-            <h1 class="h3 mb-3 fw-normal">Create a new account</h1>
+        <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register" class="form-sm">
+            <h1 class="h3 fw-normal mb-3">Create a new account</h1>
             <DataAnnotationsValidator/>
             <hr/>
             <ValidationSummary class="text-danger" role="alert"/>

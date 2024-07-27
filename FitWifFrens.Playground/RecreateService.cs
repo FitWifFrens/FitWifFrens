@@ -205,8 +205,8 @@ namespace FitWifFrens.Playground
             _dataContext.Commitments.Add(new Commitment
             {
                 Id = commitment3Id,
-                Title = "4 workouts",
-                Description = "Record 4 workouts every week",
+                Title = "3 workouts",
+                Description = "Record 3 workouts every week",
                 Image = "images/runner1.png",
                 StartDate = new DateOnly(2024, 07, 22),
                 Days = 7,
@@ -218,7 +218,7 @@ namespace FitWifFrens.Playground
                         MetricName = "Workout",
                         MetricType = MetricType.Count,
                         Rule = GoalRule.GreaterThanOrEqualTo,
-                        Value = 4
+                        Value = 3
                     }
                 },
                 Periods = new List<CommitmentPeriod>()

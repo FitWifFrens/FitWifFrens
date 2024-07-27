@@ -12,21 +12,12 @@
 
 <PageTitle>Log in</PageTitle>
 
-<style>
-    .form-signin {
-        width: 100%;
-        max-width: 400px;
-        padding: 15px;
-        margin: auto;
-    }
-</style>
-
 <div class="row">
-    <div class="col-md-12">
+    <div class="col-12">
         <section>
             <StatusMessage Message="@errorMessage" />
-            <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login" class="form-signin">
-                <h1 class="h3 mb-3 fw-normal">Please sign in</h1>
+            <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login" class="form-sm">
+                <h1 class="h3 fw-normal mb-3">Please sign in</h1>
                 <DataAnnotationsValidator />
                 <hr />
                 <ValidationSummary class="text-danger" role="alert" />

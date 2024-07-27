@@ -176,7 +176,7 @@ namespace FitWifFrens.Web.Background
                                 {
                                     var values = userMetricProviderValues.Where(upmv => upmv.MetricType == MetricType.Minutes).ToList();
 
-                                    value = values.Any() ? values.Sum(upmv => upmv.Value) : null;
+                                    value = values.Any() ? Math.Round(values.Sum(upmv => upmv.Value), 2) : null;
                                 }
                                 else if (commitmentPeriodUserGoal.MetricType == MetricType.Value)
                                 {

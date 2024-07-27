@@ -38,6 +38,13 @@ h1:focus {
     outline: none;
 }
 
+.form-sm {
+    width: 100%;
+    max-width: 400px;
+    padding: 15px;
+    margin: auto;
+}
+
 .valid.modified:not([type=checkbox]) {
     outline: 1px solid #26b050;
 }
