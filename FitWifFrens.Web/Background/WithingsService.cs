@@ -98,11 +98,11 @@ namespace FitWifFrens.Web.Background
                                 {
                                     using var request = new HttpRequestMessage(HttpMethod.Post, "https://wbsapi.withings.net/measure");
                                     request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
-                                {
-                                    { "action", "getmeas" },
-                                    { "meastypes", "1,9" },
-                                    { "startdate", DateTime.UtcNow.AddDays(-30).ToUnixTimeSeconds().ToString() },
-                                });
+                                    {
+                                        { "action", "getmeas" },
+                                        { "meastypes", "1,9" },
+                                        { "lastupdate", DateTime.UtcNow.AddDays(-30).ToUnixTimeSeconds().ToString() },
+                                    });
                                     request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                                     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));
 
@@ -182,7 +182,75 @@ namespace FitWifFrens.Web.Background
 
                                 ResilienceContextPool.Shared.Return(resilienceContext);
 
-                                _telemetryClient.TrackTrace(responseJsonDocument.JsonDocument.RootElement.GetRawText(), SeverityLevel.Verbose);
+                                foreach (var activityJson in responseJsonDocument.JsonDocument.RootElement.GetProperty("body").GetProperty("series").EnumerateArray())
+                                {
+                                    var activityStartTime = DateTimeExs.FromUnixTimeSeconds(activityJson.GetProperty("startdate").GetInt64(), DateTimeKind.Utc);
+                                    var activityEndTime = DateTimeExs.FromUnixTimeSeconds(activityJson.GetProperty("enddate").GetInt64(), DateTimeKind.Utc);
+
+                                    var activityMinutes = Math.Round((activityEndTime - activityStartTime).TotalMinutes, 2);
+
+                                    var activityCategory = activityJson.GetProperty("category").GetInt32();
+
+                                    // https://github.com/zono-dev/withings-go/blob/514b8ec90158faa88e36508f778fbf7c2b03e209/withings/enum.go#L125
+                                    if (activityCategory == 16 || activityCategory == 17 || activityCategory == 28)
+                                    {
+                                        var userMetricProviderValue = await _dataContext.UserMetricProviderValues
+                                            .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Workout" && umpv.ProviderName == "Withings" &&
+                                                                          umpv.MetricType == MetricType.Minutes && umpv.Time == activityStartTime, cancellationToken: cancellationToken);
+
+                                        if (userMetricProviderValue == null)
+                                        {
+                                            _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
+                                            {
+                                                UserId = user.Id,
+                                                MetricName = "Workout",
+                                                ProviderName = "Withings",
+                                                MetricType = MetricType.Minutes,
+                                                Time = activityStartTime,
+                                                Value = activityMinutes
+                                            });
+
+                                            await _dataContext.SaveChangesAsync(cancellationToken);
+                                        }
+                                        else if (userMetricProviderValue.Value != activityMinutes)
+                                        {
+                                            userMetricProviderValue.Value = activityMinutes;
+
+                                            _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
+
+                                            await _dataContext.SaveChangesAsync(cancellationToken);
+                                        }
+                                    }
+
+                                    {
+                                        var userMetricProviderValue = await _dataContext.UserMetricProviderValues
+                                            .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Exercise" && umpv.ProviderName == "Withings" &&
+                                                                          umpv.MetricType == MetricType.Minutes && umpv.Time == activityStartTime, cancellationToken: cancellationToken);
+
+                                        if (userMetricProviderValue == null)
+                                        {
+                                            _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
+                                            {
+                                                UserId = user.Id,
+                                                MetricName = "Exercise",
+                                                ProviderName = "Withings",
+                                                MetricType = MetricType.Minutes,
+                                                Time = activityStartTime,
+                                                Value = activityMinutes
+                                            });
+
+                                            await _dataContext.SaveChangesAsync(cancellationToken);
+                                        }
+                                        else if (userMetricProviderValue.Value != activityMinutes)
+                                        {
+                                            userMetricProviderValue.Value = activityMinutes;
+
+                                            _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
+
+                                            await _dataContext.SaveChangesAsync(cancellationToken);
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
