@@ -21,6 +21,8 @@ namespace FitWifFrens.Web
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            builder.Services.AddLocalization();
+
             builder.Services.AddApplicationInsightsTelemetry(options =>
             {
                 options.EnablePerformanceCounterCollectionModule = false;

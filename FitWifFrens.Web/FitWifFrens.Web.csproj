@@ -15,28 +15,21 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AspNet.Security.OAuth.StackExchange" Version="8.0.0" />
-    <PackageReference Include="AspNet.Security.OAuth.Strava" Version="8.0.0" />
+    <PackageReference Include="AspNet.Security.OAuth.StackExchange" Version="8.0.*" />
+    <PackageReference Include="AspNet.Security.OAuth.Strava" Version="8.0.*" />
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.*" />
     <PackageReference Include="Hangfire.PostgreSql" Version="1.20.*" />
-    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.4" />
-    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.4" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.4" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.4" />
-    <PackageReference Include="Nethereum.Metamask.Blazor" Version="4.20.0" />
-    <PackageReference Include="Nethereum.UI" Version="4.20.0" />
-    <PackageReference Include="Nethereum.Web3" Version="4.20.0" />
-    <PackageReference Include="Polly" Version="8.4.1" />
-    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.4" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <UpToDateCheckInput Remove="Components\Pages\Commitment.razor" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <_ContentIncludedByDefault Remove="Components\Pages\Commitment.razor" />
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.*" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.*" />
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.*" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Localization" Version="8.0.*" />
+    <PackageReference Include="Nethereum.Metamask.Blazor" Version="4.20.*" />
+    <PackageReference Include="Nethereum.UI" Version="4.20.*" />
+    <PackageReference Include="Nethereum.Web3" Version="4.20.*" />
+    <PackageReference Include="Polly" Version="8.4.*" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.*" />
   </ItemGroup>
 
 </Project>
