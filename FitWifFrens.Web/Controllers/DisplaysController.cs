@@ -69,7 +69,8 @@ namespace FitWifFrens.Web.Controllers
 
             const float displayMargin = 6F;
 
-            const float chartMargin = 4F;
+            const float chartMarginX = 6F;
+            const float chartMarginY = 4F;
 
             const float metricHeight = (displayHeight - (displayMargin * 2)) / metricCount;
 
@@ -142,7 +143,7 @@ namespace FitWifFrens.Web.Controllers
                 {
                     // TODO: GROUP BY
                     var exercisePoints = userMetricProviderExerciseValues.Select(umpv => ((int)(umpv.Time - startTime).TotalDays, (float)umpv.Value)).ToList();
-                    var chartPoints = CreateChart(exercisePoints, new PointF(displayMargin + titleWidth, displayMargin + chartMargin), chartWidth, metricHeight - (chartMargin * 2));
+                    var chartPoints = CreateChart(exercisePoints, new PointF(displayMargin + titleWidth + chartMarginX, displayMargin + chartMarginY), chartWidth - (chartMarginX * 2), metricHeight - (chartMarginY * 2));
 
                     var runningMinutes = Math.Round(userMetricProviderExerciseValues.Sum(upmv => upmv.Value), 0);
 
@@ -160,7 +161,7 @@ namespace FitWifFrens.Web.Controllers
                 {
                     // TODO: GROUP BY
                     var runningPoints = userMetricProviderRunningValues.Select(umpv => ((int)(umpv.Time - startTime).TotalDays, (float)umpv.Value)).ToList();
-                    var chartPoints = CreateChart(runningPoints, new PointF(displayMargin + titleWidth, displayMargin + chartMargin + (metricHeight * 1)), chartWidth, metricHeight - (chartMargin * 2));
+                    var chartPoints = CreateChart(runningPoints, new PointF(displayMargin + titleWidth + chartMarginX, displayMargin + chartMarginY + (metricHeight * 1)), chartWidth - (chartMarginX * 2), metricHeight - (chartMarginY * 2));
 
                     var runningMinutes = Math.Round(userMetricProviderRunningValues.Sum(upmv => upmv.Value), 0);
 
@@ -178,7 +179,7 @@ namespace FitWifFrens.Web.Controllers
                 {
                     // TODO: GROUP BY
                     var workoutPoints = userMetricProviderWorkoutValues.Select(umpv => ((int)(umpv.Time - startTime).TotalDays, (float)umpv.Value)).ToList();
-                    var chartPoints = CreateChart(workoutPoints, new PointF(displayMargin + titleWidth, displayMargin + chartMargin + (metricHeight * 2)), chartWidth, metricHeight - (chartMargin * 2));
+                    var chartPoints = CreateChart(workoutPoints, new PointF(displayMargin + titleWidth + chartMarginX, displayMargin + chartMarginY + (metricHeight * 2)), chartWidth - (chartMarginX * 2), metricHeight - (chartMarginY * 2));
 
                     var workoutMinutes = Math.Round(userMetricProviderWorkoutValues.Sum(upmv => upmv.Value), 0);
 
