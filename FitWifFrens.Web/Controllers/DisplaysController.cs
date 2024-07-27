@@ -69,6 +69,8 @@ namespace FitWifFrens.Web.Controllers
 
             const float displayMargin = 6F;
 
+            const float chartMargin = 4F;
+
             const float metricHeight = (displayHeight - (displayMargin * 2)) / metricCount;
 
             const float titleWidth = 30F;
@@ -82,6 +84,7 @@ namespace FitWifFrens.Web.Controllers
             const float valueNudgeX = 4F;
             const float valueNudgeY = 7F;
 
+
             var currentDay = (int)(time - startTime).TotalDays;
             List<PointF> CreateChart(List<(int Day, float Value)> valueByDay, PointF position, float width, float height)
             {
@@ -92,6 +95,8 @@ namespace FitWifFrens.Web.Controllers
                 {
                     new PointF(position.X, position.Y + height)
                 };
+
+                valueByDay = valueByDay.GroupBy(v => v.Day).Select(g => (g.Key, g.Sum(v => v.Value))).ToList();
 
                 for (var i = 0; i <= currentDay; i++)
                 {
@@ -111,17 +116,6 @@ namespace FitWifFrens.Web.Controllers
 
                 return points;
             }
-
-            //var points = CreateChart(new List<(int Day, float Value)>
-            //{
-            //    (1, 20),
-            //    (2, 20),
-            //    (3, 20),
-            //    (4, 20),
-            //    (5, 20),
-            //    (6, 20),
-            //    (7, 20),
-            //}, new PointF(0, 0), 264, 50);
 
             image.Mutate(x =>
             {
@@ -148,7 +142,7 @@ namespace FitWifFrens.Web.Controllers
                 {
                     // TODO: GROUP BY
                     var exercisePoints = userMetricProviderExerciseValues.Select(umpv => ((int)(umpv.Time - startTime).TotalDays, (float)umpv.Value)).ToList();
-                    var chartPoints = CreateChart(exercisePoints, new PointF(displayMargin + titleWidth, displayMargin), chartWidth, metricHeight);
+                    var chartPoints = CreateChart(exercisePoints, new PointF(displayMargin + titleWidth, displayMargin + chartMargin), chartWidth, metricHeight - (chartMargin * 2));
 
                     var runningMinutes = Math.Round(userMetricProviderExerciseValues.Sum(upmv => upmv.Value), 0);
 
@@ -166,7 +160,7 @@ namespace FitWifFrens.Web.Controllers
                 {
                     // TODO: GROUP BY
                     var runningPoints = userMetricProviderRunningValues.Select(umpv => ((int)(umpv.Time - startTime).TotalDays, (float)umpv.Value)).ToList();
-                    var chartPoints = CreateChart(runningPoints, new PointF(displayMargin + titleWidth, displayMargin + (metricHeight * 1)), chartWidth, metricHeight);
+                    var chartPoints = CreateChart(runningPoints, new PointF(displayMargin + titleWidth, displayMargin + chartMargin + (metricHeight * 1)), chartWidth, metricHeight - (chartMargin * 2));
 
                     var runningMinutes = Math.Round(userMetricProviderRunningValues.Sum(upmv => upmv.Value), 0);
 
@@ -184,7 +178,7 @@ namespace FitWifFrens.Web.Controllers
                 {
                     // TODO: GROUP BY
                     var workoutPoints = userMetricProviderWorkoutValues.Select(umpv => ((int)(umpv.Time - startTime).TotalDays, (float)umpv.Value)).ToList();
-                    var chartPoints = CreateChart(workoutPoints, new PointF(displayMargin + titleWidth, displayMargin + (metricHeight * 2)), chartWidth, metricHeight);
+                    var chartPoints = CreateChart(workoutPoints, new PointF(displayMargin + titleWidth, displayMargin + chartMargin + (metricHeight * 2)), chartWidth, metricHeight - (chartMargin * 2));
 
                     var workoutMinutes = Math.Round(userMetricProviderWorkoutValues.Sum(upmv => upmv.Value), 0);
 
