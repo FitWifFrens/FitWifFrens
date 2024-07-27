@@ -36,14 +36,16 @@ namespace FitWifFrens.Web.Controllers
 
             var collection = new FontCollection();
             var family = collection.Add("wwwroot/fonts/Poppins-Regular.ttf");
-            var font = family.CreateFont(20, FontStyle.Bold);
+            var titleFont = family.CreateFont(30, FontStyle.Bold);
+            var valueFont = family.CreateFont(22, FontStyle.Bold);
 
             const float displayWidth = 264F;
             const float displayHeight = 176F;
 
             using var image = new Image<L8>((int)displayWidth, (int)displayHeight, new L8(byte.MaxValue));
 
-            var startTime = _timeProvider.GetUtcNow().DateTime.StartOfWeek(DayOfWeek.Monday).SpecifyUtcKind();
+            var time = _timeProvider.GetUtcNow().DateTime;
+            var startTime = time.StartOfWeek(DayOfWeek.Monday).SpecifyUtcKind();
 
             //var stringBuilder = new StringBuilder();
 
@@ -73,12 +75,14 @@ namespace FitWifFrens.Web.Controllers
             const float valueWidth = 50F;
             const float chartWidth = (displayWidth - (displayMargin * 2)) - titleWidth - valueWidth;
 
-            const float titleNudgeX = 8F;
-            const float titleNudgeY = 8F;
+            const float titleNudgeX1 = 7F;
+            const float titleNudgeX2 = 1F;
+            const float titleNudgeY = 3F;
 
             const float valueNudgeX = 4F;
-            const float valueNudgeY = 8F;
+            const float valueNudgeY = 7F;
 
+            var currentDay = (int)(time - startTime).TotalDays;
             List<PointF> CreateChart(List<(int Day, float Value)> valueByDay, PointF position, float width, float height)
             {
                 var widthPerDay = width / daysInWeek;
@@ -88,6 +92,14 @@ namespace FitWifFrens.Web.Controllers
                 {
                     new PointF(position.X, position.Y + height)
                 };
+
+                for (var i = 0; i <= currentDay; i++)
+                {
+                    if (valueByDay.All(v => v.Day != i))
+                    {
+                        valueByDay.Add((i, 0F));
+                    }
+                }
 
                 var valueSum = 0F;
                 foreach (var (day, value) in valueByDay.OrderBy(v => v.Day))
@@ -124,7 +136,7 @@ namespace FitWifFrens.Web.Controllers
                 x.DrawLine(Color.Gray, 1, new PointF(displayMargin + titleWidth + chartWidth, displayMargin), new PointF(displayMargin + titleWidth + chartWidth, displayHeight - displayMargin));
                 x.DrawLine(Color.Gray, 1, new PointF(displayMargin + titleWidth + chartWidth + valueWidth, displayMargin), new PointF(displayMargin + titleWidth + chartWidth + valueWidth, displayHeight - displayMargin));
 
-                for (int i = 0; i <= metricCount; i++)
+                for (var i = 0; i <= metricCount; i++)
                 {
                     x.DrawLine(Color.Gray, 1, new PointF(displayMargin, displayMargin + (metricHeight * i)), new PointF(displayWidth - displayMargin, displayMargin + (metricHeight * i)));
                 }
@@ -134,16 +146,17 @@ namespace FitWifFrens.Web.Controllers
 
                 if (userMetricProviderExerciseValues.Any())
                 {
+                    // TODO: GROUP BY
                     var exercisePoints = userMetricProviderExerciseValues.Select(umpv => ((int)(umpv.Time - startTime).TotalDays, (float)umpv.Value)).ToList();
                     var chartPoints = CreateChart(exercisePoints, new PointF(displayMargin + titleWidth, displayMargin), chartWidth, metricHeight);
 
                     var runningMinutes = Math.Round(userMetricProviderExerciseValues.Sum(upmv => upmv.Value), 0);
 
-                    x.DrawText("E", font, Color.Black, new PointF(displayMargin + titleNudgeX, displayMargin + titleNudgeY));
+                    x.DrawText("E", titleFont, Color.Black, new PointF(displayMargin + titleNudgeX1, displayMargin + titleNudgeY));
 
                     x.DrawLine(Color.Black, 2, chartPoints.ToArray());
 
-                    x.DrawText(runningMinutes.ToString(CultureInfo.InvariantCulture), font, Color.Black, new PointF(displayMargin + valueNudgeX + titleWidth + chartWidth, displayMargin + valueNudgeY));
+                    x.DrawText(runningMinutes.ToString(CultureInfo.InvariantCulture), valueFont, Color.Black, new PointF(displayMargin + valueNudgeX + titleWidth + chartWidth, displayMargin + valueNudgeY));
                 }
 
 
@@ -151,18 +164,36 @@ namespace FitWifFrens.Web.Controllers
 
                 if (userMetricProviderRunningValues.Any())
                 {
+                    // TODO: GROUP BY
                     var runningPoints = userMetricProviderRunningValues.Select(umpv => ((int)(umpv.Time - startTime).TotalDays, (float)umpv.Value)).ToList();
                     var chartPoints = CreateChart(runningPoints, new PointF(displayMargin + titleWidth, displayMargin + (metricHeight * 1)), chartWidth, metricHeight);
 
                     var runningMinutes = Math.Round(userMetricProviderRunningValues.Sum(upmv => upmv.Value), 0);
 
-                    x.DrawText("R", font, Color.Black, new PointF(displayMargin + titleNudgeX, displayMargin + titleNudgeY + (metricHeight * 1)));
+                    x.DrawText("R", titleFont, Color.Black, new PointF(displayMargin + titleNudgeX1, displayMargin + titleNudgeY + (metricHeight * 1)));
 
                     x.DrawLine(Color.Black, 2, chartPoints.ToArray());
 
-                    x.DrawText(runningMinutes.ToString(CultureInfo.InvariantCulture), font, Color.Black, new PointF(displayMargin + valueNudgeX + titleWidth + chartWidth, displayMargin + valueNudgeY + (metricHeight * 1)));
+                    x.DrawText(runningMinutes.ToString(CultureInfo.InvariantCulture), valueFont, Color.Black, new PointF(displayMargin + valueNudgeX + titleWidth + chartWidth, displayMargin + valueNudgeY + (metricHeight * 1)));
                 }
 
+
+                var userMetricProviderWorkoutValues = userMetricProviderValues.Where(umpv => umpv.MetricName == "Workout" && umpv.MetricType == MetricType.Minutes).OrderBy(upmv => upmv.Time).ToList();
+
+                if (userMetricProviderWorkoutValues.Any())
+                {
+                    // TODO: GROUP BY
+                    var workoutPoints = userMetricProviderWorkoutValues.Select(umpv => ((int)(umpv.Time - startTime).TotalDays, (float)umpv.Value)).ToList();
+                    var chartPoints = CreateChart(workoutPoints, new PointF(displayMargin + titleWidth, displayMargin + (metricHeight * 2)), chartWidth, metricHeight);
+
+                    var workoutMinutes = Math.Round(userMetricProviderWorkoutValues.Sum(upmv => upmv.Value), 0);
+
+                    x.DrawText("W", titleFont, Color.Black, new PointF(displayMargin + titleNudgeX2, displayMargin + titleNudgeY + (metricHeight * 2)));
+
+                    x.DrawLine(Color.Black, 2, chartPoints.ToArray());
+
+                    x.DrawText(workoutMinutes.ToString(CultureInfo.InvariantCulture), valueFont, Color.Black, new PointF(displayMargin + valueNudgeX + titleWidth + chartWidth, displayMargin + valueNudgeY + (metricHeight * 2)));
+                }
 
 
                 //x.DrawLine(Color.Black, 2, points.ToArray());
