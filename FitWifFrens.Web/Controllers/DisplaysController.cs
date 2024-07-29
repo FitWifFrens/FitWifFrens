@@ -44,13 +44,14 @@ namespace FitWifFrens.Web.Controllers
             const DayOfWeek startDayOfWeek = DayOfWeek.Monday;
             const int metricCount = 4;
             const int weeksToDisplay = 4;
-            const int daysToDisplay = weeksToDisplay * 7;
+            const int daysInWeek = 7;
+            const int daysToDisplay = weeksToDisplay * daysInWeek;
 
 
             using var image = new Image<L8>((int)displayWidth, (int)displayHeight, new L8(byte.MaxValue));
 
             var time = _timeProvider.GetUtcNow().DateTime.ConvertTimeFromUtc();
-            var startTime = time.StartOfWeek(startDayOfWeek).ConvertTimeToUtc().AddDays(-daysToDisplay);
+            var startTime = time.StartOfWeek(startDayOfWeek).ConvertTimeToUtc().AddDays(daysInWeek).AddDays(-daysToDisplay);
 
             var userMetricProviderValues = await _dataContext.UserMetricProviderValues.Where(umpv => umpv.UserId == userDisplay.UserId && umpv.Time > startTime).ToListAsync();
 
@@ -66,7 +67,7 @@ namespace FitWifFrens.Web.Controllers
             const float weekWidth = (displayWidth - (displayMargin * 2) - titleWidth) / weeksToDisplay;
 
             const float titleNudgeX1 = 7F;
-            const float titleNudgeX2 = 3F;
+            const float titleNudgeX2 = 4F;
             const float titleNudgeX3 = 1F;
             const float titleNudgeY = 7F;
 
@@ -118,7 +119,7 @@ namespace FitWifFrens.Web.Controllers
 
                         for (var w = 0; w < weeksToDisplay; w++)
                         {
-                            var startOfWeekTime = startTime.AddDays(w * 7);
+                            var startOfWeekTime = startTime.AddDays(w * daysInWeek);
 
                             if (userMetricProviderValuesByWeek.TryGetValue(startOfWeekTime, out var userMetricProviderWeekValues))
                             {
