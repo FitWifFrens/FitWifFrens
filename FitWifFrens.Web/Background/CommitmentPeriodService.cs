@@ -25,6 +25,8 @@ namespace FitWifFrens.Web.Background
             {
                 var date = DateOnly.FromDateTime(_timeProvider.GetUtcNow().DateTime.Subtract(Constants.StartOfPeriodDelay).ConvertTimeFromUtc());
 
+                _logger.LogWarning($"CreateCommitmentPeriods ~ Date(${date})");
+
                 var commitments = await _dataContext.Commitments
                     .Include(c => c.Users).ThenInclude(cu => cu.User.MetricProviders)
                     .Include(c => c.Goals)
@@ -234,6 +236,8 @@ namespace FitWifFrens.Web.Background
                     .Include(cp => cp.Users).ThenInclude(cpu => cpu.Goals).ThenInclude(cpug => cpug.Goal)
                     .Where(cp => cp.EndDate <= date && cp.Status == CommitmentPeriodStatus.Current)
                     .ToListAsync(cancellationToken);
+
+                _logger.LogWarning($"UpdateCommitmentPeriods ~ Date(${date}) CommitmentPeriods({commitmentPeriods.Count})");
 
                 foreach (var commitmentPeriod in commitmentPeriods)
                 {
