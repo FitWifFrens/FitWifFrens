@@ -76,9 +76,9 @@ namespace FitWifFrens.Web.Controllers
 
             var metricsToShow = new List<(string MetricTitle, float TitleNudgeX, string MetricName, string ProviderName, MetricType MetricType)>
             {
-                new("E", titleNudgeX1, "Exercise", "Withings", MetricType.Minutes),
-                new("R", titleNudgeX1, "Running", "Withings", MetricType.Minutes),
-                new("G", titleNudgeX2, "Workout", "Withings", MetricType.Minutes),
+                new("E", titleNudgeX1, "Exercise", "Strava", MetricType.Minutes),
+                new("R", titleNudgeX1, "Running", "Strava", MetricType.Minutes),
+                new("G", titleNudgeX2, "Workout", "Strava", MetricType.Minutes),
                 new("W", titleNudgeX3, "Weight", "Withings", MetricType.Value),
             };
 
