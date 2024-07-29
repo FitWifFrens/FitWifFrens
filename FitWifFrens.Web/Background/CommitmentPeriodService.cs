@@ -23,9 +23,7 @@ namespace FitWifFrens.Web.Background
         {
             try
             {
-                var date = DateOnly.FromDateTime(_timeProvider.GetUtcNow().DateTime.Subtract(Constants.StartOfPeriodDelay).ConvertTimeFromUtc());
-
-                _logger.LogWarning($"CreateCommitmentPeriods ~ Date(${date})");
+                var date = DateOnly.FromDateTime(_timeProvider.GetUtcNow().DateTime.ConvertTimeFromUtc());
 
                 var commitments = await _dataContext.Commitments
                     .Include(c => c.Users).ThenInclude(cu => cu.User.MetricProviders)
@@ -37,31 +35,33 @@ namespace FitWifFrens.Web.Background
                     // TODO: THROW CancellationToken
                     var metricName = commitment.Goals.Select(g => g.MetricName).Distinct().ToList();
 
-                    var commitmentPeriod = await _dataContext.CommitmentPeriods
+                    var currentCommitmentPeriod = await _dataContext.CommitmentPeriods
                         .Include(cp => cp.Users)
-                        .Where(cp => cp.CommitmentId == commitment.Id && date >= cp.StartDate && cp.Status == CommitmentPeriodStatus.Current) // TODO: ???
+                        .Where(cp => cp.CommitmentId == commitment.Id && cp.Status == CommitmentPeriodStatus.Current)
                         .SingleOrDefaultAsync(cancellationToken);
 
-                    if (commitmentPeriod == null && date >= commitment.StartDate)
+                    // If there is no current commitment period, and it is past the start date
+                    // Or if there is a current commitment period, and it is past the end date
+                    if ((currentCommitmentPeriod == null && date >= commitment.StartDate) || (currentCommitmentPeriod != null && date >= currentCommitmentPeriod.EndDate))
                     {
-                        var lastCommitmentPeriod = await _dataContext.CommitmentPeriods
-                            .Where(cp => cp.CommitmentId == commitment.Id)
-                            .OrderByDescending(cp => cp.StartDate)
-                            .FirstOrDefaultAsync(cancellationToken);
-
-                        if (lastCommitmentPeriod != null)
+                        CommitmentPeriod nextCommitmentPeriod;
+                        if (currentCommitmentPeriod != null)
                         {
-                            commitmentPeriod = new CommitmentPeriod
+                            currentCommitmentPeriod.Status = CommitmentPeriodStatus.Completing;
+
+                            _dataContext.Entry(currentCommitmentPeriod).State = EntityState.Modified;
+
+                            nextCommitmentPeriod = new CommitmentPeriod
                             {
                                 CommitmentId = commitment.Id,
-                                StartDate = lastCommitmentPeriod.EndDate,
-                                EndDate = lastCommitmentPeriod.EndDate.AddDays(commitment.Days),
+                                StartDate = currentCommitmentPeriod.EndDate,
+                                EndDate = currentCommitmentPeriod.EndDate.AddDays(commitment.Days),
                                 Status = CommitmentPeriodStatus.Current
                             };
                         }
                         else
                         {
-                            commitmentPeriod = new CommitmentPeriod
+                            nextCommitmentPeriod = new CommitmentPeriod
                             {
                                 CommitmentId = commitment.Id,
                                 StartDate = commitment.StartDate,
@@ -70,24 +70,26 @@ namespace FitWifFrens.Web.Background
                             };
                         }
 
-                        _dataContext.CommitmentPeriods.Add(commitmentPeriod);
+                        _dataContext.CommitmentPeriods.Add(nextCommitmentPeriod);
 
                         foreach (var commitmentUser in commitment.Users.Where(u => metricName.All(mn => u.User.MetricProviders.Any(mp => mp.MetricName == mn))))
                         {
                             commitmentUser.User.Balance -= commitmentUser.Stake; // TODO: negative balance?
 
+                            _dataContext.Entry(commitmentUser.User).State = EntityState.Modified;
+
                             _dataContext.CommitmentPeriodUsers.Add(new CommitmentPeriodUser
                             {
-                                CommitmentId = commitmentPeriod.CommitmentId,
-                                StartDate = commitmentPeriod.StartDate,
-                                EndDate = commitmentPeriod.EndDate,
+                                CommitmentId = nextCommitmentPeriod.CommitmentId,
+                                StartDate = nextCommitmentPeriod.StartDate,
+                                EndDate = nextCommitmentPeriod.EndDate,
                                 UserId = commitmentUser.UserId,
                                 Stake = commitmentUser.Stake,
                                 Goals = commitment.Goals.Select(g => new CommitmentPeriodUserGoal
                                 {
-                                    CommitmentId = commitmentPeriod.CommitmentId,
-                                    StartDate = commitmentPeriod.StartDate,
-                                    EndDate = commitmentPeriod.EndDate,
+                                    CommitmentId = nextCommitmentPeriod.CommitmentId,
+                                    StartDate = nextCommitmentPeriod.StartDate,
+                                    EndDate = nextCommitmentPeriod.EndDate,
                                     UserId = commitmentUser.UserId,
                                     MetricName = g.MetricName,
                                     MetricType = g.MetricType,
@@ -98,27 +100,29 @@ namespace FitWifFrens.Web.Background
 
                         await _dataContext.SaveChangesAsync(cancellationToken);
                     }
-                    else if (commitmentPeriod != null)
+                    else if (currentCommitmentPeriod != null)
                     {
                         // HACK: for testing so users are added after a period starts
                         foreach (var commitmentUser in commitment.Users
-                                     .Where(cu => commitmentPeriod.Users.All(cpu => cpu.UserId != cu.UserId))
+                                     .Where(cu => currentCommitmentPeriod.Users.All(cpu => cpu.UserId != cu.UserId))
                                      .Where(u => metricName.All(mn => u.User.MetricProviders.Any(mp => mp.MetricName == mn))))
                         {
                             commitmentUser.User.Balance -= commitmentUser.Stake;
 
+                            _dataContext.Entry(commitmentUser.User).State = EntityState.Modified;
+
                             _dataContext.CommitmentPeriodUsers.Add(new CommitmentPeriodUser
                             {
-                                CommitmentId = commitmentPeriod.CommitmentId,
-                                StartDate = commitmentPeriod.StartDate,
-                                EndDate = commitmentPeriod.EndDate,
+                                CommitmentId = currentCommitmentPeriod.CommitmentId,
+                                StartDate = currentCommitmentPeriod.StartDate,
+                                EndDate = currentCommitmentPeriod.EndDate,
                                 UserId = commitmentUser.UserId,
                                 Stake = commitmentUser.Stake,
                                 Goals = commitment.Goals.Select(g => new CommitmentPeriodUserGoal
                                 {
-                                    CommitmentId = commitmentPeriod.CommitmentId,
-                                    StartDate = commitmentPeriod.StartDate,
-                                    EndDate = commitmentPeriod.EndDate,
+                                    CommitmentId = currentCommitmentPeriod.CommitmentId,
+                                    StartDate = currentCommitmentPeriod.StartDate,
+                                    EndDate = currentCommitmentPeriod.EndDate,
                                     UserId = commitmentUser.UserId,
                                     MetricName = g.MetricName,
                                     MetricType = g.MetricType,
@@ -234,10 +238,8 @@ namespace FitWifFrens.Web.Background
                     .Include(cp => cp.Commitment).ThenInclude(c => c.Users)
                     .Include(cp => cp.Commitment).ThenInclude(c => c.Goals)
                     .Include(cp => cp.Users).ThenInclude(cpu => cpu.Goals).ThenInclude(cpug => cpug.Goal)
-                    .Where(cp => cp.EndDate <= date && cp.Status == CommitmentPeriodStatus.Current)
+                    .Where(cp => cp.EndDate <= date && cp.Status == CommitmentPeriodStatus.Completing)
                     .ToListAsync(cancellationToken);
-
-                _logger.LogWarning($"UpdateCommitmentPeriods ~ Date(${date}) CommitmentPeriods({commitmentPeriods.Count})");
 
                 foreach (var commitmentPeriod in commitmentPeriods)
                 {

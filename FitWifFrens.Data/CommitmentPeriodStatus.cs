@@ -3,6 +3,7 @@
     public enum CommitmentPeriodStatus
     {
         Current,
+        Completing,
         Complete
     }
 }
