@@ -23,8 +23,8 @@
     <div class="row">
         @foreach (var commitment in _commitments.OrderBy(c => c.Title))
         {
-            <div class="col-sm-3">
-                <div class="card">
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                <div class="card mb-3">
                     <img src="@commitment.Image" class="card-img-top" alt="@commitment.Title">
                     <div class="card-body">
                         <h5 class="card-title">@commitment.Title</h5>
