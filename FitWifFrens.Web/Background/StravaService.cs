@@ -85,7 +85,7 @@ namespace FitWifFrens.Web.Background
                             {
                                 using var request = new HttpRequestMessage(HttpMethod.Get, QueryHelpers.AddQueryString("https://www.strava.com/api/v3/athlete/activities", new Dictionary<string, string?>
                                 {
-                                    { "after", DateTime.UtcNow.AddDays(-30).ToUnixTimeSeconds().ToString() },
+                                    { "after", DateTime.UtcNow.AddDays(-Constants.ProviderSearchDaysBack).ToUnixTimeSeconds().ToString() },
                                     { "per_page", "200" }
                                 }));
                                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));

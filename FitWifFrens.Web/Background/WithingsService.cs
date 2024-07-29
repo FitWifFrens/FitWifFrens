@@ -100,7 +100,7 @@ namespace FitWifFrens.Web.Background
                                     {
                                         { "action", "getmeas" },
                                         { "meastypes", "1,9" },
-                                        { "lastupdate", DateTime.UtcNow.AddDays(-30).ToUnixTimeSeconds().ToString() },
+                                        { "lastupdate", DateTime.UtcNow.AddDays(-Constants.ProviderSearchDaysBack).ToUnixTimeSeconds().ToString() },
                                     });
                                     request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                                     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));
@@ -167,7 +167,7 @@ namespace FitWifFrens.Web.Background
                                     request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
                                     {
                                         { "action", "getworkouts" },
-                                        { "lastupdate", DateTime.UtcNow.AddDays(-30).ToUnixTimeSeconds().ToString() },
+                                        { "lastupdate", DateTime.UtcNow.AddDays(-Constants.ProviderSearchDaysBack).ToUnixTimeSeconds().ToString() },
                                     });
                                     request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                                     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));
