@@ -73,14 +73,14 @@
             <div class="card m-1">
                 <div class="card-body">
                     <div class="row">
-                        <label class="col-sm-4 col-form-label-md">Total Users:</label>
-                        <div class="col-sm-8">
+                        <label class="col-8 col-sm-4 col-form-label-md">Total Users:</label>
+                        <div class="col-4 col-sm-8">
                             @_commitment.TotalUsers
                         </div>
                     </div>
                     <div class="row">
-                        <label class="col-sm-4 col-form-label-md">Total Staked FitDollar:</label>
-                        <div class="col-sm-8">
+                        <label class="col-8 col-sm-4 col-form-label-md">Total Staked FitDollar:</label>
+                        <div class="col-4 col-sm-8">
                             @_commitment.TotalStake
                         </div>
                     </div>
@@ -100,13 +100,13 @@
                     <EditForm Model="Stake" FormName="stake" OnValidSubmit="StakeFitDollar" method="post">
                         <DataAnnotationsValidator />
                         <div class="row">
-                            <label class="col-sm-4 col-form-label-md">Stake FitDollar:</label>
+                            <label class="col-12 col-sm-4 col-form-label-md">Stake FitDollar:</label>
 
-                            <div class="col-sm-3">
+                            <div class="col-8 col-sm-3">
                                 <InputNumber @bind-Value="Stake.Amount" type="number" class="form-control" placeholder="Stake Amount" />
                             </div>
 
-                            <div class="col-sm-3">
+                            <div class="col-4 col-sm-5">
                                 <button type="submit" class="btn btn-primary">@(_commitment.Stake != null ? "Update Stake" : "Stake")</button>
                             </div>
                         </div>
@@ -129,18 +129,38 @@
                             </div>
                         </div>
                         <div class="row">
-                            <label class="col-sm-4 col-form-label-md">Period:</label>
-                            <div class="col-sm-8">
+                            <label class="col-sm-4 col-form-label-md d-none d-sm-block">
+                                Period:
+                            </label>
+                            <div class="col-sm-8 d-none d-sm-block">
                                 @(_commitmentPeriod.StartDate + " - " + _commitmentPeriod.EndDate)
                             </div>
 
-                            <label class="col-sm-4 col-form-label-md">Total Users:</label>
-                            <div class="col-sm-8">
+                            <label class="col-8 col-form-label-md d-block d-sm-none">
+                                Start:
+                            </label>
+                            <div class="col-4  d-block d-sm-none">
+                                @_commitmentPeriod.StartDate
+                            </div>
+
+                            <label class="col-8 col-form-label-md d-block d-sm-none">
+                                End:
+                            </label>
+                            <div class="col-4  d-block d-sm-none">
+                                @_commitmentPeriod.EndDate
+                            </div>
+
+                            <label class="col-8 col-sm-4 col-form-label-md">
+                                Total Users:
+                            </label>
+                            <div class="col-4 col-sm-8">
                                 @_commitmentPeriod.TotalUsers
                             </div>
 
-                            <label class="col-sm-4 col-form-label-md">Total Staked FitDollar:</label>
-                            <div class="col-sm-8">
+                            <label class="col-8 col-sm-4 col-form-label-md">
+                                Total Staked FitDollar:
+                            </label>
+                            <div class="col-4 col-sm-8">
                                 @_commitmentPeriod.TotalStake
                             </div>
                         </div>
@@ -154,10 +174,10 @@
                         @foreach (var userGoal in _commitmentPeriod.Goals.OrderBy(g => g.ProviderName).ThenBy(g => g.MetricType))
                         {
                             <div class="row">
-                                <label class="col-sm-4 col-form-label-md">
+                                <label class="col-8 col-sm-4 col-form-label-md">
                                     @(userGoal.MetricName + " " + userGoal.MetricType + " " + userGoal.GoalRule.ToDisplayString() + " " + userGoal.GoalValue)
                                 </label>
-                                <div class="col-sm-8 fw-bold">
+                                <div class="col-4 col-sm-8 fw-bold">
                                     @userGoal.Value
                                 </div>
                             </div>
@@ -176,19 +196,19 @@
                     <table class="table">
                         <thead>
                             <tr>
-                                <th>Start Date</th>
-                                <th>End Date</th>
+                                <th class="d-none d-lg-table-cell">Start</th>
+                                <th>End</th>
                                 <th>Stake</th>
                                 <th>Reward</th>
-                                <th>Total Stake</th>
-                                <th></th>
+                                <th class="d-none d-md-table-cell">Total Stake</th>
+                                <th class="d-none d-md-table-cell"></th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach (var commitmentPeriod in _commitmentPeriods)
                             {
                                 <tr class="@(commitmentPeriod.Status == CommitmentPeriodStatus.Current ? "table-primary" : string.Empty)">
-                                    <td>@commitmentPeriod.StartDate</td>
+                                    <td class="d-none d-lg-table-cell">@commitmentPeriod.StartDate</td>
                                     <td>@commitmentPeriod.EndDate</td>
                                     <td>@commitmentPeriod.Stake</td>
                                     <td>
@@ -197,8 +217,8 @@
                                             @commitmentPeriod.Reward
                                         }
                                     </td>
-                                    <td>@commitmentPeriod.TotalStake</td>
-                                    <td>@commitmentPeriod.Status</td>
+                                    <td class="d-none d-md-table-cell">@commitmentPeriod.TotalStake</td>
+                                    <td class="d-none d-md-table-cell">@commitmentPeriod.Status</td>
                                 </tr>
                             }
                         </tbody>

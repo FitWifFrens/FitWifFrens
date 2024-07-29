@@ -89,7 +89,6 @@ namespace FitWifFrens.Web.Background
                             _telemetryClient.TrackTrace($"Updating Withings data for user {user.Id} with token {tokens.Single(t => t.Name == "access_token").Value}", SeverityLevel.Information);
 
                             {
-
                                 var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
                                 resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
 
@@ -159,7 +158,6 @@ namespace FitWifFrens.Web.Background
 
 
                             {
-
                                 var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
                                 resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
 
@@ -192,6 +190,7 @@ namespace FitWifFrens.Web.Background
                                     var activityCategory = activityJson.GetProperty("category").GetInt32();
 
                                     // https://github.com/zono-dev/withings-go/blob/514b8ec90158faa88e36508f778fbf7c2b03e209/withings/enum.go#L125
+                                    // https://help.validic.com/space/VCS/1681326286/Withings+API+Integration+for+Developers
                                     if (activityCategory == 16 || activityCategory == 17 || activityCategory == 28)
                                     {
                                         var userMetricProviderValue = await _dataContext.UserMetricProviderValues
