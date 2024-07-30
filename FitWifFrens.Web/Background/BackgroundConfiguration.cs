@@ -2,6 +2,6 @@
 {
     public class BackgroundConfiguration
     {
-        public string CallbackUrl { get; set; }
+        public string? CallbackUrl { get; init; }
     }
 }

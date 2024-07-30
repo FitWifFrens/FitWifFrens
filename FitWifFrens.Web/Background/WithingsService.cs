@@ -74,45 +74,48 @@ namespace FitWifFrens.Web.Background
 
         public async Task UpdateWebhooks(CancellationToken cancellationToken)
         {
-            try
+            if (!string.IsNullOrWhiteSpace(_backgroundConfiguration.CallbackUrl))
             {
-                foreach (var user in await _dataContext.Users.Where(u => u.Logins.Any(l => l.LoginProvider == "Withings")).Include(u => u.Tokens).ToListAsync(cancellationToken))
+                try
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    var tokens = user.Tokens.Where(t => t.LoginProvider == "Withings").ToList();
-
-                    if (tokens.Any())
+                    foreach (var user in await _dataContext.Users.Where(u => u.Logins.Any(l => l.LoginProvider == "Withings")).Include(u => u.Tokens).ToListAsync(cancellationToken))
                     {
-                        var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
-                        resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
+                        cancellationToken.ThrowIfCancellationRequested();
 
-                        using var responseJsonDocument = await _resiliencePipeline.ExecuteAsync(async rc =>
+                        var tokens = user.Tokens.Where(t => t.LoginProvider == "Withings").ToList();
+
+                        if (tokens.Any())
                         {
-                            using var request = new HttpRequestMessage(HttpMethod.Post, "https://wbsapi.withings.net/notify");
-                            request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                            var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
+                            resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
+
+                            using var responseJsonDocument = await _resiliencePipeline.ExecuteAsync(async rc =>
                             {
-                                { "action", "subscribe" },
-                                { "appli", "1" },
-                                { "callbackurl", $"{_backgroundConfiguration.CallbackUrl}/api/webhooks/withings?userId={user.Id}" },
-                            });
-                            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));
+                                using var request = new HttpRequestMessage(HttpMethod.Post, "https://wbsapi.withings.net/notify");
+                                request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                                {
+                                    { "action", "subscribe" },
+                                    { "appli", "1" },
+                                    { "callbackurl", $"{_backgroundConfiguration.CallbackUrl}/api/webhooks/withings?userId={user.Id}" },
+                                });
+                                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));
 
-                            var response = await _httpClient.SendAsync(request, cancellationToken);
+                                var response = await _httpClient.SendAsync(request, cancellationToken);
 
-                            return new ResponseJsonDocument(response, JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken)));
+                                return new ResponseJsonDocument(response, JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken)));
 
-                        }, resilienceContext);
+                            }, resilienceContext);
 
-                        ResilienceContextPool.Shared.Return(resilienceContext);
+                            ResilienceContextPool.Shared.Return(resilienceContext);
+                        }
                     }
                 }
-            }
-            catch (Exception exception)
-            {
-                _telemetryClient.TrackException(exception);
-                throw;
+                catch (Exception exception)
+                {
+                    _telemetryClient.TrackException(exception);
+                    throw;
+                }
             }
         }
 

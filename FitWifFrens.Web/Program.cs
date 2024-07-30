@@ -152,10 +152,9 @@ namespace FitWifFrens.Web
 
             builder.Services.AddHostedService<JobService>();
 
-
             builder.Services.AddSingleton<BackgroundConfiguration>(new BackgroundConfiguration
             {
-                CallbackUrl = builder.Configuration.GetValue<string>("CallbackUrl")!
+                CallbackUrl = builder.Configuration.GetValue<string>("CallbackUrl")
             });
 
             builder.Services.AddScoped<MicrosoftService>();

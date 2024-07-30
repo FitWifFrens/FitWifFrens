@@ -67,32 +67,36 @@ namespace FitWifFrens.Web.Background
 
         public async Task UpdateWebhook(CancellationToken cancellationToken)
         {
-            try
+            if (!string.IsNullOrWhiteSpace(_backgroundConfiguration.CallbackUrl))
             {
-                using var request = new HttpRequestMessage(HttpMethod.Post, "https://www.strava.com/api/v3/push_subscriptions");
-                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-                var webhookRequestParameters = new Dictionary<string, string>()
+                try
                 {
-                    { "client_id", _refreshTokenServiceConfiguration.Strava.ClientId },
-                    { "client_secret", _refreshTokenServiceConfiguration.Strava.ClientSecret },
-                    { "callback_url", $"{_backgroundConfiguration.CallbackUrl}/api/webhooks/strava" },
-                    { "verify_token", "6e1f46ab-7f07-4e77-80c3-b156a1d43358" }, // TODO:
-                };
-                var requestContent = new FormUrlEncodedContent(webhookRequestParameters!);
-                request.Content = requestContent;
+                    var webhookRequestParameters = new Dictionary<string, string>()
+                    {
+                        { "client_id", _refreshTokenServiceConfiguration.Strava.ClientId },
+                        { "client_secret", _refreshTokenServiceConfiguration.Strava.ClientSecret },
+                        { "callback_url", $"{_backgroundConfiguration.CallbackUrl}/api/webhooks/strava" },
+                        { "verify_token", "6e1f46ab-7f07-4e77-80c3-b156a1d43358" }, // TODO:
+                    };
 
-                var response = await _httpClient.SendAsync(request, cancellationToken);
+                    var requestContent = new FormUrlEncodedContent(webhookRequestParameters!);
 
-                response.EnsureSuccessStatusCode();
+                    using var request = new HttpRequestMessage(HttpMethod.Post, "https://www.strava.com/api/v3/push_subscriptions");
+                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    request.Content = requestContent;
 
-                using var responseJson = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+                    var response = await _httpClient.SendAsync(request, cancellationToken);
 
-            }
-            catch (Exception exception)
-            {
-                _telemetryClient.TrackException(exception);
-                throw;
+                    response.EnsureSuccessStatusCode();
+
+                    using var responseJson = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+
+                }
+                catch (Exception exception)
+                {
+                    _telemetryClient.TrackException(exception);
+                    throw;
+                }
             }
         }
 
