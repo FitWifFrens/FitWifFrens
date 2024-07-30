@@ -21,6 +21,7 @@ namespace FitWifFrens.Web.Background
             }
         }
 
+        private readonly BackgroundConfiguration _backgroundConfiguration;
         private readonly DataContext _dataContext;
         private readonly HttpClient _httpClient;
         private readonly RefreshTokenService _refreshTokenService;
@@ -29,8 +30,9 @@ namespace FitWifFrens.Web.Background
 
         private readonly ResiliencePipeline<ResponseJsonDocument> _resiliencePipeline;
 
-        public WithingsService(DataContext dataContext, IHttpClientFactory httpClientFactory, RefreshTokenService refreshTokenService, TelemetryClient telemetryClient, ILogger<WithingsService> logger)
+        public WithingsService(BackgroundConfiguration backgroundConfiguration, DataContext dataContext, IHttpClientFactory httpClientFactory, RefreshTokenService refreshTokenService, TelemetryClient telemetryClient, ILogger<WithingsService> logger)
         {
+            _backgroundConfiguration = backgroundConfiguration;
             _dataContext = dataContext;
             _httpClient = httpClientFactory.CreateClient();
             _refreshTokenService = refreshTokenService;
@@ -68,6 +70,52 @@ namespace FitWifFrens.Web.Background
                 })
                 .AddTimeout(TimeSpan.FromSeconds(10))
                 .Build();
+        }
+
+        public async Task UpdateWebhooks(CancellationToken cancellationToken)
+        {
+            try
+            {
+                foreach (var user in await _dataContext.Users.Where(u => u.Logins.Any(l => l.LoginProvider == "Withings")).Include(u => u.Tokens).ToListAsync(cancellationToken))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var tokens = user.Tokens.Where(t => t.LoginProvider == "Withings").ToList();
+
+                    if (tokens.Any())
+                    {
+                        var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
+                        resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
+
+                        using var responseJsonDocument = await _resiliencePipeline.ExecuteAsync(async rc =>
+                        {
+                            using var request = new HttpRequestMessage(HttpMethod.Post, "https://wbsapi.withings.net/notify");
+                            request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                            {
+                                { "action", "subscribe" },
+                                { "appli", "1" },
+                                { "callbackurl", $"{_backgroundConfiguration.CallbackUrl}/api/webhooks/withings?userId={user.Id}" },
+                            });
+                            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));
+
+                            var response = await _httpClient.SendAsync(request, cancellationToken);
+
+                            return new ResponseJsonDocument(response, JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken)));
+
+                        }, resilienceContext);
+
+                        ResilienceContextPool.Shared.Return(resilienceContext);
+
+                        Console.WriteLine(responseJsonDocument.JsonDocument.RootElement.GetRawText());
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                _telemetryClient.TrackException(exception);
+                throw;
+            }
         }
 
         public async Task UpdateProviderMetricValues(CancellationToken cancellationToken)

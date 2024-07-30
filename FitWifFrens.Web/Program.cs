@@ -152,6 +152,12 @@ namespace FitWifFrens.Web
 
             builder.Services.AddHostedService<JobService>();
 
+
+            builder.Services.AddSingleton<BackgroundConfiguration>(new BackgroundConfiguration
+            {
+                CallbackUrl = builder.Configuration.GetValue<string>("CallbackUrl")!
+            });
+
             builder.Services.AddScoped<MicrosoftService>();
             builder.Services.AddScoped<StravaService>();
             builder.Services.AddScoped<WithingsService>();
@@ -185,9 +191,9 @@ namespace FitWifFrens.Web
                 app.UseExceptionHandler("/Error");
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
-            }
 
-            app.UseHttpsRedirection();
+                app.UseHttpsRedirection();
+            }
 
             app.UseStaticFiles();
             app.UseAntiforgery();
