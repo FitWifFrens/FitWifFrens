@@ -76,6 +76,7 @@ namespace FitWifFrens.Web.Background
 
                     using var response = await _resiliencePipeline.ExecuteAsync(async rc =>
                     {
+                        // TODO: $count=true cannot be used? Note: The $count and $search query parameters are currently not available in Azure AD B2C tenants.
                         using var request = new HttpRequestMessage(HttpMethod.Get, "https://graph.microsoft.com/v1.0/me/todo/lists");
                         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetMicrosoftToken(user.Id, rc.CancellationToken));
@@ -85,6 +86,8 @@ namespace FitWifFrens.Web.Background
                     }, resilienceContext);
 
                     ResilienceContextPool.Shared.Return(resilienceContext);
+
+                    // TODO: ?$filter=status eq 'notStarted'
 
                     using var responseJson = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
                 }
