@@ -13,6 +13,8 @@ namespace FitWifFrens.Web.Background
 {
     public class StravaService
     {
+        private readonly BackgroundConfiguration _backgroundConfiguration;
+        private readonly RefreshTokenServiceConfiguration _refreshTokenServiceConfiguration;
         private readonly DataContext _dataContext;
         private readonly HttpClient _httpClient;
         private readonly RefreshTokenService _refreshTokenService;
@@ -21,8 +23,11 @@ namespace FitWifFrens.Web.Background
 
         private readonly ResiliencePipeline<HttpResponseMessage> _resiliencePipeline;
 
-        public StravaService(DataContext dataContext, IHttpClientFactory httpClientFactory, RefreshTokenService refreshTokenService, TelemetryClient telemetryClient, ILogger<StravaService> logger)
+        public StravaService(BackgroundConfiguration backgroundConfiguration, RefreshTokenServiceConfiguration refreshTokenServiceConfiguration,
+            DataContext dataContext, IHttpClientFactory httpClientFactory, RefreshTokenService refreshTokenService, TelemetryClient telemetryClient, ILogger<StravaService> logger)
         {
+            _backgroundConfiguration = backgroundConfiguration;
+            _refreshTokenServiceConfiguration = refreshTokenServiceConfiguration;
             _dataContext = dataContext;
             _refreshTokenService = refreshTokenService;
             _httpClient = httpClientFactory.CreateClient();
@@ -58,6 +63,37 @@ namespace FitWifFrens.Web.Background
                 })
                 .AddTimeout(TimeSpan.FromSeconds(10))
                 .Build();
+        }
+
+        public async Task UpdateWebhook(CancellationToken cancellationToken)
+        {
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Post, "https://www.strava.com/api/v3/push_subscriptions");
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                var webhookRequestParameters = new Dictionary<string, string>()
+                {
+                    { "client_id", _refreshTokenServiceConfiguration.Strava.ClientId },
+                    { "client_secret", _refreshTokenServiceConfiguration.Strava.ClientSecret },
+                    { "callback_url", $"{_backgroundConfiguration.CallbackUrl}/api/webhooks/strava" },
+                    { "verify_token", "6e1f46ab-7f07-4e77-80c3-b156a1d43358" }, // TODO:
+                };
+                var requestContent = new FormUrlEncodedContent(webhookRequestParameters!);
+                request.Content = requestContent;
+
+                var response = await _httpClient.SendAsync(request, cancellationToken);
+
+                response.EnsureSuccessStatusCode();
+
+                using var responseJson = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+
+            }
+            catch (Exception exception)
+            {
+                _telemetryClient.TrackException(exception);
+                throw;
+            }
         }
 
         public async Task UpdateProviderMetricValues(CancellationToken cancellationToken)

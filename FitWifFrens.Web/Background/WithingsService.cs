@@ -106,8 +106,6 @@ namespace FitWifFrens.Web.Background
                         }, resilienceContext);
 
                         ResilienceContextPool.Shared.Return(resilienceContext);
-
-                        Console.WriteLine(responseJsonDocument.JsonDocument.RootElement.GetRawText());
                     }
                 }
             }

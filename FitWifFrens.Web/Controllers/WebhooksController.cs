@@ -1,6 +1,8 @@
 ﻿using FitWifFrens.Web.Background;
 using Hangfire;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace FitWifFrens.Web.Controllers
 {
@@ -15,11 +17,28 @@ namespace FitWifFrens.Web.Controllers
             _backgroundJobClient = backgroundJobClient;
         }
 
+        [HttpGet("strava")]
+        public IActionResult ConfirmStrava([FromQuery(Name = "hub.challenge")] string challenge)
+        {
+            return Json(new JsonObject
+            {
+                { "hub.challenge", challenge }
+            });
+        }
+
+        [HttpPost("strava")]
+        public IActionResult UpdateStrava([FromBody] JsonElement dataJson)
+        {
+            _backgroundJobClient.Enqueue<StravaService>(s => s.UpdateProviderMetricValues(CancellationToken.None));
+
+            return Ok();
+        }
+
         [HttpPost("withings")]
         [Consumes("application/x-www-form-urlencoded")]
-        public IActionResult Get([FromQuery] string userId, [FromForm] IFormCollection data)
+        public IActionResult UpdateWithings([FromQuery] string userId, [FromForm] IFormCollection dataFrom)
         {
-            if (data.Any())
+            if (dataFrom.Any())
             {
                 _backgroundJobClient.Enqueue<WithingsService>(s => s.UpdateProviderMetricValues(CancellationToken.None));
             }
