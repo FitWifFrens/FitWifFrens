@@ -12,5 +12,10 @@
         {
             public const int Count = 1000;
         }
+
+        public static class Withings
+        {
+            public static readonly int[] WebhookSubscriptions = [1, 3, 16];
+        }
     }
 }
