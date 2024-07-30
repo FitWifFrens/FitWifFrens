@@ -16,6 +16,7 @@ namespace FitWifFrens.Web.Background
         public Task StartAsync(CancellationToken cancellationToken)
         {
 #if DEBUG
+            _recurringJobManager.AddOrUpdate<MicrosoftService>(nameof(MicrosoftService) + nameof(MicrosoftService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Never);
             _recurringJobManager.AddOrUpdate<StravaService>(nameof(StravaService) + nameof(StravaService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Never);
             _recurringJobManager.AddOrUpdate<WithingsService>(nameof(WithingsService) + nameof(WithingsService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Never);
 
@@ -23,6 +24,7 @@ namespace FitWifFrens.Web.Background
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriodUserGoals), s => s.UpdateCommitmentPeriodUserGoals(cancellationToken), Cron.Never);
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriods), s => s.UpdateCommitmentPeriods(cancellationToken), Cron.Never);
 #else
+            _recurringJobManager.AddOrUpdate<MicrosoftService>(nameof(MicrosoftService) + nameof(MicrosoftService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Hourly());
             _recurringJobManager.AddOrUpdate<StravaService>(nameof(StravaService) + nameof(StravaService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Hourly());
             _recurringJobManager.AddOrUpdate<WithingsService>(nameof(WithingsService) + nameof(WithingsService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Hourly());
 

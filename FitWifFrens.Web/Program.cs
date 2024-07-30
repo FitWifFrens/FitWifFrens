@@ -6,6 +6,7 @@ using FitWifFrens.Web.Components;
 using FitWifFrens.Web.Components.Account;
 using Hangfire;
 using Hangfire.PostgreSql;
+using Microsoft.AspNetCore.Authentication.MicrosoftAccount;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -19,9 +20,6 @@ namespace FitWifFrens.Web
     {
         public static void Main(string[] args)
         {
-            //CultureInfo.DefaultThreadCurrentCulture = new CultureInfo("en-AU");
-            //CultureInfo.DefaultThreadCurrentUICulture = new CultureInfo("en-AU");
-
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddLocalization();
@@ -58,6 +56,17 @@ namespace FitWifFrens.Web
                 {
                     options.DefaultScheme = IdentityConstants.ApplicationScheme;
                     options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+                })
+                .AddMicrosoftAccount(options =>
+                {
+                    options.ClientId = builder.Configuration.GetValue<string>("Authentication:Microsoft:ClientId")!;
+                    options.ClientSecret = builder.Configuration.GetValue<string>("Authentication:Microsoft:ClientSecret")!;
+
+                    options.Scope.Add("offline_access");
+                    options.Scope.Add("tasks.read");
+                    options.Scope.Add("tasks.read.shared");
+
+                    options.SaveTokens = true;
                 })
                 .AddStrava(options =>
                 {
@@ -126,6 +135,10 @@ namespace FitWifFrens.Web
 
             builder.Services.AddSingleton<RefreshTokenServiceConfiguration>(new RefreshTokenServiceConfiguration
             {
+                Microsoft = new RefreshTokenServiceConfiguration.RefreshTokenConfiguration(
+                    MicrosoftAccountDefaults.TokenEndpoint,
+                    builder.Configuration.GetValue<string>("Authentication:Microsoft:ClientId")!,
+                    builder.Configuration.GetValue<string>("Authentication:Microsoft:ClientSecret")!),
                 Strava = new RefreshTokenServiceConfiguration.RefreshTokenConfiguration(
                     StravaAuthenticationDefaults.TokenEndpoint,
                     builder.Configuration.GetValue<string>("Authentication:Strava:ClientId")!,
@@ -139,6 +152,7 @@ namespace FitWifFrens.Web
 
             builder.Services.AddHostedService<JobService>();
 
+            builder.Services.AddScoped<MicrosoftService>();
             builder.Services.AddScoped<StravaService>();
             builder.Services.AddScoped<WithingsService>();
             builder.Services.AddScoped<CommitmentPeriodService>();

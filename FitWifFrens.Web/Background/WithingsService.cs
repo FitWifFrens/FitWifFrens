@@ -43,6 +43,13 @@ namespace FitWifFrens.Web.Background
                     MaxRetryAttempts = 1,
                     Delay = TimeSpan.FromSeconds(2),
 
+                    ShouldHandle = new PredicateBuilder<ResponseJsonDocument>().HandleResult(rd => !rd.Response.IsSuccessStatusCode)
+                })
+                .AddRetry(new RetryStrategyOptions<ResponseJsonDocument>
+                {
+                    MaxRetryAttempts = 1,
+                    Delay = TimeSpan.FromSeconds(2),
+
                     ShouldHandle = new PredicateBuilder<ResponseJsonDocument>()
                         .HandleResult(rd => rd.Response.StatusCode == HttpStatusCode.Unauthorized)
                         .HandleResult(rd => rd.JsonDocument.RootElement.GetProperty("status").GetInt32() == 401),
@@ -58,13 +65,6 @@ namespace FitWifFrens.Web.Background
                             throw new Exception("70a8eebb-0af3-4797-acf4-fd5bd457bd75");
                         }
                     }
-                })
-                .AddRetry(new RetryStrategyOptions<ResponseJsonDocument>
-                {
-                    MaxRetryAttempts = 2,
-                    Delay = TimeSpan.FromSeconds(2),
-
-                    ShouldHandle = new PredicateBuilder<ResponseJsonDocument>().HandleResult(rd => !rd.Response.IsSuccessStatusCode)
                 })
                 .AddTimeout(TimeSpan.FromSeconds(10))
                 .Build();

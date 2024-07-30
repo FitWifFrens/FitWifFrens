@@ -35,6 +35,13 @@ namespace FitWifFrens.Web.Background
                     MaxRetryAttempts = 1,
                     Delay = TimeSpan.FromSeconds(2),
 
+                    ShouldHandle = new PredicateBuilder<HttpResponseMessage>().HandleResult(r => !r.IsSuccessStatusCode)
+                })
+                .AddRetry(new RetryStrategyOptions<HttpResponseMessage>
+                {
+                    MaxRetryAttempts = 1,
+                    Delay = TimeSpan.FromSeconds(2),
+
                     ShouldHandle = new PredicateBuilder<HttpResponseMessage>().HandleResult(r => r.StatusCode == HttpStatusCode.Unauthorized),
 
                     OnRetry = async args =>
@@ -48,13 +55,6 @@ namespace FitWifFrens.Web.Background
                             throw new Exception("70a8eebb-0af3-4797-acf4-fd5bd457bd75");
                         }
                     }
-                })
-                .AddRetry(new RetryStrategyOptions<HttpResponseMessage>
-                {
-                    MaxRetryAttempts = 2,
-                    Delay = TimeSpan.FromSeconds(2),
-
-                    ShouldHandle = new PredicateBuilder<HttpResponseMessage>().HandleResult(r => !r.IsSuccessStatusCode)
                 })
                 .AddTimeout(TimeSpan.FromSeconds(10))
                 .Build();

@@ -32,6 +32,10 @@ namespace FitWifFrens.Playground
                 new Provider
                 {
                     Name = "Withings"
+                },
+                new Provider
+                {
+                    Name = "Microsoft"
                 }
             });
 

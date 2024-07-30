@@ -15,17 +15,23 @@ namespace FitWifFrens.Web.Background
         private readonly DataContext _dataContext;
         private readonly HttpClient _httpClient;
         private readonly TimeProvider _timeProvider;
+        private readonly ILogger<RefreshTokenService> _logger;
 
         private readonly Dictionary<ProviderNameUserId, AccessRefreshToken> _accessTokenByProviderUserId;
 
-        public RefreshTokenService(RefreshTokenServiceConfiguration configuration, DataContext dataContext, IHttpClientFactory httpClientFactory, TimeProvider timeProvider)
+        public RefreshTokenService(RefreshTokenServiceConfiguration configuration, DataContext dataContext, IHttpClientFactory httpClientFactory, TimeProvider timeProvider, ILogger<RefreshTokenService> logger)
         {
             _configuration = configuration;
             _dataContext = dataContext;
-            _timeProvider = timeProvider;
             _httpClient = httpClientFactory.CreateClient();
+            _timeProvider = timeProvider;
+            _logger = logger;
 
             _accessTokenByProviderUserId = new Dictionary<ProviderNameUserId, AccessRefreshToken>();
+        }
+        public Task<string> GetMicrosoftToken(string userId, CancellationToken cancellationToken)
+        {
+            return GetToken("Microsoft", userId, cancellationToken);
         }
 
         public Task<string> GetStravaToken(string userId, CancellationToken cancellationToken)
@@ -52,6 +58,49 @@ namespace FitWifFrens.Web.Background
             }
 
             return accessRefreshToken.AccessToken;
+        }
+
+        public async Task RefreshMicrosoftToken(string userId, CancellationToken cancellationToken)
+        {
+            var providerNameUserId = new ProviderNameUserId("Microsoft", userId);
+
+            var accessRefreshToken = _accessTokenByProviderUserId[providerNameUserId];
+
+            var tokenRequestParameters = new Dictionary<string, string>()
+            {
+                { "client_id", _configuration.Microsoft.ClientId },
+                { "client_secret", _configuration.Microsoft.ClientSecret },
+                { "refresh_token", accessRefreshToken.RefreshToken },
+                { "grant_type", "refresh_token" },
+            };
+
+            var requestContent = new FormUrlEncodedContent(tokenRequestParameters!);
+
+            var requestMessage = new HttpRequestMessage(HttpMethod.Post, _configuration.Microsoft.TokenEndpoint);
+            requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            requestMessage.Content = requestContent;
+            var response = await _httpClient.SendAsync(requestMessage, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            using var responseJson = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), default, cancellationToken);
+
+            var userTokens = await _dataContext.UserTokens.Where(t => t.UserId == userId && t.LoginProvider == "Microsoft").ToListAsync(cancellationToken);
+
+            var userTokenAccess = userTokens.Single(t => t.Name == "access_token");
+            var userTokenRefresh = userTokens.Single(t => t.Name == "refresh_token");
+            var userTokenExpiresAt = userTokens.Single(t => t.Name == "expires_at");
+
+            userTokenAccess.Value = responseJson.RootElement.GetProperty("access_token").GetString()!;
+            userTokenRefresh.Value = responseJson.RootElement.GetProperty("refresh_token").GetString()!;
+            userTokenExpiresAt.Value = (_timeProvider.GetUtcNow() + TimeSpan.FromSeconds(responseJson.RootElement.GetProperty("expires_in").GetInt32())).ToString("O", CultureInfo.InvariantCulture);
+
+            _dataContext.Entry(userTokenAccess).State = EntityState.Modified;
+            _dataContext.Entry(userTokenRefresh).State = EntityState.Modified;
+            _dataContext.Entry(userTokenExpiresAt).State = EntityState.Modified;
+
+            await _dataContext.SaveChangesAsync(cancellationToken);
+
+            _accessTokenByProviderUserId[providerNameUserId] = new AccessRefreshToken(userTokenAccess.Value, userTokenRefresh.Value);
         }
 
         public async Task RefreshStravaToken(string userId, CancellationToken cancellationToken)
