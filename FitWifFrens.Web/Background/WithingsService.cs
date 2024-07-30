@@ -123,23 +123,27 @@ namespace FitWifFrens.Web.Background
                 var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
                 resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
 
-                using var responseJsonDocument = await _resiliencePipeline.ExecuteAsync(async rc =>
+                foreach (var webhookSubscription in Constants.Withings.WebhookSubscriptions)
                 {
-                    using var request = new HttpRequestMessage(HttpMethod.Post, "https://wbsapi.withings.net/notify");
-                    request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                    using var responseJsonDocument = await _resiliencePipeline.ExecuteAsync(async rc =>
                     {
-                        { "action", "subscribe" },
-                        { "appli", "1" },
-                        { "callbackurl", $"{_backgroundConfiguration.CallbackUrl}/api/webhooks/withings?userId={user.Id}" },
-                    });
-                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));
+                        // TODO: "{\"status\": ... not equal to 0
+                        using var request = new HttpRequestMessage(HttpMethod.Post, "https://wbsapi.withings.net/notify");
+                        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                        {
+                            { "action", "subscribe" },
+                            { "appli", webhookSubscription.ToString() },
+                            { "callbackurl", $"{_backgroundConfiguration.CallbackUrl}/api/webhooks/withings?userId={user.Id}" },
+                        });
+                        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));
 
-                    var response = await _httpClient.SendAsync(request, cancellationToken);
+                        var response = await _httpClient.SendAsync(request, cancellationToken);
 
-                    return new ResponseJsonDocument(response, JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken)));
+                        return new ResponseJsonDocument(response, JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken)));
 
-                }, resilienceContext);
+                    }, resilienceContext);
+                }
 
                 ResilienceContextPool.Shared.Return(resilienceContext);
             }
