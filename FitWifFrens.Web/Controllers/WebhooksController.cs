@@ -1,6 +1,8 @@
 ﻿using FitWifFrens.Web.Background;
 using Hangfire;
+using Microsoft.ApplicationInsights;
 using Microsoft.AspNetCore.Mvc;
+using System.Data;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -11,10 +13,12 @@ namespace FitWifFrens.Web.Controllers
     public class WebhooksController : Controller
     {
         private readonly IBackgroundJobClient _backgroundJobClient;
+        private readonly TelemetryClient _telemetryClient;
 
-        public WebhooksController(IBackgroundJobClient backgroundJobClient)
+        public WebhooksController(IBackgroundJobClient backgroundJobClient, TelemetryClient telemetryClient)
         {
             _backgroundJobClient = backgroundJobClient;
+            _telemetryClient = telemetryClient;
         }
 
         [HttpGet("strava")]
@@ -29,6 +33,8 @@ namespace FitWifFrens.Web.Controllers
         [HttpPost("strava")]
         public IActionResult UpdateStrava([FromBody] JsonElement dataJson)
         {
+            _telemetryClient.TrackTrace("UpdateStrava " + dataJson.GetRawText());
+
             _backgroundJobClient.Enqueue<StravaService>(s => s.UpdateProviderMetricValues(CancellationToken.None));
 
             return Ok();
@@ -40,7 +46,9 @@ namespace FitWifFrens.Web.Controllers
         {
             if (dataFrom.Any())
             {
-                _backgroundJobClient.Enqueue<WithingsService>(s => s.UpdateProviderMetricValues(CancellationToken.None));
+                _telemetryClient.TrackTrace("UpdateWithings " + string.Join(", ", dataFrom.Select(k => k.Key + k.Value.First())));
+
+                _backgroundJobClient.Enqueue<WithingsService>(s => s.UpdateProviderMetricValues(userId, CancellationToken.None));
             }
 
             return Ok();

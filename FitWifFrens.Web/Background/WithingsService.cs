@@ -72,6 +72,27 @@ namespace FitWifFrens.Web.Background
                 .Build();
         }
 
+        public async Task UpdateWebhook(string userId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(_backgroundConfiguration.CallbackUrl))
+                {
+                    var user = await _dataContext.Users.Include(u => u.Tokens).SingleOrDefaultAsync(u => u.Id == userId, cancellationToken: cancellationToken);
+
+                    if (user != null)
+                    {
+                        await UpdateWebhook(user, cancellationToken);
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                _telemetryClient.TrackException(exception);
+                throw;
+            }
+        }
+
         public async Task UpdateWebhooks(CancellationToken cancellationToken)
         {
             if (!string.IsNullOrWhiteSpace(_backgroundConfiguration.CallbackUrl))
@@ -82,33 +103,7 @@ namespace FitWifFrens.Web.Background
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
-                        var tokens = user.Tokens.Where(t => t.LoginProvider == "Withings").ToList();
-
-                        if (tokens.Any())
-                        {
-                            var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
-                            resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
-
-                            using var responseJsonDocument = await _resiliencePipeline.ExecuteAsync(async rc =>
-                            {
-                                using var request = new HttpRequestMessage(HttpMethod.Post, "https://wbsapi.withings.net/notify");
-                                request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
-                                {
-                                    { "action", "subscribe" },
-                                    { "appli", "1" },
-                                    { "callbackurl", $"{_backgroundConfiguration.CallbackUrl}/api/webhooks/withings?userId={user.Id}" },
-                                });
-                                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));
-
-                                var response = await _httpClient.SendAsync(request, cancellationToken);
-
-                                return new ResponseJsonDocument(response, JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken)));
-
-                            }, resilienceContext);
-
-                            ResilienceContextPool.Shared.Return(resilienceContext);
-                        }
+                        await UpdateWebhook(user, cancellationToken);
                     }
                 }
                 catch (Exception exception)
@@ -116,6 +111,60 @@ namespace FitWifFrens.Web.Background
                     _telemetryClient.TrackException(exception);
                     throw;
                 }
+            }
+        }
+
+        private async Task UpdateWebhook(User user, CancellationToken cancellationToken)
+        {
+            var tokens = user.Tokens.Where(t => t.LoginProvider == "Withings").ToList();
+
+            if (tokens.Any())
+            {
+                var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
+                resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
+
+                using var responseJsonDocument = await _resiliencePipeline.ExecuteAsync(async rc =>
+                {
+                    using var request = new HttpRequestMessage(HttpMethod.Post, "https://wbsapi.withings.net/notify");
+                    request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                    {
+                        { "action", "subscribe" },
+                        { "appli", "1" },
+                        { "callbackurl", $"{_backgroundConfiguration.CallbackUrl}/api/webhooks/withings?userId={user.Id}" },
+                    });
+                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));
+
+                    var response = await _httpClient.SendAsync(request, cancellationToken);
+
+                    return new ResponseJsonDocument(response, JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken)));
+
+                }, resilienceContext);
+
+                ResilienceContextPool.Shared.Return(resilienceContext);
+            }
+        }
+
+        public async Task UpdateProviderMetricValues(string userId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var metricProviders = await _dataContext.MetricProviders.Where(mp => mp.ProviderName == "Withings").ToListAsync(cancellationToken);
+
+                if (metricProviders.Any())
+                {
+                    var user = await _dataContext.Users.Include(u => u.Tokens).SingleOrDefaultAsync(u => u.Id == userId, cancellationToken: cancellationToken);
+
+                    if (user != null)
+                    {
+                        await UpdateProviderMetricValues(user, cancellationToken);
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                _telemetryClient.TrackException(exception);
+                throw;
             }
         }
 
@@ -131,176 +180,7 @@ namespace FitWifFrens.Web.Background
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
-                        var tokens = user.Tokens.Where(t => t.LoginProvider == "Withings").ToList();
-
-                        if (tokens.Any())
-                        {
-                            _telemetryClient.TrackTrace($"Updating Withings data for user {user.Id} with token {tokens.Single(t => t.Name == "access_token").Value}", SeverityLevel.Information);
-
-                            {
-                                var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
-                                resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
-
-                                // TODO: "{\"status\":401,\"body\":{},\"error\":\"XRequestID: Not provided invalid_token: The access token provided is invalid\"}"
-                                using var responseJsonDocument = await _resiliencePipeline.ExecuteAsync(async rc =>
-                                {
-                                    using var request = new HttpRequestMessage(HttpMethod.Post, "https://wbsapi.withings.net/measure");
-                                    request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
-                                    {
-                                        { "action", "getmeas" },
-                                        { "meastypes", "1,9" },
-                                        { "lastupdate", DateTime.UtcNow.AddDays(-Constants.ProviderSearchDaysBack).ToUnixTimeSeconds().ToString() },
-                                    });
-                                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));
-
-                                    var response = await _httpClient.SendAsync(request, cancellationToken);
-
-                                    return new ResponseJsonDocument(response, JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken)));
-
-                                }, resilienceContext);
-
-                                ResilienceContextPool.Shared.Return(resilienceContext);
-
-                                foreach (var measureGroupJson in responseJsonDocument.JsonDocument.RootElement.GetProperty("body").GetProperty("measuregrps").EnumerateArray())
-                                {
-                                    var measureGroupTime = DateTimeExs.FromUnixTimeSeconds(measureGroupJson.GetProperty("created").GetInt64(), DateTimeKind.Utc);
-
-                                    foreach (var measureJson in measureGroupJson.GetProperty("measures").EnumerateArray())
-                                    {
-                                        var measureType = measureJson.GetProperty("type").GetInt32();
-
-                                        if (measureType == 1)
-                                        {
-                                            var measureValue = Math.Round(measureJson.GetProperty("value").GetInt32() / 1000.0, 1);
-
-                                            var userMetricProviderValue = await _dataContext.UserMetricProviderValues
-                                                .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Weight" && umpv.ProviderName == "Withings" &&
-                                                                              umpv.MetricType == MetricType.Value && umpv.Time == measureGroupTime, cancellationToken: cancellationToken);
-
-                                            if (userMetricProviderValue == null)
-                                            {
-                                                _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
-                                                {
-                                                    UserId = user.Id,
-                                                    MetricName = "Weight",
-                                                    ProviderName = "Withings",
-                                                    MetricType = MetricType.Value,
-                                                    Time = measureGroupTime,
-                                                    Value = measureValue
-                                                });
-
-                                                await _dataContext.SaveChangesAsync(cancellationToken);
-                                            }
-                                            else if (userMetricProviderValue.Value != measureValue)
-                                            {
-                                                userMetricProviderValue.Value = measureValue;
-
-                                                _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
-
-                                                await _dataContext.SaveChangesAsync(cancellationToken);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-
-                            {
-                                var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
-                                resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
-
-                                using var responseJsonDocument = await _resiliencePipeline.ExecuteAsync(async rc =>
-                                {
-                                    using var request = new HttpRequestMessage(HttpMethod.Post, "https://wbsapi.withings.net/v2/measure");
-                                    request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
-                                    {
-                                        { "action", "getworkouts" },
-                                        { "lastupdate", DateTime.UtcNow.AddDays(-Constants.ProviderSearchDaysBack).ToUnixTimeSeconds().ToString() },
-                                    });
-                                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));
-
-                                    var response = await _httpClient.SendAsync(request, cancellationToken);
-
-                                    return new ResponseJsonDocument(response, JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken)));
-
-                                }, resilienceContext);
-
-                                ResilienceContextPool.Shared.Return(resilienceContext);
-
-                                foreach (var activityJson in responseJsonDocument.JsonDocument.RootElement.GetProperty("body").GetProperty("series").EnumerateArray())
-                                {
-                                    var activityStartTime = DateTimeExs.FromUnixTimeSeconds(activityJson.GetProperty("startdate").GetInt64(), DateTimeKind.Utc);
-                                    var activityEndTime = DateTimeExs.FromUnixTimeSeconds(activityJson.GetProperty("enddate").GetInt64(), DateTimeKind.Utc);
-
-                                    var activityMinutes = Math.Round((activityEndTime - activityStartTime).TotalMinutes, 2);
-
-                                    var activityCategory = activityJson.GetProperty("category").GetInt32();
-
-                                    // https://github.com/zono-dev/withings-go/blob/514b8ec90158faa88e36508f778fbf7c2b03e209/withings/enum.go#L125
-                                    // https://help.validic.com/space/VCS/1681326286/Withings+API+Integration+for+Developers
-                                    if (activityCategory == 16 || activityCategory == 17 || activityCategory == 28)
-                                    {
-                                        var userMetricProviderValue = await _dataContext.UserMetricProviderValues
-                                            .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Workout" && umpv.ProviderName == "Withings" &&
-                                                                          umpv.MetricType == MetricType.Minutes && umpv.Time == activityStartTime, cancellationToken: cancellationToken);
-
-                                        if (userMetricProviderValue == null)
-                                        {
-                                            _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
-                                            {
-                                                UserId = user.Id,
-                                                MetricName = "Workout",
-                                                ProviderName = "Withings",
-                                                MetricType = MetricType.Minutes,
-                                                Time = activityStartTime,
-                                                Value = activityMinutes
-                                            });
-
-                                            await _dataContext.SaveChangesAsync(cancellationToken);
-                                        }
-                                        else if (userMetricProviderValue.Value != activityMinutes)
-                                        {
-                                            userMetricProviderValue.Value = activityMinutes;
-
-                                            _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
-
-                                            await _dataContext.SaveChangesAsync(cancellationToken);
-                                        }
-                                    }
-
-                                    {
-                                        var userMetricProviderValue = await _dataContext.UserMetricProviderValues
-                                            .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Exercise" && umpv.ProviderName == "Withings" &&
-                                                                          umpv.MetricType == MetricType.Minutes && umpv.Time == activityStartTime, cancellationToken: cancellationToken);
-
-                                        if (userMetricProviderValue == null)
-                                        {
-                                            _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
-                                            {
-                                                UserId = user.Id,
-                                                MetricName = "Exercise",
-                                                ProviderName = "Withings",
-                                                MetricType = MetricType.Minutes,
-                                                Time = activityStartTime,
-                                                Value = activityMinutes
-                                            });
-
-                                            await _dataContext.SaveChangesAsync(cancellationToken);
-                                        }
-                                        else if (userMetricProviderValue.Value != activityMinutes)
-                                        {
-                                            userMetricProviderValue.Value = activityMinutes;
-
-                                            _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
-
-                                            await _dataContext.SaveChangesAsync(cancellationToken);
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        await UpdateProviderMetricValues(user, cancellationToken);
                     }
                 }
             }
@@ -308,6 +188,180 @@ namespace FitWifFrens.Web.Background
             {
                 _telemetryClient.TrackException(exception);
                 throw;
+            }
+        }
+
+        private async Task UpdateProviderMetricValues(User user, CancellationToken cancellationToken)
+        {
+            var tokens = user.Tokens.Where(t => t.LoginProvider == "Withings").ToList();
+
+            if (tokens.Any())
+            {
+                _telemetryClient.TrackTrace($"Updating Withings data for user {user.Id} with token {tokens.Single(t => t.Name == "access_token").Value}", SeverityLevel.Information);
+
+                {
+                    var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
+                    resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
+
+                    // TODO: "{\"status\":401,\"body\":{},\"error\":\"XRequestID: Not provided invalid_token: The access token provided is invalid\"}"
+                    using var responseJsonDocument = await _resiliencePipeline.ExecuteAsync(async rc =>
+                    {
+                        using var request = new HttpRequestMessage(HttpMethod.Post, "https://wbsapi.withings.net/measure");
+                        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                        {
+                            { "action", "getmeas" },
+                            { "meastypes", "1,9" },
+                            { "lastupdate", DateTime.UtcNow.AddDays(-Constants.ProviderSearchDaysBack).ToUnixTimeSeconds().ToString() },
+                        });
+                        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));
+
+                        var response = await _httpClient.SendAsync(request, cancellationToken);
+
+                        return new ResponseJsonDocument(response, JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken)));
+
+                    }, resilienceContext);
+
+                    ResilienceContextPool.Shared.Return(resilienceContext);
+
+                    foreach (var measureGroupJson in responseJsonDocument.JsonDocument.RootElement.GetProperty("body").GetProperty("measuregrps").EnumerateArray())
+                    {
+                        var measureGroupTime = DateTimeExs.FromUnixTimeSeconds(measureGroupJson.GetProperty("created").GetInt64(), DateTimeKind.Utc);
+
+                        foreach (var measureJson in measureGroupJson.GetProperty("measures").EnumerateArray())
+                        {
+                            var measureType = measureJson.GetProperty("type").GetInt32();
+
+                            if (measureType == 1)
+                            {
+                                var measureValue = Math.Round(measureJson.GetProperty("value").GetInt32() / 1000.0, 1);
+
+                                var userMetricProviderValue = await _dataContext.UserMetricProviderValues
+                                    .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Weight" && umpv.ProviderName == "Withings" &&
+                                                                  umpv.MetricType == MetricType.Value && umpv.Time == measureGroupTime, cancellationToken: cancellationToken);
+
+                                if (userMetricProviderValue == null)
+                                {
+                                    _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
+                                    {
+                                        UserId = user.Id,
+                                        MetricName = "Weight",
+                                        ProviderName = "Withings",
+                                        MetricType = MetricType.Value,
+                                        Time = measureGroupTime,
+                                        Value = measureValue
+                                    });
+
+                                    await _dataContext.SaveChangesAsync(cancellationToken);
+                                }
+                                else if (userMetricProviderValue.Value != measureValue)
+                                {
+                                    userMetricProviderValue.Value = measureValue;
+
+                                    _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
+
+                                    await _dataContext.SaveChangesAsync(cancellationToken);
+                                }
+                            }
+                        }
+                    }
+                }
+
+
+                {
+                    var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
+                    resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
+
+                    using var responseJsonDocument = await _resiliencePipeline.ExecuteAsync(async rc =>
+                    {
+                        using var request = new HttpRequestMessage(HttpMethod.Post, "https://wbsapi.withings.net/v2/measure");
+                        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                        {
+                            { "action", "getworkouts" },
+                            { "lastupdate", DateTime.UtcNow.AddDays(-Constants.ProviderSearchDaysBack).ToUnixTimeSeconds().ToString() },
+                        });
+                        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));
+
+                        var response = await _httpClient.SendAsync(request, cancellationToken);
+
+                        return new ResponseJsonDocument(response, JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken)));
+
+                    }, resilienceContext);
+
+                    ResilienceContextPool.Shared.Return(resilienceContext);
+
+                    foreach (var activityJson in responseJsonDocument.JsonDocument.RootElement.GetProperty("body").GetProperty("series").EnumerateArray())
+                    {
+                        var activityStartTime = DateTimeExs.FromUnixTimeSeconds(activityJson.GetProperty("startdate").GetInt64(), DateTimeKind.Utc);
+                        var activityEndTime = DateTimeExs.FromUnixTimeSeconds(activityJson.GetProperty("enddate").GetInt64(), DateTimeKind.Utc);
+
+                        var activityMinutes = Math.Round((activityEndTime - activityStartTime).TotalMinutes, 2);
+
+                        var activityCategory = activityJson.GetProperty("category").GetInt32();
+
+                        // https://github.com/zono-dev/withings-go/blob/514b8ec90158faa88e36508f778fbf7c2b03e209/withings/enum.go#L125
+                        // https://help.validic.com/space/VCS/1681326286/Withings+API+Integration+for+Developers
+                        if (activityCategory == 16 || activityCategory == 17 || activityCategory == 28)
+                        {
+                            var userMetricProviderValue = await _dataContext.UserMetricProviderValues
+                                .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Workout" && umpv.ProviderName == "Withings" &&
+                                                              umpv.MetricType == MetricType.Minutes && umpv.Time == activityStartTime, cancellationToken: cancellationToken);
+
+                            if (userMetricProviderValue == null)
+                            {
+                                _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
+                                {
+                                    UserId = user.Id,
+                                    MetricName = "Workout",
+                                    ProviderName = "Withings",
+                                    MetricType = MetricType.Minutes,
+                                    Time = activityStartTime,
+                                    Value = activityMinutes
+                                });
+
+                                await _dataContext.SaveChangesAsync(cancellationToken);
+                            }
+                            else if (userMetricProviderValue.Value != activityMinutes)
+                            {
+                                userMetricProviderValue.Value = activityMinutes;
+
+                                _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
+
+                                await _dataContext.SaveChangesAsync(cancellationToken);
+                            }
+                        }
+
+                        {
+                            var userMetricProviderValue = await _dataContext.UserMetricProviderValues
+                                .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Exercise" && umpv.ProviderName == "Withings" &&
+                                                              umpv.MetricType == MetricType.Minutes && umpv.Time == activityStartTime, cancellationToken: cancellationToken);
+
+                            if (userMetricProviderValue == null)
+                            {
+                                _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
+                                {
+                                    UserId = user.Id,
+                                    MetricName = "Exercise",
+                                    ProviderName = "Withings",
+                                    MetricType = MetricType.Minutes,
+                                    Time = activityStartTime,
+                                    Value = activityMinutes
+                                });
+
+                                await _dataContext.SaveChangesAsync(cancellationToken);
+                            }
+                            else if (userMetricProviderValue.Value != activityMinutes)
+                            {
+                                userMetricProviderValue.Value = activityMinutes;
+
+                                _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
+
+                                await _dataContext.SaveChangesAsync(cancellationToken);
+                            }
+                        }
+                    }
+                }
             }
         }
     }
