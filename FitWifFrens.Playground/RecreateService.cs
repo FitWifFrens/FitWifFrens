@@ -27,16 +27,16 @@ namespace FitWifFrens.Playground
             {
                 new Provider
                 {
+                    Name = "Microsoft"
+                },
+                new Provider
+                {
                     Name = "Strava"
                 },
                 new Provider
                 {
                     Name = "Withings"
                 },
-                new Provider
-                {
-                    Name = "Microsoft"
-                }
             });
 
             _dataContext.Metrics.AddRange(new List<Metric>
@@ -56,11 +56,20 @@ namespace FitWifFrens.Playground
                 new Metric
                 {
                     Name = "Weight"
-                }
+                },
+                new Metric
+                {
+                    Name = "Tasks"
+                },
             });
 
             _dataContext.MetricProviders.AddRange(new List<MetricProvider>
             {
+                new MetricProvider
+                {
+                    ProviderName = "Microsoft",
+                    MetricName = "Tasks",
+                },
                 new MetricProvider
                 {
                     ProviderName = "Strava",
@@ -96,12 +105,17 @@ namespace FitWifFrens.Playground
                 {
                     ProviderName = "Withings",
                     MetricName = "Weight",
-                }
+                },
             });
 
 
             _dataContext.MetricValues.AddRange(new List<MetricValue>
             {
+                new MetricValue
+                {
+                    MetricName = "Tasks",
+                    Type = MetricType.Count
+                },
                 new MetricValue
                 {
                     MetricName = "Exercise",
@@ -136,7 +150,7 @@ namespace FitWifFrens.Playground
                 {
                     MetricName = "Weight",
                     Type = MetricType.Value
-                }
+                },
             });
 
             await _dataContext.SaveChangesAsync(CancellationToken.None);
@@ -255,7 +269,7 @@ namespace FitWifFrens.Playground
             await _dataContext.SaveChangesAsync(CancellationToken.None);
 
 
-            var email = "didge1987@gmail.com";
+            var email = "chad@fitwiffrens.com";
             var password = "Pass!234";
             var user = new User
             {

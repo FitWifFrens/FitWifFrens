@@ -13,6 +13,7 @@ namespace FitWifFrens.Web.Background
     public class MicrosoftService
     {
         private readonly DataContext _dataContext;
+        private readonly TimeProvider _timeProvider;
         private readonly HttpClient _httpClient;
         private readonly RefreshTokenService _refreshTokenService;
         private readonly TelemetryClient _telemetryClient;
@@ -20,9 +21,10 @@ namespace FitWifFrens.Web.Background
 
         private readonly ResiliencePipeline<HttpResponseMessage> _resiliencePipeline;
 
-        public MicrosoftService(DataContext dataContext, IHttpClientFactory httpClientFactory, RefreshTokenService refreshTokenService, TelemetryClient telemetryClient, ILogger<MicrosoftService> logger)
+        public MicrosoftService(DataContext dataContext, TimeProvider timeProvider, IHttpClientFactory httpClientFactory, RefreshTokenService refreshTokenService, TelemetryClient telemetryClient, ILogger<MicrosoftService> logger)
         {
             _dataContext = dataContext;
+            _timeProvider = timeProvider;
             _refreshTokenService = refreshTokenService;
             _httpClient = httpClientFactory.CreateClient();
             _telemetryClient = telemetryClient;
@@ -61,36 +63,115 @@ namespace FitWifFrens.Web.Background
 
         public async Task UpdateProviderMetricValues(CancellationToken cancellationToken)
         {
-            foreach (var user in await _dataContext.Users.Where(u => u.Logins.Any(l => l.LoginProvider == "Microsoft")).Include(u => u.Tokens).ToListAsync(cancellationToken))
+            try
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                var metricProviders = await _dataContext.MetricProviders.Where(mp => mp.ProviderName == "Microsoft").ToListAsync(cancellationToken);
 
-                var tokens = user.Tokens.Where(t => t.LoginProvider == "Microsoft").ToList();
-
-                if (tokens.Any())
+                if (metricProviders.Any())
                 {
-                    _telemetryClient.TrackTrace($"Updating Microsoft data for user {user.Id} with token {tokens.Single(t => t.Name == "access_token").Value}", SeverityLevel.Information);
+                    var date = _timeProvider.GetUtcNow().DateTime.ConvertTimeFromUtc().Date.SpecifyUtcKind();
 
-                    var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
-                    resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
-
-                    using var response = await _resiliencePipeline.ExecuteAsync(async rc =>
+                    foreach (var user in await _dataContext.Users.Where(u => u.Logins.Any(l => l.LoginProvider == "Microsoft")).Include(u => u.Tokens).ToListAsync(cancellationToken))
                     {
-                        // TODO: $count=true cannot be used? Note: The $count and $search query parameters are currently not available in Azure AD B2C tenants.
-                        using var request = new HttpRequestMessage(HttpMethod.Get, "https://graph.microsoft.com/v1.0/me/todo/lists");
-                        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetMicrosoftToken(user.Id, rc.CancellationToken));
+                        cancellationToken.ThrowIfCancellationRequested();
 
-                        return await _httpClient.SendAsync(request, cancellationToken);
+                        var tokens = user.Tokens.Where(t => t.LoginProvider == "Microsoft").ToList();
 
-                    }, resilienceContext);
+                        if (tokens.Any())
+                        {
+                            _telemetryClient.TrackTrace($"Updating Microsoft data for user {user.Id} with token {tokens.Single(t => t.Name == "access_token").Value}", SeverityLevel.Information);
 
-                    ResilienceContextPool.Shared.Return(resilienceContext);
+                            var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
+                            resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
 
-                    // TODO: ?$filter=status eq 'notStarted'
+                            using var listsResponse = await _resiliencePipeline.ExecuteAsync(async rc =>
+                            {
+                                // TODO: $count=true cannot be used? Note: The $count and $search query parameters are currently not available in Azure AD B2C tenants.
+                                using var request = new HttpRequestMessage(HttpMethod.Get, $"https://graph.microsoft.com/v1.0/me/todo/lists?$top={Constants.Microsoft.Count}");
+                                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetMicrosoftToken(user.Id, rc.CancellationToken));
 
-                    using var responseJson = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+                                return await _httpClient.SendAsync(request, cancellationToken);
+
+                            }, resilienceContext);
+
+                            ResilienceContextPool.Shared.Return(resilienceContext);
+
+                            // TODO: ?$filter=status eq 'notStarted'
+
+                            using var listsResponseJson = JsonDocument.Parse(await listsResponse.Content.ReadAsStringAsync(cancellationToken));
+
+                            var listsJson = listsResponseJson.RootElement.GetProperty("value").EnumerateArray();
+
+                            if (listsJson.Count() == Constants.Microsoft.Count)
+                            {
+                                throw new Exception("68344baf-45f0-4663-b5b1-8e0ae2c4c534");
+                            }
+
+                            var taskCount = 0;
+
+                            foreach (var listJson in listsJson)
+                            {
+                                using var tasksResponse = await _resiliencePipeline.ExecuteAsync(async rc =>
+                                {
+                                    using var request = new HttpRequestMessage(HttpMethod.Get, $"https://graph.microsoft.com/v1.0/me/todo/lists/{listJson.GetProperty("id").GetString()}/tasks?$filter=status eq 'notStarted'&$top={Constants.Microsoft.Count}");
+                                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetMicrosoftToken(user.Id, rc.CancellationToken));
+
+                                    return await _httpClient.SendAsync(request, cancellationToken);
+
+                                }, resilienceContext);
+
+                                ResilienceContextPool.Shared.Return(resilienceContext);
+
+                                using var tasksResponseJson = JsonDocument.Parse(await tasksResponse.Content.ReadAsStringAsync(cancellationToken));
+
+                                var tasksJson = tasksResponseJson.RootElement.GetProperty("value").EnumerateArray();
+
+                                var tasksCount = tasksJson.Count();
+
+                                if (tasksCount == Constants.Microsoft.Count)
+                                {
+                                    throw new Exception("68344baf-45f0-4663-b5b1-8e0ae2c4c534");
+                                }
+
+                                taskCount += tasksCount;
+                            }
+
+                            var userMetricProviderValue = await _dataContext.UserMetricProviderValues
+                                .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Tasks" && umpv.ProviderName == "Microsoft" &&
+                                                              umpv.MetricType == MetricType.Count && umpv.Time == date, cancellationToken: cancellationToken);
+
+                            if (userMetricProviderValue == null)
+                            {
+                                _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
+                                {
+                                    UserId = user.Id,
+                                    MetricName = "Tasks",
+                                    ProviderName = "Microsoft",
+                                    MetricType = MetricType.Count,
+                                    Time = date,
+                                    Value = taskCount
+                                });
+
+                                await _dataContext.SaveChangesAsync(cancellationToken);
+                            }
+                            else if (userMetricProviderValue.Value != taskCount)
+                            {
+                                userMetricProviderValue.Value = taskCount;
+
+                                _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
+
+                                await _dataContext.SaveChangesAsync(cancellationToken);
+                            }
+                        }
+                    }
                 }
+            }
+            catch (Exception exception)
+            {
+                _telemetryClient.TrackException(exception);
+                throw;
             }
         }
     }
