@@ -15,7 +15,7 @@
 
         public static class Withings
         {
-            public static readonly int[] WebhookSubscriptions = [1, 3, 16];
+            public static readonly int[] WebhookSubscriptions = [1, 4, 16];
         }
     }
 }
