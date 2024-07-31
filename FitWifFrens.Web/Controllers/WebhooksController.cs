@@ -33,9 +33,12 @@ namespace FitWifFrens.Web.Controllers
         [HttpPost("strava")]
         public IActionResult UpdateStrava([FromBody] JsonElement dataJson)
         {
-            _telemetryClient.TrackTrace("UpdateStrava " + dataJson.GetRawText());
+            _telemetryClient.TrackTrace("UpdateStrava ~ " + dataJson.GetRawText());
 
-            _backgroundJobClient.Enqueue<StravaService>(s => s.UpdateProviderMetricValues(CancellationToken.None));
+            if (dataJson.TryGetProperty("owner_id", out var stravaIdJson))
+            {
+                _backgroundJobClient.Enqueue<StravaService>(s => s.UpdateProviderMetricValues(stravaIdJson.GetString()!, CancellationToken.None));
+            }
 
             return Ok();
         }
@@ -46,9 +49,9 @@ namespace FitWifFrens.Web.Controllers
         {
             if (dataFrom.Any())
             {
-                _telemetryClient.TrackTrace("UpdateWithings " + string.Join(", ", dataFrom.Select(k => k.Key + k.Value.First())));
+                _telemetryClient.TrackTrace("UpdateWithings ~ " + string.Join(", ", dataFrom.Select(k => $"{k.Key}={k.Value.First()}")));
 
-                _backgroundJobClient.Enqueue<WithingsService>(s => s.UpdateProviderMetricValues(userId, CancellationToken.None));
+                _backgroundJobClient.Enqueue<WithingsService>(s => s.UpdateProviderMetricValues(userId, CancellationToken.None)); // TODO: and then update goals
             }
 
             return Ok();

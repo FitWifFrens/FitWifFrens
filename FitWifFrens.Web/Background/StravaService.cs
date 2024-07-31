@@ -1,4 +1,5 @@
 ﻿using FitWifFrens.Data;
+using Hangfire;
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.AspNetCore.WebUtilities;
@@ -11,11 +12,13 @@ using System.Text.Json;
 
 namespace FitWifFrens.Web.Background
 {
+    // TODO: need to handle delete
     public class StravaService
     {
         private readonly BackgroundConfiguration _backgroundConfiguration;
         private readonly RefreshTokenServiceConfiguration _refreshTokenServiceConfiguration;
         private readonly DataContext _dataContext;
+        private readonly IBackgroundJobClient _backgroundJobClient;
         private readonly HttpClient _httpClient;
         private readonly RefreshTokenService _refreshTokenService;
         private readonly TelemetryClient _telemetryClient;
@@ -24,11 +27,12 @@ namespace FitWifFrens.Web.Background
         private readonly ResiliencePipeline<HttpResponseMessage> _resiliencePipeline;
 
         public StravaService(BackgroundConfiguration backgroundConfiguration, RefreshTokenServiceConfiguration refreshTokenServiceConfiguration,
-            DataContext dataContext, IHttpClientFactory httpClientFactory, RefreshTokenService refreshTokenService, TelemetryClient telemetryClient, ILogger<StravaService> logger)
+            DataContext dataContext, IBackgroundJobClient backgroundJobClient, IHttpClientFactory httpClientFactory, RefreshTokenService refreshTokenService, TelemetryClient telemetryClient, ILogger<StravaService> logger)
         {
             _backgroundConfiguration = backgroundConfiguration;
             _refreshTokenServiceConfiguration = refreshTokenServiceConfiguration;
             _dataContext = dataContext;
+            _backgroundJobClient = backgroundJobClient;
             _refreshTokenService = refreshTokenService;
             _httpClient = httpClientFactory.CreateClient();
             _telemetryClient = telemetryClient;
@@ -100,6 +104,31 @@ namespace FitWifFrens.Web.Background
             }
         }
 
+        public async Task UpdateProviderMetricValues(string stravaId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var metricProviders = await _dataContext.MetricProviders.Where(mp => mp.ProviderName == "Strava").ToListAsync(cancellationToken);
+
+                if (metricProviders.Any())
+                {
+                    var userLogin = await _dataContext.UserLogins.Include(ul => ul.User.Tokens).SingleOrDefaultAsync(ul => ul.LoginProvider == "Strava" && ul.ProviderKey == stravaId, cancellationToken: cancellationToken);
+
+                    if (userLogin != null)
+                    {
+                        await UpdateProviderMetricValues(userLogin.User, cancellationToken);
+
+                        _backgroundJobClient.Enqueue<CommitmentPeriodService>(s => s.UpdateCommitmentPeriodUserGoals(CancellationToken.None));
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                _telemetryClient.TrackException(exception);
+                throw;
+            }
+        }
+
         public async Task UpdateProviderMetricValues(CancellationToken cancellationToken)
         {
             try
@@ -112,133 +141,7 @@ namespace FitWifFrens.Web.Background
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
-                        var tokens = user.Tokens.Where(t => t.LoginProvider == "Strava").ToList();
-
-                        if (tokens.Any())
-                        {
-                            _telemetryClient.TrackTrace($"Updating Strava data for user {user.Id} with token {tokens.Single(t => t.Name == "access_token").Value}", SeverityLevel.Information);
-
-                            var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
-                            resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
-
-                            using var response = await _resiliencePipeline.ExecuteAsync(async rc =>
-                            {
-                                using var request = new HttpRequestMessage(HttpMethod.Get, QueryHelpers.AddQueryString("https://www.strava.com/api/v3/athlete/activities", new Dictionary<string, string?>
-                                {
-                                    { "after", DateTime.UtcNow.AddDays(-Constants.ProviderSearchDaysBack).ToUnixTimeSeconds().ToString() },
-                                    { "per_page", "200" }
-                                }));
-                                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetStravaToken(user.Id, rc.CancellationToken));
-
-                                return await _httpClient.SendAsync(request, cancellationToken);
-
-                            }, resilienceContext);
-
-                            ResilienceContextPool.Shared.Return(resilienceContext);
-
-                            using var responseJson = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-
-                            foreach (var activityJson in responseJson.RootElement.EnumerateArray())
-                            {
-                                var activityTime = activityJson.GetProperty("start_date").GetDateTime();
-                                var activityMinutes = Math.Round(activityJson.GetProperty("elapsed_time").GetInt32() / 60.0, 2);
-
-                                var activityType = activityJson.GetProperty("type").GetString();
-
-                                if (activityType == "Run" || activityType == "VirtualRun")
-                                {
-                                    var userMetricProviderValue = await _dataContext.UserMetricProviderValues
-                                        .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Running" && umpv.ProviderName == "Strava" &&
-                                                                      umpv.MetricType == MetricType.Minutes && umpv.Time == activityTime, cancellationToken: cancellationToken);
-
-                                    if (userMetricProviderValue == null)
-                                    {
-                                        _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
-                                        {
-                                            UserId = user.Id,
-                                            MetricName = "Running",
-                                            ProviderName = "Strava",
-                                            MetricType = MetricType.Minutes,
-                                            Time = activityTime,
-                                            Value = activityMinutes
-                                        });
-
-                                        await _dataContext.SaveChangesAsync(cancellationToken);
-                                    }
-                                    else if (userMetricProviderValue.Value != activityMinutes)
-                                    {
-                                        userMetricProviderValue.Value = activityMinutes;
-
-                                        _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
-
-                                        await _dataContext.SaveChangesAsync(cancellationToken);
-                                    }
-                                }
-                                else if (activityType == "Ride" || activityType == "VirtualRide")
-                                {
-
-                                }
-                                else if (activityType == "Workout" || activityType == "WeightTraining" || activityType == "Yoga")
-                                {
-                                    var userMetricProviderValue = await _dataContext.UserMetricProviderValues
-                                        .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Workout" && umpv.ProviderName == "Strava" &&
-                                                                      umpv.MetricType == MetricType.Minutes && umpv.Time == activityTime, cancellationToken: cancellationToken);
-
-                                    if (userMetricProviderValue == null)
-                                    {
-                                        _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
-                                        {
-                                            UserId = user.Id,
-                                            MetricName = "Workout",
-                                            ProviderName = "Strava",
-                                            MetricType = MetricType.Minutes,
-                                            Time = activityTime,
-                                            Value = activityMinutes
-                                        });
-
-                                        await _dataContext.SaveChangesAsync(cancellationToken);
-                                    }
-                                    else if (userMetricProviderValue.Value != activityMinutes)
-                                    {
-                                        userMetricProviderValue.Value = activityMinutes;
-
-                                        _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
-
-                                        await _dataContext.SaveChangesAsync(cancellationToken);
-                                    }
-                                }
-
-                                {
-                                    var userMetricProviderValue = await _dataContext.UserMetricProviderValues
-                                        .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Exercise" && umpv.ProviderName == "Strava" &&
-                                                                      umpv.MetricType == MetricType.Minutes && umpv.Time == activityTime, cancellationToken: cancellationToken);
-
-                                    if (userMetricProviderValue == null)
-                                    {
-                                        _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
-                                        {
-                                            UserId = user.Id,
-                                            MetricName = "Exercise",
-                                            ProviderName = "Strava",
-                                            MetricType = MetricType.Minutes,
-                                            Time = activityTime,
-                                            Value = activityMinutes
-                                        });
-
-                                        await _dataContext.SaveChangesAsync(cancellationToken);
-                                    }
-                                    else if (userMetricProviderValue.Value != activityMinutes)
-                                    {
-                                        userMetricProviderValue.Value = activityMinutes;
-
-                                        _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
-
-                                        await _dataContext.SaveChangesAsync(cancellationToken);
-                                    }
-                                }
-                            }
-                        }
+                        await UpdateProviderMetricValues(user, cancellationToken);
                     }
                 }
             }
@@ -246,6 +149,137 @@ namespace FitWifFrens.Web.Background
             {
                 _telemetryClient.TrackException(exception);
                 throw;
+            }
+        }
+
+        private async Task UpdateProviderMetricValues(User user, CancellationToken cancellationToken)
+        {
+            var tokens = user.Tokens.Where(t => t.LoginProvider == "Strava").ToList();
+
+            if (tokens.Any())
+            {
+                _telemetryClient.TrackTrace($"Updating Strava data for user {user.Id} with token {tokens.Single(t => t.Name == "access_token").Value}", SeverityLevel.Information);
+
+                var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
+                resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
+
+                using var response = await _resiliencePipeline.ExecuteAsync(async rc =>
+                {
+                    using var request = new HttpRequestMessage(HttpMethod.Get, QueryHelpers.AddQueryString("https://www.strava.com/api/v3/athlete/activities", new Dictionary<string, string?>
+                    {
+                        { "after", DateTime.UtcNow.AddDays(-Constants.ProviderSearchDaysBack).ToUnixTimeSeconds().ToString() },
+                        { "per_page", "200" }
+                    }));
+                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetStravaToken(user.Id, rc.CancellationToken));
+
+                    return await _httpClient.SendAsync(request, cancellationToken);
+
+                }, resilienceContext);
+
+                ResilienceContextPool.Shared.Return(resilienceContext);
+
+                using var responseJson = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+
+                foreach (var activityJson in responseJson.RootElement.EnumerateArray())
+                {
+                    var activityTime = activityJson.GetProperty("start_date").GetDateTime();
+                    var activityMinutes = Math.Round(activityJson.GetProperty("elapsed_time").GetInt32() / 60.0, 2);
+
+                    var activityType = activityJson.GetProperty("type").GetString();
+
+                    if (activityType == "Run" || activityType == "VirtualRun")
+                    {
+                        var userMetricProviderValue = await _dataContext.UserMetricProviderValues
+                            .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Running" && umpv.ProviderName == "Strava" &&
+                                                          umpv.MetricType == MetricType.Minutes && umpv.Time == activityTime, cancellationToken: cancellationToken);
+
+                        if (userMetricProviderValue == null)
+                        {
+                            _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
+                            {
+                                UserId = user.Id,
+                                MetricName = "Running",
+                                ProviderName = "Strava",
+                                MetricType = MetricType.Minutes,
+                                Time = activityTime,
+                                Value = activityMinutes
+                            });
+
+                            await _dataContext.SaveChangesAsync(cancellationToken);
+                        }
+                        else if (userMetricProviderValue.Value != activityMinutes)
+                        {
+                            userMetricProviderValue.Value = activityMinutes;
+
+                            _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
+
+                            await _dataContext.SaveChangesAsync(cancellationToken);
+                        }
+                    }
+                    else if (activityType == "Ride" || activityType == "VirtualRide")
+                    {
+
+                    }
+                    else if (activityType == "Workout" || activityType == "WeightTraining" || activityType == "Yoga")
+                    {
+                        var userMetricProviderValue = await _dataContext.UserMetricProviderValues
+                            .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Workout" && umpv.ProviderName == "Strava" &&
+                                                          umpv.MetricType == MetricType.Minutes && umpv.Time == activityTime, cancellationToken: cancellationToken);
+
+                        if (userMetricProviderValue == null)
+                        {
+                            _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
+                            {
+                                UserId = user.Id,
+                                MetricName = "Workout",
+                                ProviderName = "Strava",
+                                MetricType = MetricType.Minutes,
+                                Time = activityTime,
+                                Value = activityMinutes
+                            });
+
+                            await _dataContext.SaveChangesAsync(cancellationToken);
+                        }
+                        else if (userMetricProviderValue.Value != activityMinutes)
+                        {
+                            userMetricProviderValue.Value = activityMinutes;
+
+                            _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
+
+                            await _dataContext.SaveChangesAsync(cancellationToken);
+                        }
+                    }
+
+                    {
+                        var userMetricProviderValue = await _dataContext.UserMetricProviderValues
+                            .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Exercise" && umpv.ProviderName == "Strava" &&
+                                                          umpv.MetricType == MetricType.Minutes && umpv.Time == activityTime, cancellationToken: cancellationToken);
+
+                        if (userMetricProviderValue == null)
+                        {
+                            _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
+                            {
+                                UserId = user.Id,
+                                MetricName = "Exercise",
+                                ProviderName = "Strava",
+                                MetricType = MetricType.Minutes,
+                                Time = activityTime,
+                                Value = activityMinutes
+                            });
+
+                            await _dataContext.SaveChangesAsync(cancellationToken);
+                        }
+                        else if (userMetricProviderValue.Value != activityMinutes)
+                        {
+                            userMetricProviderValue.Value = activityMinutes;
+
+                            _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
+
+                            await _dataContext.SaveChangesAsync(cancellationToken);
+                        }
+                    }
+                }
             }
         }
     }

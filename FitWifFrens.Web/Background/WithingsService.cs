@@ -11,6 +11,7 @@ using System.Text.Json;
 
 namespace FitWifFrens.Web.Background
 {
+    // TODO: need to handle delete
     public class WithingsService
     {
         private readonly record struct ResponseJsonDocument(HttpResponseMessage Response, JsonDocument JsonDocument) : IDisposable
@@ -124,14 +125,16 @@ namespace FitWifFrens.Web.Background
 
             if (tokens.Any())
             {
-                var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
-                resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
 
                 foreach (var webhookSubscription in Constants.Withings.WebhookSubscriptions)
                 {
+                    var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
+                    resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
+
                     using var responseJsonDocument = await _resiliencePipeline.ExecuteAsync(async rc =>
                     {
                         // TODO: "{\"status\": ... not equal to 0
+                        // TODO: remove webhook on delete?
                         using var request = new HttpRequestMessage(HttpMethod.Post, "https://wbsapi.withings.net/notify");
                         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
                         {
@@ -147,9 +150,10 @@ namespace FitWifFrens.Web.Background
                         return new ResponseJsonDocument(response, JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken)));
 
                     }, resilienceContext);
+
+                    ResilienceContextPool.Shared.Return(resilienceContext);
                 }
 
-                ResilienceContextPool.Shared.Return(resilienceContext);
             }
         }
 

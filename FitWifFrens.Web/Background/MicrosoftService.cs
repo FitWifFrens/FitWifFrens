@@ -112,6 +112,9 @@ namespace FitWifFrens.Web.Background
 
                             foreach (var listJson in listsJson)
                             {
+                                resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
+                                resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
+
                                 using var tasksResponse = await _resiliencePipeline.ExecuteAsync(async rc =>
                                 {
                                     using var request = new HttpRequestMessage(HttpMethod.Get, $"https://graph.microsoft.com/v1.0/me/todo/lists/{listJson.GetProperty("id").GetString()}/tasks?$filter=status eq 'notStarted'&$top={Constants.Microsoft.Count}");
@@ -137,6 +140,8 @@ namespace FitWifFrens.Web.Background
 
                                 taskCount += tasksCount;
                             }
+
+                            // TODO: add this into a final?
 
                             var userMetricProviderValue = await _dataContext.UserMetricProviderValues
                                 .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Tasks" && umpv.ProviderName == "Microsoft" &&
