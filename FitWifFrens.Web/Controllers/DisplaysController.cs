@@ -34,9 +34,11 @@ namespace FitWifFrens.Web.Controllers
             }
 
             var collection = new FontCollection();
-            var family = collection.Add("wwwroot/fonts/Poppins-Regular.ttf");
-            var titleFont = family.CreateFont(30, FontStyle.Bold);
-            var valueFont = family.CreateFont(22, FontStyle.Bold);
+            var textFontFamily = collection.Add("wwwroot/fonts/Poppins-Regular.ttf");
+            var iconFontFamily = collection.Add("wwwroot/fonts/fa-solid-900.ttf");
+            var titleFont = textFontFamily.CreateFont(30, FontStyle.Bold);
+            var valueFont = textFontFamily.CreateFont(22, FontStyle.Bold);
+            var iconFont = iconFontFamily.CreateFont(24, FontStyle.Regular);
 
             const float displayWidth = 264F;
             const float displayHeight = 176F;
@@ -66,20 +68,21 @@ namespace FitWifFrens.Web.Controllers
 
             const float weekWidth = (displayWidth - (displayMargin * 2) - titleWidth) / weeksToDisplay;
 
-            const float titleNudgeX1 = 7F;
-            const float titleNudgeX2 = 4F;
-            const float titleNudgeX3 = 1F;
-            const float titleNudgeY = 7F;
+            const float titleNudgeX1 = 3F;
+            const float titleNudgeX2 = 6F;
+            const float titleNudgeX3 = 0F;
+            const float titleNudgeX4 = 3F;
+            const float titleNudgeY = 9F;
 
             const float valueNudgeX = 4F;
             const float valueNudgeY = 11F;
 
             var metricsToShow = new List<(string MetricTitle, float TitleNudgeX, string MetricName, string ProviderName, MetricType MetricType)>
             {
-                new("E", titleNudgeX1, "Exercise", "Strava", MetricType.Minutes),
-                new("R", titleNudgeX1, "Running", "Strava", MetricType.Minutes),
-                new("G", titleNudgeX2, "Workout", "Strava", MetricType.Minutes),
-                new("W", titleNudgeX3, "Weight", "Withings", MetricType.Value),
+                new("\uf017", titleNudgeX1, "Exercise", "Strava", MetricType.Minutes), // f554 f004 f017
+                new("\uf70c", titleNudgeX2, "Running", "Strava", MetricType.Minutes),
+                new("\uf44b", titleNudgeX3, "Workout", "Strava", MetricType.Minutes),
+                new("\uf496", titleNudgeX4, "Weight", "Withings", MetricType.Value),
             };
 
             image.Mutate(x =>
@@ -115,7 +118,7 @@ namespace FitWifFrens.Web.Controllers
 
                     if (userMetricProviderValuesByWeek.Any())
                     {
-                        x.DrawText(metricTitle, titleFont, Color.Black, new PointF(displayMargin + titleNudgeX, displayMargin + (metricHeight * m) + titleNudgeY));
+                        x.DrawText(metricTitle, iconFont, Color.Black, new PointF(displayMargin + titleNudgeX, displayMargin + (metricHeight * m) + titleNudgeY));
 
                         for (var w = 0; w < weeksToDisplay; w++)
                         {
