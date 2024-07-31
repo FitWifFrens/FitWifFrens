@@ -165,7 +165,7 @@ namespace FitWifFrens.Web.Background
                 {
                     var startTime = commitmentPeriod.StartDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified).ConvertTimeToUtc();
                     var endTime = commitmentPeriod.EndDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified).ConvertTimeToUtc();
-                    ;
+
                     foreach (var commitmentPeriodUser in commitmentPeriod.Users)
                     {
                         foreach (var commitmentPeriodUserGoals in commitmentPeriodUser.Goals.GroupBy(g => (g.MetricName, g.ProviderName)))
@@ -194,7 +194,8 @@ namespace FitWifFrens.Web.Background
                                 {
                                     if (userMetricProviderValues.Count >= 2)
                                     {
-                                        var userMetricProviderValueByDay = userMetricProviderValues.GroupBy(umpv => umpv.Time.Date).OrderBy(g => g.Key).ToList();
+                                        // TODO: convert to local
+                                        var userMetricProviderValueByDay = userMetricProviderValues.GroupBy(umpv => umpv.Time.ConvertTimeFromUtc().Date).OrderBy(g => g.Key).ToList();
                                         var times = userMetricProviderValueByDay.Select(g => (double)g.Key.ToUnixTimeSeconds()).ToArray();
                                         var values = userMetricProviderValueByDay.Select(g => g.Average(umpv => umpv.Value)).ToArray();
 
