@@ -1,4 +1,5 @@
 ﻿using FitWifFrens.Data;
+using Hangfire;
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.EntityFrameworkCore;
