@@ -170,9 +170,13 @@ namespace FitWifFrens.Web.Background
                     {
                         foreach (var commitmentPeriodUserGoals in commitmentPeriodUser.Goals.GroupBy(g => (g.MetricName, g.ProviderName)))
                         {
+                            var valuesStartTime = commitmentPeriodUserGoals.Key.MetricName == "Weight"
+                                ? startTime.AddDays(-commitmentPeriod.Commitment.Days)
+                                : startTime;
+
                             var userMetricProviderValues = await _dataContext.UserMetricProviderValues
                                 .Where(umpv => umpv.UserId == commitmentPeriodUser.UserId && umpv.MetricName == commitmentPeriodUserGoals.Key.MetricName &&
-                                               umpv.ProviderName == commitmentPeriodUserGoals.Key.ProviderName && umpv.Time >= startTime && umpv.Time < endTime)
+                                               umpv.ProviderName == commitmentPeriodUserGoals.Key.ProviderName && umpv.Time >= valuesStartTime && umpv.Time < endTime)
                                 .ToListAsync(cancellationToken);
 
                             foreach (var commitmentPeriodUserGoal in commitmentPeriodUserGoals)
