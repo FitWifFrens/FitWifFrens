@@ -155,7 +155,7 @@ namespace FitWifFrens.Web.Background
 
                         foreach (var profileJson in responseJsonDocument.JsonDocument.RootElement.GetProperty("body").GetProperty("profiles").EnumerateArray())
                         {
-                            _telemetryClient.TrackTrace($"Removing {profileJson.GetProperty("appli").GetInt32()} {profileJson.GetProperty("callbackurl").GetString()}");
+                            _telemetryClient.TrackTrace($"Removing {user.Id} {profileJson.GetProperty("appli").GetInt32()} {profileJson.GetProperty("callbackurl").GetString()}");
 
                             resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
                             resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
@@ -188,6 +188,8 @@ namespace FitWifFrens.Web.Background
                 {
                     var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
                     resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
+
+                    _telemetryClient.TrackTrace($"Adding {user.Id} {webhookSubscription}");
 
                     using var responseJsonDocument = await _resiliencePipeline.ExecuteAsync(async rc =>
                     {
