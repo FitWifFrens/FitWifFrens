@@ -152,6 +152,7 @@ namespace FitWifFrens.Web.Background
 
                         ResilienceContextPool.Shared.Return(resilienceContext);
 
+                        _telemetryClient.TrackTrace($"Removing {user.Id} {responseJsonDocument.JsonDocument.RootElement.GetRawText()}");
 
                         foreach (var profileJson in responseJsonDocument.JsonDocument.RootElement.GetProperty("body").GetProperty("profiles").EnumerateArray())
                         {
@@ -184,35 +185,35 @@ namespace FitWifFrens.Web.Background
                 }
 
 
-                foreach (var webhookSubscription in Constants.Withings.WebhookSubscriptions)
-                {
-                    var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
-                    resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
+                //foreach (var webhookSubscription in Constants.Withings.WebhookSubscriptions)
+                //{
+                //    var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
+                //    resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
 
-                    using var responseJsonDocument = await _resiliencePipeline.ExecuteAsync(async rc =>
-                    {
-                        _telemetryClient.TrackTrace($"Adding {user.Id} {webhookSubscription}");
+                //    using var responseJsonDocument = await _resiliencePipeline.ExecuteAsync(async rc =>
+                //    {
+                //        _telemetryClient.TrackTrace($"Adding {user.Id} {webhookSubscription}");
 
-                        // TODO: "{\"status\": ... not equal to 0
-                        // TODO: remove webhook on delete?
-                        using var request = new HttpRequestMessage(HttpMethod.Post, "https://wbsapi.withings.net/notify");
-                        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
-                        {
-                            { "action", "subscribe" },
-                            { "appli", webhookSubscription.ToString() },
-                            { "callbackurl", $"{_backgroundConfiguration.CallbackUrl}/api/webhooks/withings" },
-                        });
-                        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));
+                //        // TODO: "{\"status\": ... not equal to 0
+                //        // TODO: remove webhook on delete?
+                //        using var request = new HttpRequestMessage(HttpMethod.Post, "https://wbsapi.withings.net/notify");
+                //        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                //        {
+                //            { "action", "subscribe" },
+                //            { "appli", webhookSubscription.ToString() },
+                //            { "callbackurl", $"{_backgroundConfiguration.CallbackUrl}/api/webhooks/withings" },
+                //        });
+                //        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                //        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));
 
-                        var response = await _httpClient.SendAsync(request, cancellationToken);
+                //        var response = await _httpClient.SendAsync(request, cancellationToken);
 
-                        return new ResponseJsonDocument(response, JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken)));
+                //        return new ResponseJsonDocument(response, JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken)));
 
-                    }, resilienceContext);
+                //    }, resilienceContext);
 
-                    ResilienceContextPool.Shared.Return(resilienceContext);
-                }
+                //    ResilienceContextPool.Shared.Return(resilienceContext);
+                //}
 
             }
         }
