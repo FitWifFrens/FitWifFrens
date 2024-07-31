@@ -37,7 +37,7 @@ namespace FitWifFrens.Web.Controllers
 
             if (dataJson.TryGetProperty("owner_id", out var stravaIdJson))
             {
-                _backgroundJobClient.Enqueue<StravaService>(s => s.UpdateProviderMetricValues(stravaIdJson.GetString()!, CancellationToken.None));
+                _backgroundJobClient.Enqueue<StravaService>(s => s.UpdateProviderMetricValues(stravaIdJson.GetInt32().ToString(), CancellationToken.None));
             }
 
             return Ok();
