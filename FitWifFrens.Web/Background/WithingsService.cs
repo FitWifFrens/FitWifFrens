@@ -189,10 +189,10 @@ namespace FitWifFrens.Web.Background
                     var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
                     resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
 
-                    _telemetryClient.TrackTrace($"Adding {user.Id} {webhookSubscription}");
-
                     using var responseJsonDocument = await _resiliencePipeline.ExecuteAsync(async rc =>
                     {
+                        _telemetryClient.TrackTrace($"Adding {user.Id} {webhookSubscription}");
+
                         // TODO: "{\"status\": ... not equal to 0
                         // TODO: remove webhook on delete?
                         using var request = new HttpRequestMessage(HttpMethod.Post, "https://wbsapi.withings.net/notify");
