@@ -23,6 +23,7 @@ namespace FitWifFrens.Web.Background
 
         private readonly BackgroundConfiguration _backgroundConfiguration;
         private readonly DataContext _dataContext;
+        private readonly IBackgroundJobClient _backgroundJobClient;
         private readonly HttpClient _httpClient;
         private readonly RefreshTokenService _refreshTokenService;
         private readonly TelemetryClient _telemetryClient;
@@ -30,10 +31,12 @@ namespace FitWifFrens.Web.Background
 
         private readonly ResiliencePipeline<ResponseJsonDocument> _resiliencePipeline;
 
-        public WithingsService(BackgroundConfiguration backgroundConfiguration, DataContext dataContext, IHttpClientFactory httpClientFactory, RefreshTokenService refreshTokenService, TelemetryClient telemetryClient, ILogger<WithingsService> logger)
+        public WithingsService(BackgroundConfiguration backgroundConfiguration, DataContext dataContext, IBackgroundJobClient backgroundJobClient,
+            IHttpClientFactory httpClientFactory, RefreshTokenService refreshTokenService, TelemetryClient telemetryClient, ILogger<WithingsService> logger)
         {
             _backgroundConfiguration = backgroundConfiguration;
             _dataContext = dataContext;
+            _backgroundJobClient = backgroundJobClient;
             _httpClient = httpClientFactory.CreateClient();
             _refreshTokenService = refreshTokenService;
             _telemetryClient = telemetryClient;
@@ -162,6 +165,8 @@ namespace FitWifFrens.Web.Background
                     if (user != null)
                     {
                         await UpdateProviderMetricValues(user, cancellationToken);
+
+                        _backgroundJobClient.Enqueue<CommitmentPeriodService>(s => s.UpdateCommitmentPeriodUserGoals(CancellationToken.None));
                     }
                 }
             }
