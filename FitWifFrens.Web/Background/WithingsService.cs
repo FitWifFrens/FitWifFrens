@@ -50,7 +50,9 @@ namespace FitWifFrens.Web.Background
                     MaxRetryAttempts = 1,
                     Delay = TimeSpan.FromSeconds(2),
 
-                    ShouldHandle = new PredicateBuilder<ResponseJsonDocument>().HandleResult(rd => !rd.Response.IsSuccessStatusCode)
+                    ShouldHandle = new PredicateBuilder<ResponseJsonDocument>()
+                        .HandleResult(rd => !rd.Response.IsSuccessStatusCode)
+                        .HandleResult(rd => rd.JsonDocument.RootElement.GetProperty("status").GetInt32() != 0),
                 })
                 .AddRetry(new RetryStrategyOptions<ResponseJsonDocument>
                 {
@@ -79,9 +81,9 @@ namespace FitWifFrens.Web.Background
 
         public async Task UpdateWebhook(string withingsId, CancellationToken cancellationToken)
         {
-            try
+            if (!string.IsNullOrWhiteSpace(_backgroundConfiguration.CallbackUrl))
             {
-                if (!string.IsNullOrWhiteSpace(_backgroundConfiguration.CallbackUrl))
+                try
                 {
                     var userLogin = await _dataContext.UserLogins.Include(ul => ul.User.Tokens).SingleOrDefaultAsync(ul => ul.LoginProvider == "Withings" && ul.ProviderKey == withingsId, cancellationToken: cancellationToken);
 
@@ -90,11 +92,11 @@ namespace FitWifFrens.Web.Background
                         await UpdateWebhook(userLogin.User, cancellationToken);
                     }
                 }
-            }
-            catch (Exception exception)
-            {
-                _telemetryClient.TrackException(exception);
-                throw;
+                catch (Exception exception)
+                {
+                    _telemetryClient.TrackException(exception);
+                    throw;
+                }
             }
         }
 
@@ -125,6 +127,62 @@ namespace FitWifFrens.Web.Background
 
             if (tokens.Any())
             {
+                {
+                    foreach (var webhookSubscription in Constants.Withings.WebhookSubscriptions)
+                    {
+                        var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
+                        resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
+
+                        using var responseJsonDocument = await _resiliencePipeline.ExecuteAsync(async rc =>
+                        {
+                            using var request = new HttpRequestMessage(HttpMethod.Post, "https://wbsapi.withings.net/notify");
+                            request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                            {
+                                { "action", "list" },
+                                { "appli", webhookSubscription.ToString() },
+                            });
+                            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));
+
+                            var response = await _httpClient.SendAsync(request, cancellationToken);
+
+                            return new ResponseJsonDocument(response, JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken)));
+
+                        }, resilienceContext);
+
+                        ResilienceContextPool.Shared.Return(resilienceContext);
+
+
+                        foreach (var profileJson in responseJsonDocument.JsonDocument.RootElement.GetProperty("body").GetProperty("profiles").EnumerateArray())
+                        {
+                            _telemetryClient.TrackTrace($"Removing {profileJson.GetProperty("appli").GetInt32()} {profileJson.GetProperty("callbackurl").GetString()}");
+
+                            resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
+                            resilienceContext.Properties.Set(new ResiliencePropertyKey<string>("UserId"), user.Id);
+
+                            using var _ = await _resiliencePipeline.ExecuteAsync(async rc =>
+                            {
+                                using var request = new HttpRequestMessage(HttpMethod.Post, "https://wbsapi.withings.net/notify");
+                                request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                                {
+                                    { "action", "revoke" },
+                                    { "appli", profileJson.GetProperty("appli").GetInt32().ToString() },
+                                    { "callbackurl", profileJson.GetProperty("callbackurl").GetString()! },
+                                });
+                                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));
+
+                                var response = await _httpClient.SendAsync(request, cancellationToken);
+
+                                return new ResponseJsonDocument(response, JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken)));
+
+                            }, resilienceContext);
+
+                            ResilienceContextPool.Shared.Return(resilienceContext);
+                        }
+                    }
+                }
+
 
                 foreach (var webhookSubscription in Constants.Withings.WebhookSubscriptions)
                 {
@@ -140,7 +198,7 @@ namespace FitWifFrens.Web.Background
                         {
                             { "action", "subscribe" },
                             { "appli", webhookSubscription.ToString() },
-                            { "callbackurl", $"{_backgroundConfiguration.CallbackUrl}/api/webhooks/withings?userId={user.Id}" },
+                            { "callbackurl", $"{_backgroundConfiguration.CallbackUrl}/api/webhooks/withings" },
                         });
                         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));

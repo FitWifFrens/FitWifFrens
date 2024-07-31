@@ -45,7 +45,7 @@ namespace FitWifFrens.Web.Controllers
 
         [HttpPost("withings")]
         [Consumes("application/x-www-form-urlencoded")]
-        public IActionResult UpdateWithings([FromQuery] string userId, [FromForm] IFormCollection dataFrom)
+        public IActionResult UpdateWithings([FromForm] IFormCollection dataFrom)
         {
             _telemetryClient.TrackTrace("UpdateWithings ~ " + string.Join(", ", dataFrom.Select(k => $"{k.Key}={k.Value.First()}")));
 
