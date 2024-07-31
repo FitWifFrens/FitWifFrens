@@ -1,4 +1,5 @@
 ﻿using FitWifFrens.Data;
+using MathNet.Numerics;
 using Microsoft.ApplicationInsights;
 using Microsoft.EntityFrameworkCore;
 
@@ -142,6 +143,11 @@ namespace FitWifFrens.Web.Background
             }
         }
 
+        public async Task CreateCommitmentPeriods(string userId, CancellationToken cancellationToken)
+        {
+
+        }
+
         public async Task UpdateCommitmentPeriodUserGoals(CancellationToken cancellationToken)
         {
             try
@@ -186,21 +192,32 @@ namespace FitWifFrens.Web.Background
                                 }
                                 else if (commitmentPeriodUserGoal.MetricType == MetricType.Value)
                                 {
-                                    var endUserProviderMetricValue = userMetricProviderValues.MaxBy(upmv => upmv.Time);
-
-                                    if (endUserProviderMetricValue != null)
+                                    if (userMetricProviderValues.Count >= 2)
                                     {
-                                        var startUserMetricProviderValue = await _dataContext.UserMetricProviderValues
-                                            .Where(umpv => umpv.UserId == commitmentPeriodUser.UserId && umpv.MetricName == commitmentPeriodUserGoal.MetricName &&
-                                                           umpv.ProviderName == commitmentPeriodUserGoal.ProviderName && umpv.MetricType == MetricType.Value && umpv.Time <= startTime)
-                                            .OrderByDescending(upmv => upmv.Time)
-                                            .FirstOrDefaultAsync(cancellationToken);
+                                        var userMetricProviderValueByDay = userMetricProviderValues.GroupBy(umpv => umpv.Time.Date).OrderBy(g => g.Key).ToList();
+                                        var times = userMetricProviderValueByDay.Select(g => (double)g.Key.ToUnixTimeSeconds()).ToArray();
+                                        var values = userMetricProviderValueByDay.Select(g => g.Average(umpv => umpv.Value)).ToArray();
 
-                                        if (startUserMetricProviderValue != null)
-                                        {
-                                            value = Math.Round(endUserProviderMetricValue.Value - startUserMetricProviderValue.Value, 1);
-                                        }
+                                        var (_, slope) = Fit.Line(times, values);
+
+                                        value = Math.Round(slope * commitmentPeriod.Commitment.Days * TimeSpan.FromDays(1).TotalSeconds, 1);
                                     }
+
+                                    //var endUserProviderMetricValue = userMetricProviderValues.MaxBy(upmv => upmv.Time);
+
+                                    //if (endUserProviderMetricValue != null)
+                                    //{
+                                    //    var startUserMetricProviderValue = await _dataContext.UserMetricProviderValues
+                                    //        .Where(umpv => umpv.UserId == commitmentPeriodUser.UserId && umpv.MetricName == commitmentPeriodUserGoal.MetricName &&
+                                    //                       umpv.ProviderName == commitmentPeriodUserGoal.ProviderName && umpv.MetricType == MetricType.Value && umpv.Time <= startTime)
+                                    //        .OrderByDescending(upmv => upmv.Time)
+                                    //        .FirstOrDefaultAsync(cancellationToken);
+
+                                    //    if (startUserMetricProviderValue != null)
+                                    //    {
+                                    //        value = Math.Round(endUserProviderMetricValue.Value - startUserMetricProviderValue.Value, 1);
+                                    //    }
+                                    //}
                                 }
                                 else
                                 {
@@ -225,6 +242,11 @@ namespace FitWifFrens.Web.Background
                 _telemetryClient.TrackException(exception);
                 throw;
             }
+        }
+
+        public async Task UpdateCommitmentPeriodUserGoals(string userId, CancellationToken cancellationToken)
+        {
+
         }
 
         // TODO: only complete once we know we have all the data
