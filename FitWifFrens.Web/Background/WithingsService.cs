@@ -77,17 +77,17 @@ namespace FitWifFrens.Web.Background
                 .Build();
         }
 
-        public async Task UpdateWebhook(string userId, CancellationToken cancellationToken)
+        public async Task UpdateWebhook(string withingsId, CancellationToken cancellationToken)
         {
             try
             {
                 if (!string.IsNullOrWhiteSpace(_backgroundConfiguration.CallbackUrl))
                 {
-                    var user = await _dataContext.Users.Include(u => u.Tokens).SingleOrDefaultAsync(u => u.Id == userId, cancellationToken: cancellationToken);
+                    var userLogin = await _dataContext.UserLogins.Include(ul => ul.User.Tokens).SingleOrDefaultAsync(ul => ul.LoginProvider == "Withings" && ul.ProviderKey == withingsId, cancellationToken: cancellationToken);
 
-                    if (user != null)
+                    if (userLogin != null)
                     {
-                        await UpdateWebhook(user, cancellationToken);
+                        await UpdateWebhook(userLogin.User, cancellationToken);
                     }
                 }
             }
@@ -157,19 +157,19 @@ namespace FitWifFrens.Web.Background
             }
         }
 
-        public async Task UpdateProviderMetricValues(string userId, CancellationToken cancellationToken)
+        public async Task UpdateProviderMetricValues(string withingsId, CancellationToken cancellationToken)
         {
             try
             {
-                var metricProviders = await _dataContext.MetricProviders.Where(mp => mp.ProviderName == "Withings").ToListAsync(cancellationToken);
+                var metricProviders = await _dataContext.MetricProviders.Where(mp => mp.ProviderName == "Withings").ToListAsync(cancellationToken); // TODO: should I do this??? or just try update??
 
                 if (metricProviders.Any())
                 {
-                    var user = await _dataContext.Users.Include(u => u.Tokens).SingleOrDefaultAsync(u => u.Id == userId, cancellationToken: cancellationToken);
+                    var userLogin = await _dataContext.UserLogins.Include(ul => ul.User.Tokens).SingleOrDefaultAsync(ul => ul.LoginProvider == "Withings" && ul.ProviderKey == withingsId, cancellationToken: cancellationToken);
 
-                    if (user != null)
+                    if (userLogin != null)
                     {
-                        await UpdateProviderMetricValues(user, cancellationToken);
+                        await UpdateProviderMetricValues(userLogin.User, cancellationToken);
 
                         _backgroundJobClient.Enqueue<CommitmentPeriodService>(s => s.UpdateCommitmentPeriodUserGoals(CancellationToken.None));
                     }

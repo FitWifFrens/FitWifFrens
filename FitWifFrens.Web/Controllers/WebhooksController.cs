@@ -47,11 +47,11 @@ namespace FitWifFrens.Web.Controllers
         [Consumes("application/x-www-form-urlencoded")]
         public IActionResult UpdateWithings([FromQuery] string userId, [FromForm] IFormCollection dataFrom)
         {
-            if (dataFrom.Any())
-            {
-                _telemetryClient.TrackTrace("UpdateWithings ~ " + string.Join(", ", dataFrom.Select(k => $"{k.Key}={k.Value.First()}")));
+            _telemetryClient.TrackTrace("UpdateWithings ~ " + string.Join(", ", dataFrom.Select(k => $"{k.Key}={k.Value.First()}")));
 
-                _backgroundJobClient.Enqueue<WithingsService>(s => s.UpdateProviderMetricValues(userId, CancellationToken.None)); // TODO: and then update goals
+            if (dataFrom.TryGetValue("userid", out var withingsIdValues))
+            {
+                _backgroundJobClient.Enqueue<WithingsService>(s => s.UpdateProviderMetricValues(withingsIdValues.Single()!, CancellationToken.None)); // TODO: and then update goals
             }
 
             return Ok();

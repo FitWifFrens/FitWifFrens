@@ -184,11 +184,14 @@
 
         await DataContext.SaveChangesAsync();
 
-
-        if (info.LoginProvider == "Withings")
+        if (info.LoginProvider == "Strava")
         {
-            BackgroundJobClient.Enqueue<WithingsService>(s => s.UpdateWebhook(userId, CancellationToken.None));
-            BackgroundJobClient.Enqueue<WithingsService>(s => s.UpdateProviderMetricValues(userId, CancellationToken.None));
+            BackgroundJobClient.Enqueue<StravaService>(s => s.UpdateProviderMetricValues(info.ProviderKey, CancellationToken.None));
+        }
+        else if (info.LoginProvider == "Withings")
+        {
+            BackgroundJobClient.Enqueue<WithingsService>(s => s.UpdateWebhook(info.ProviderKey, CancellationToken.None));
+            BackgroundJobClient.Enqueue<WithingsService>(s => s.UpdateProviderMetricValues(info.ProviderKey, CancellationToken.None));
         }
 
         // Clear the existing external cookie to ensure a clean login process
