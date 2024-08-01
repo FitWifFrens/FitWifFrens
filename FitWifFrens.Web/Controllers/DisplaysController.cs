@@ -36,8 +36,7 @@ namespace FitWifFrens.Web.Controllers
             var collection = new FontCollection();
             var textFontFamily = collection.Add("wwwroot/fonts/Poppins-Regular.ttf");
             var iconFontFamily = collection.Add("wwwroot/fonts/fa-solid-900.ttf");
-            var titleFont = textFontFamily.CreateFont(30, FontStyle.Bold);
-            var valueFont = textFontFamily.CreateFont(22, FontStyle.Bold);
+            var valueFont = textFontFamily.CreateFont(20, FontStyle.Bold);
             var iconFont = iconFontFamily.CreateFont(24, FontStyle.Regular);
 
             const float displayWidth = 264F;
@@ -74,7 +73,7 @@ namespace FitWifFrens.Web.Controllers
             const float titleNudgeX4 = 3F;
             const float titleNudgeY = 9F;
 
-            const float valueNudgeX = 4F;
+            const float valueNudgeX = -2F;
             const float valueNudgeY = 11F;
 
             var metricsToShow = new List<(string MetricTitle, float TitleNudgeX, string MetricName, string ProviderName, MetricType MetricType)>
@@ -126,17 +125,26 @@ namespace FitWifFrens.Web.Controllers
 
                             if (userMetricProviderValuesByWeek.TryGetValue(startOfWeekTime, out var userMetricProviderWeekValues))
                             {
+                                var valueRichTextOptions = new RichTextOptions(valueFont)
+                                {
+                                    TextAlignment = TextAlignment.End,
+                                    HorizontalAlignment = HorizontalAlignment.Right,
+                                    Origin = new PointF(displayMargin + titleWidth + (weekWidth * (w + 1)) + valueNudgeX, displayMargin + (metricHeight * m) + valueNudgeY)
+                                };
+
                                 if (metricType == MetricType.Minutes)
                                 {
-                                    var value = Math.Round(userMetricProviderWeekValues.Sum(umpv => umpv.Value), 0);
+                                    var value = TimeSpan.FromMinutes(userMetricProviderWeekValues.Sum(umpv => umpv.Value));
 
-                                    x.DrawText(value.ToString("F0"), valueFont, Color.Black, new PointF(displayMargin + titleWidth + (weekWidth * w) + valueNudgeX, displayMargin + (metricHeight * m) + valueNudgeY));
+                                    var valueString = $"{Math.Floor(value.TotalHours)}:{value:mm}";
+
+                                    x.DrawText(valueRichTextOptions, valueString, Color.Black);
                                 }
                                 else if (metricType == MetricType.Value)
                                 {
                                     var value = Math.Round(userMetricProviderWeekValues.Average(umpv => umpv.Value), 1);
 
-                                    x.DrawText(value.ToString("F1"), valueFont, Color.Black, new PointF(displayMargin + titleWidth + (weekWidth * w) + valueNudgeX, displayMargin + (metricHeight * m) + valueNudgeY));
+                                    x.DrawText(valueRichTextOptions, value.ToString("F1"), Color.Black);
                                 }
                                 else
                                 {
