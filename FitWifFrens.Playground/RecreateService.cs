@@ -43,6 +43,10 @@ namespace FitWifFrens.Playground
             {
                 new Metric
                 {
+                    Name = "Blood Pressure"
+                },
+                new Metric
+                {
                     Name = "Exercise"
                 },
                 new Metric
@@ -89,6 +93,11 @@ namespace FitWifFrens.Playground
                 new MetricProvider
                 {
                     ProviderName = "Withings",
+                    MetricName = "Blood Pressure",
+                },
+                new MetricProvider
+                {
+                    ProviderName = "Withings",
                     MetricName = "Exercise",
                 },
                 new MetricProvider
@@ -111,6 +120,11 @@ namespace FitWifFrens.Playground
 
             _dataContext.MetricValues.AddRange(new List<MetricValue>
             {
+                new MetricValue
+                {
+                    MetricName = "Blood Pressure",
+                    Type = MetricType.Count
+                },
                 new MetricValue
                 {
                     MetricName = "Tasks",
@@ -249,7 +263,7 @@ namespace FitWifFrens.Playground
                 Id = commitment4Id,
                 Title = "Weight Loss",
                 Description = "Lose at least half a kilogram every 2 weeks",
-                Image = "images/developer0.png",
+                Image = "images/weight-loss0.png",
                 StartDate = new DateOnly(2024, 07, 22),
                 Days = 14,
                 ContractAddress = "0x947384ef21BB443416383A7FFeF3f1C3543c19eD",
@@ -261,6 +275,30 @@ namespace FitWifFrens.Playground
                         MetricType = MetricType.Value,
                         Rule = GoalRule.LessThanOrEqualTo,
                         Value = -0.5
+                    }
+                },
+                Periods = new List<CommitmentPeriod>()
+            });
+
+            var commitment5Id = Guid.Parse("86913f20-0fae-49cc-acb0-edfb34360fee");
+
+            _dataContext.Commitments.Add(new Commitment
+            {
+                Id = commitment5Id,
+                Title = "Blood Pressure",
+                Description = "Measure your blood pressure at least once every 3 days",
+                Image = "images/blood-pressure0.png",
+                StartDate = new DateOnly(2024, 08, 05),
+                Days = 3,
+                ContractAddress = "0x344384ef21BB443416383A7FFeF3f1C3543c19eD",
+                Goals = new List<Goal>
+                {
+                    new Goal
+                    {
+                        MetricName = "Blood Pressure",
+                        MetricType = MetricType.Count,
+                        Rule = GoalRule.GreaterThanOrEqualTo,
+                        Value = 1
                     }
                 },
                 Periods = new List<CommitmentPeriod>()

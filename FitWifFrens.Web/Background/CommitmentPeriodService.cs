@@ -184,9 +184,18 @@ namespace FitWifFrens.Web.Background
                                 var value = default(double?);
                                 if (commitmentPeriodUserGoal.MetricType == MetricType.Count)
                                 {
-                                    var values = userMetricProviderValues.Where(upmv => upmv.MetricType == MetricType.Minutes).ToList();
+                                    if (commitmentPeriodUserGoal.MetricName == "Blood Pressure")
+                                    {
+                                        var values = userMetricProviderValues.Where(upmv => upmv.MetricType == MetricType.Count).ToList();
 
-                                    value = values.Any() ? values.Count : null;
+                                        value = values.Any() ? Math.Round(values.Sum(upmv => upmv.Value), 0) : null;
+                                    }
+                                    else
+                                    {
+                                        var values = userMetricProviderValues.Where(upmv => upmv.MetricType == MetricType.Minutes).ToList();
+
+                                        value = values.Any() ? values.Count : null;
+                                    }
                                 }
                                 else if (commitmentPeriodUserGoal.MetricType == MetricType.Minutes)
                                 {

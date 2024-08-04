@@ -277,6 +277,37 @@ namespace FitWifFrens.Web.Background
                                     await _dataContext.SaveChangesAsync(cancellationToken);
                                 }
                             }
+                            else if (measureType == 9)
+                            {
+                                var measureValue = 1D;
+
+                                var userMetricProviderValue = await _dataContext.UserMetricProviderValues
+                                    .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Blood Pressure" && umpv.ProviderName == "Withings" &&
+                                                                  umpv.MetricType == MetricType.Count && umpv.Time == measureGroupTime, cancellationToken: cancellationToken);
+
+                                if (userMetricProviderValue == null)
+                                {
+                                    _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
+                                    {
+                                        UserId = user.Id,
+                                        MetricName = "Blood Pressure",
+                                        ProviderName = "Withings",
+                                        MetricType = MetricType.Count,
+                                        Time = measureGroupTime,
+                                        Value = measureValue
+                                    });
+
+                                    await _dataContext.SaveChangesAsync(cancellationToken);
+                                }
+                                else if (userMetricProviderValue.Value != measureValue)
+                                {
+                                    userMetricProviderValue.Value = measureValue;
+
+                                    _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
+
+                                    await _dataContext.SaveChangesAsync(cancellationToken);
+                                }
+                            }
                         }
                     }
                 }
