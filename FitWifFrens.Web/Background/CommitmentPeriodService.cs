@@ -152,7 +152,7 @@ namespace FitWifFrens.Web.Background
         {
             try
             {
-                var date = DateOnly.FromDateTime(_timeProvider.GetUtcNow().DateTime);
+                var date = DateOnly.FromDateTime(_timeProvider.GetUtcNow().DateTime.ConvertTimeFromUtc());
 
                 var commitmentPeriods = await _dataContext.CommitmentPeriods
                     .Include(cp => cp.Commitment).ThenInclude(c => c.Users)
