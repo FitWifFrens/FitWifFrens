@@ -248,7 +248,7 @@ namespace FitWifFrens.Playground
             {
                 Id = commitment4Id,
                 Title = "Weight Loss",
-                Description = "Lose at least a kilogram every 2 weeks",
+                Description = "Lose at least half a kilogram every 2 weeks",
                 Image = "images/developer0.png",
                 StartDate = new DateOnly(2024, 07, 22),
                 Days = 14,
@@ -260,7 +260,7 @@ namespace FitWifFrens.Playground
                         MetricName = "Weight",
                         MetricType = MetricType.Value,
                         Rule = GoalRule.LessThanOrEqualTo,
-                        Value = -1
+                        Value = -0.5
                     }
                 },
                 Periods = new List<CommitmentPeriod>()
