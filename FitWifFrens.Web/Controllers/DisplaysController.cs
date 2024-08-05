@@ -54,6 +54,7 @@ namespace FitWifFrens.Web.Controllers
             var time = _timeProvider.GetUtcNow().DateTime.ConvertTimeFromUtc();
             var startTime = time.StartOfWeek(startDayOfWeek).ConvertTimeToUtc().AddDays(daysInWeek).AddDays(-daysToDisplay);
 
+            var userMetricProviders = await _dataContext.UserMetricProviders.ToListAsync();
             var userMetricProviderValues = await _dataContext.UserMetricProviderValues.Where(umpv => umpv.UserId == userDisplay.UserId && umpv.Time > startTime).ToListAsync();
 
             startTime = startTime.ConvertTimeFromUtc();
@@ -78,10 +79,10 @@ namespace FitWifFrens.Web.Controllers
 
             var metricsToShow = new List<(string MetricTitle, float TitleNudgeX, string MetricName, string ProviderName, MetricType MetricType)>
             {
-                new("\uf017", titleNudgeX1, "Exercise", "Strava", MetricType.Minutes),
-                new("\uf70c", titleNudgeX2, "Running", "Strava", MetricType.Minutes),
-                new("\uf44b", titleNudgeX3, "Workout", "Strava", MetricType.Minutes),
-                new("\uf496", titleNudgeX4, "Weight", "Withings", MetricType.Value),
+                new("\uf017", titleNudgeX1, "Exercise", userMetricProviders.SingleOrDefault(ump => ump.MetricName == "Exercise")?.ProviderName ?? "", MetricType.Minutes),
+                new("\uf70c", titleNudgeX2, "Running", userMetricProviders.SingleOrDefault(ump => ump.MetricName == "Running")?.ProviderName ?? "", MetricType.Minutes),
+                new("\uf44b", titleNudgeX3, "Workout", userMetricProviders.SingleOrDefault(ump => ump.MetricName == "Workout")?.ProviderName ?? "", MetricType.Minutes),
+                new("\uf496", titleNudgeX4, "Weight", userMetricProviders.SingleOrDefault(ump => ump.MetricName == "Weight")?.ProviderName ?? "", MetricType.Value),
             };
 
             image.Mutate(x =>
