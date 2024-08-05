@@ -26,18 +26,28 @@
     img.btn-img {
         height: 33.5px;
     }
+
+    td.provider-col,
+    td.metric-col {
+        width: 200px;
+    }
+
+    td.provider-select-col select {
+        max-width: 300px
+    }
 </style>
 
 <StatusMessage />
 @if (currentLogins?.Count > 0)
 {
     <h3>Registered Logins</h3>
+    <hr />
     <table class="table">
         <tbody>
             @foreach (var login in currentLogins)
             {
                 <tr>
-                    <td>@login.ProviderDisplayName</td>
+                    <td class="provider-col">@login.ProviderDisplayName</td>
                     <td>
                         @if (showRemoveButton)
                         {
@@ -60,9 +70,58 @@
         </tbody>
     </table>
 }
+
+@if (UpdateMetricProviders != null)
+{
+    <EditForm Model="UpdateMetricProviders" FormName="metric-providers" OnSubmit="@OnUpdateMetricProviders" method="post">
+        @if (UpdateMetricProviders?.MetricProviders?.Count > 0)
+        {
+            <h4 class="mt-5">Metric Providers</h4>
+            <hr />
+            <table class="table">
+                <tbody>
+                    @for (var i = 0; i < UpdateMetricProviders.MetricProviders.Count; i++)
+                    {
+                        <tr>
+                            <td class="metric-col">
+                                @UpdateMetricProviders.MetricProviders[i].MetricName
+                                <input name="UpdateMetricProviders.MetricProviders[@(i)].MetricName" value="@UpdateMetricProviders.MetricProviders[i].MetricName" type="hidden" />
+
+                            </td>
+                            <td class="provider-select-col">
+                                <select name="UpdateMetricProviders.MetricProviders[@(i)].ProviderName" value="@UpdateMetricProviders.MetricProviders[i].ProviderName" class="form-select">
+                                    <option value="">
+                                        None
+                                    </option>
+                                    @if (UpdateMetricProviders.MetricProviders[i].Providers != null)
+                                    {
+                                        @foreach (var provider in UpdateMetricProviders.MetricProviders[i].Providers)
+                                        {
+                                            <option value="@provider.ProviderName">
+                                                @provider.ProviderDisplayName
+                                            </option>
+                                        }
+                                    }
+                                </select>
+                            </td>
+                        </tr>
+                    }
+                    <tr>
+                        <td class="metric-col"></td>
+                        <td class="provider-select-col">
+                            <button type="submit" class="btn btn-primary">Update</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        }
+    </EditForm>
+}
+
+
 @if (otherLogins?.Count > 0)
 {
-    <h4>Add another service to commit to more commitments.</h4>
+    <h4 class="mt-5">Add another service to commit to more commitments.</h4>
     <hr />
     <form class="form-horizontal" action="Account/Manage/LinkExternalLogin" method="post">
         <AntiforgeryToken />
@@ -86,12 +145,38 @@
     </form>
 }
 
+
 @code {
+
+    public class ProviderModel
+    {
+        public string ProviderName { get; set; }
+        public string ProviderDisplayName { get; set; }
+    }
+
+    public class CurrentMetricProvider
+    {
+        public string MetricName { get; set; }
+        public string? ProviderName { get; set; }
+
+        public List<ProviderModel>? Providers { get; set; }
+    }
+
+    public class UpdateMetricProvidersModel
+    {
+        public List<CurrentMetricProvider>? MetricProviders { get; set; }
+    }
+
     public const string LinkLoginCallbackAction = "LinkLoginCallback";
+
+    [SupplyParameterFromForm]
+    public UpdateMetricProvidersModel? UpdateMetricProviders { get; set; }
 
     private User user = default!;
     private IList<UserLoginInfo>? currentLogins;
     private IList<AuthenticationScheme>? otherLogins;
+    private IList<Metric> metrics;
+    private IList<UserMetricProvider> userMetricProviders;
     private bool showRemoveButton;
 
     [CascadingParameter]
@@ -108,11 +193,27 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var logins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+
         user = await UserAccessor.GetRequiredUserAsync(HttpContext);
         currentLogins = await UserManager.GetLoginsAsync(user);
-        otherLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync())
-            .Where(auth => currentLogins.All(ul => auth.Name != ul.LoginProvider))
-            .ToList();
+        otherLogins = logins.Where(auth => currentLogins.All(ul => auth.Name != ul.LoginProvider)).ToList();
+        metrics = await DataContext.Metrics.Include(m => m.Providers).ToListAsync();
+        userMetricProviders = await DataContext.UserMetricProviders.Where(ump => ump.UserId == user.Id).ToListAsync();
+
+        UpdateMetricProviders ??= new UpdateMetricProvidersModel
+            {
+                MetricProviders = metrics.Select(m => new CurrentMetricProvider
+                {
+                    MetricName = m.Name,
+                    ProviderName = userMetricProviders.SingleOrDefault(ump => ump.MetricName == m.Name)?.ProviderName ?? null,
+                    Providers = m.Providers.Where(p => currentLogins.Any(cl => cl.LoginProvider == p.ProviderName)).Select(p => new ProviderModel
+                    {
+                        ProviderName = p.ProviderName,
+                        ProviderDisplayName = logins.Single(l => l.Name == p.ProviderName).DisplayName
+                    }).ToList()
+                }).Where(mp => mp.Providers.Any()).ToList()
+            };
 
         string? passwordHash = null;
         if (UserStore is IUserPasswordStore<User> userPasswordStore)
@@ -134,6 +235,17 @@
         if (!result.Succeeded)
         {
             RedirectManager.RedirectToCurrentPageWithStatus("Error: The external login was not removed.", HttpContext);
+        }
+
+        var removeUserMetricProviders = userMetricProviders.Where(ump => ump.ProviderName == LoginProvider).ToList();
+        foreach (var removeUserMetricProvider in removeUserMetricProviders)
+        {
+            DataContext.Entry(removeUserMetricProvider).State = EntityState.Deleted;
+        }
+
+        if (removeUserMetricProviders.Any())
+        {
+            await DataContext.SaveChangesAsync();
         }
 
         await SignInManager.RefreshSignInAsync(user);
@@ -160,25 +272,17 @@
 
         var metricProviders = await DataContext.MetricProviders.Where(mp => mp.ProviderName == info.LoginProvider).ToListAsync();
 
-        var userMetricProviders = await DataContext.UserMetricProviders.Where(ump => ump.UserId == userId).ToListAsync();
-
         foreach (var metricProvider in metricProviders)
         {
             var userMetricProvider = userMetricProviders.SingleOrDefault(ump => ump.MetricName == metricProvider.MetricName);
-            if (userMetricProvider != null)
-            {
-                userMetricProvider.ProviderName = metricProvider.ProviderName;
-
-                DataContext.Entry(userMetricProvider).State = EntityState.Modified;
-            }
-            else
+            if (userMetricProvider == null)
             {
                 DataContext.UserMetricProviders.Add(new UserMetricProvider
-                    {
-                        UserId = userId,
-                        MetricName = metricProvider.MetricName,
-                        ProviderName = metricProvider.ProviderName,
-                    });
+                {
+                    UserId = userId,
+                    MetricName = metricProvider.MetricName,
+                    ProviderName = metricProvider.ProviderName,
+                });
             }
         }
 
@@ -198,5 +302,47 @@
         await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme); // TODO: Am i using this to sign in???
 
         RedirectManager.RedirectToCurrentPageWithStatus("The external login was added.", HttpContext);
+    }
+
+    private async Task OnUpdateMetricProviders()
+    {
+        var userId = await UserManager.GetUserIdAsync(user);
+
+        foreach (var metric in metrics)   
+        {
+            var userMetricProvider = userMetricProviders.SingleOrDefault(ump => ump.MetricName == metric.Name);
+
+            var updateMetricProviderName = UpdateMetricProviders!.MetricProviders!.SingleOrDefault(mp => mp.MetricName == metric.Name)?.ProviderName;
+
+            if (userMetricProvider != null)
+            {
+                if (!string.IsNullOrWhiteSpace(updateMetricProviderName))
+                {
+                    userMetricProvider.ProviderName = updateMetricProviderName;
+
+                    DataContext.Entry(userMetricProvider).State = EntityState.Modified;
+                }
+                else
+                {
+                    DataContext.Entry(userMetricProvider).State = EntityState.Deleted;
+                }
+            }
+            else
+            {
+                if (!string.IsNullOrWhiteSpace(updateMetricProviderName))
+                {
+                    DataContext.UserMetricProviders.Add(new UserMetricProvider
+                    {
+                        UserId = userId,
+                        MetricName = metric.Name,
+                        ProviderName =  updateMetricProviderName,
+                    });
+                }
+            }
+        }
+
+        await DataContext.SaveChangesAsync();
+
+        RedirectManager.RedirectToCurrentPage();
     }
 }
