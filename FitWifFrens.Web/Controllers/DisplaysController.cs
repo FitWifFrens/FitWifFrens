@@ -54,7 +54,7 @@ namespace FitWifFrens.Web.Controllers
             var time = _timeProvider.GetUtcNow().DateTime.ConvertTimeFromUtc();
             var startTime = time.StartOfWeek(startDayOfWeek).ConvertTimeToUtc().AddDays(daysInWeek).AddDays(-daysToDisplay);
 
-            var userMetricProviders = await _dataContext.UserMetricProviders.ToListAsync();
+            var userMetricProviders = await _dataContext.UserMetricProviders.Where(ump => ump.UserId == userDisplay.UserId).ToListAsync();
             var userMetricProviderValues = await _dataContext.UserMetricProviderValues.Where(umpv => umpv.UserId == userDisplay.UserId && umpv.Time > startTime).ToListAsync();
 
             startTime = startTime.ConvertTimeFromUtc();
