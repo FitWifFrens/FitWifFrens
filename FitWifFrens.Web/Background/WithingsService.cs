@@ -250,6 +250,11 @@ namespace FitWifFrens.Web.Background
                             {
                                 var measureValue = Math.Round(measureJson.GetProperty("value").GetInt32() / 1000.0, 1);
 
+                                if (measureValue > 150)
+                                {
+                                    _telemetryClient.TrackTrace(measureGroupJson.GetRawText());
+                                }
+
                                 var userMetricProviderValue = await _dataContext.UserMetricProviderValues
                                     .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Weight" && umpv.ProviderName == "Withings" &&
                                                                   umpv.MetricType == MetricType.Value && umpv.Time == measureGroupTime, cancellationToken: cancellationToken);
