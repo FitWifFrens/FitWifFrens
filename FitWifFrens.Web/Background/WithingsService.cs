@@ -248,12 +248,14 @@ namespace FitWifFrens.Web.Background
 
                             if (measureType == 1)
                             {
-                                var measureValue = Math.Round(measureJson.GetProperty("value").GetInt32() / 1000.0, 1);
-
-                                if (measureGroupTime > new DateTime(2024, 08, 12, 00, 00, 00, DateTimeKind.Utc))
+                                var weightDivisor = measureJson.GetProperty("unit").GetInt32() switch
                                 {
-                                    _telemetryClient.TrackTrace(measureGroupJson.GetRawText());
-                                }
+                                    -3 => 1000.0,
+                                    -4 => 10000.0,
+                                    _ => throw new ArgumentOutOfRangeException("unit", measureJson.GetProperty("unit").GetInt32(), "9652af49-4e0f-43d4-9b0e-a035a6fa9cf3")
+                                };
+
+                                var measureValue = Math.Round(measureJson.GetProperty("value").GetInt32() / weightDivisor, 1);
 
                                 var userMetricProviderValue = await _dataContext.UserMetricProviderValues
                                     .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Weight" && umpv.ProviderName == "Withings" &&
