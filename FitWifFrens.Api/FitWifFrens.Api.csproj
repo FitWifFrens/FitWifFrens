@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>aspnet-FitWifFrens.Web-5bf2b8eb-e34d-474c-bf72-cf8ab8bbbdb2</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.8" />
+    <PackageReference Include="SendGrid" Version="9.29.3" />
+    <PackageReference Include="SendGrid.Extensions.DependencyInjection" Version="1.0.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FitWifFrens.Data\FitWifFrens.Data.csproj" />
+  </ItemGroup>
+
+</Project>
