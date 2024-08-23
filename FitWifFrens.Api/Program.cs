@@ -77,6 +77,9 @@ namespace FitWifFrens.Api
 
             builder.Services.AddTransient<IEmailSender, EmailSender>();
 
+            builder.Services.Configure<DataProtectionTokenProviderOptions>(o =>
+                o.TokenLifespan = TimeSpan.FromHours(3));
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.

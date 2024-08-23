@@ -103,7 +103,7 @@ namespace FitWifFrens.Api.Controllers
             }
         }
 
-        [HttpGet("confirm email")]
+        [HttpGet("confirm-email")]
         public async Task<IActionResult> ConfirmEmail(string userEmail, string token)
         {
             if (string.IsNullOrEmpty(userEmail) || string.IsNullOrEmpty(token))
@@ -124,6 +124,63 @@ namespace FitWifFrens.Api.Controllers
             }
 
             return StatusCode(500, result.Errors);
+        }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto forgotPasswordDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var user = await _userManager.FindByEmailAsync(forgotPasswordDto.Email);
+            if (user == null || !await _userManager.IsEmailConfirmedAsync(user))
+            {
+                // If user doesn't exist or email is not confirmed, don't reveal this information for security reasons.
+                return Ok("If the email exists, a reset password link has been sent.");
+            }
+
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var resetLink = Url.Action("ResetPassword", "User",
+                new { userEmail = user.Email, token = HttpUtility.UrlEncode(token) },
+                protocol: Request.Scheme);
+
+            await _emailSender.SendEmailAsync(forgotPasswordDto.Email, "Reset your password",
+                $"Please reset your password by <a href='{HtmlEncoder.Default.Encode(resetLink)}'>clicking here</a>.");
+
+            return Ok("If the email exists, a reset password link has been sent.");
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto resetPasswordDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var user = await _userManager.FindByEmailAsync(resetPasswordDto.Email);
+            if (user == null)
+            {
+                // Don't reveal that the user doesn't exist
+                return Ok("Password reset successful.");
+            }
+
+            var decodedToken = HttpUtility.UrlDecode(resetPasswordDto.Token);
+            var result = await _userManager.ResetPasswordAsync(user, decodedToken, resetPasswordDto.NewPassword);
+
+            if (result.Succeeded)
+            {
+                return Ok("Password reset successful.");
+            }
+
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+
+            return BadRequest(ModelState);
         }
 
         [HttpPost("logout")]
