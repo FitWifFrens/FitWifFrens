@@ -37,6 +37,14 @@ namespace FitWifFrens.Playground
                 {
                     Name = "Withings"
                 },
+                new Provider
+                {
+                    Name = "Google"
+                },
+                new Provider
+                {
+                    Name = "Facebook"
+                },
             });
 
             _dataContext.Metrics.AddRange(new List<Metric>

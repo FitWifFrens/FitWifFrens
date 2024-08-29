@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
+using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Web;
 
@@ -16,15 +17,15 @@ namespace FitWifFrens.Api.Controllers
     public class UserController : Controller
     {
         private readonly UserManager<User> _userManager;
-        private readonly SignInManager<User> _signinManager;
+        private readonly SignInManager<User> _signInManager;
         private readonly TokenService _tokenService;
         private readonly IEmailSender _emailSender;
 
-        public UserController(UserManager<User> userManager, SignInManager<User> signinManager,
+        public UserController(UserManager<User> userManager, SignInManager<User> signInManager,
             TokenService tokenService, IEmailSender emailSender)
         {
             _userManager = userManager;
-            _signinManager = signinManager;
+            _signInManager = signInManager;
             _tokenService = tokenService;
             _emailSender = emailSender;
         }
@@ -44,7 +45,7 @@ namespace FitWifFrens.Api.Controllers
                 return Unauthorized("Invalid username");
             }
 
-            var loginResult = await _signinManager.CheckPasswordSignInAsync(user, loginDto.Password, false);
+            var loginResult = await _signInManager.PasswordSignInAsync(user, loginDto.Password, loginDto.RememberMe, false);
 
             if (!loginResult.Succeeded)
             {
@@ -57,6 +58,61 @@ namespace FitWifFrens.Api.Controllers
                     UserName = user.Email,
                     Token = _tokenService.GenerateToken(user)
                 });
+        }
+
+        [HttpGet("external-login/{provider}")]
+        public IActionResult ExternalLogin(string provider, string returnUrl = null)
+        {
+            var redirectUri = Url.Action("ExternalLoginCallback", "User", new { ReturnUrl = returnUrl });
+            var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUri);
+            return Challenge(properties, provider);
+        }
+
+        [HttpGet("external-login-callback")]
+        public async Task<IActionResult> ExternalLoginCallback()
+        {
+            var info = await _signInManager.GetExternalLoginInfoAsync();
+            if (info == null)
+            {
+                return BadRequest("Error loading external login information.");
+            }
+
+            var result = await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false);
+            if (result.Succeeded)
+            {
+                var user = await _userManager.FindByEmailAsync(info.Principal.FindFirstValue(ClaimTypes.Email));
+                return Ok(new
+                {
+                    Token = _tokenService.GenerateToken(user),
+                    UserName = user.Email
+                });
+            }
+
+            // If the user does not have an account, create one
+            var email = info.Principal.FindFirstValue(ClaimTypes.Email);
+            if (email != null)
+            {
+                var user = new User
+                {
+                    UserName = email,
+                    Email = email
+                };
+
+                var identityResult = await _userManager.CreateAsync(user);
+                if (identityResult.Succeeded)
+                {
+                    await _userManager.AddLoginAsync(user, info);
+                    await _signInManager.SignInAsync(user, isPersistent: false);
+
+                    return Ok(new
+                    {
+                        Token = _tokenService.GenerateToken(user),
+                        UserName = user.Email
+                    });
+                }
+            }
+
+            return BadRequest("Failed to login via external provider.");
         }
 
         [HttpPost("register")]
@@ -77,24 +133,35 @@ namespace FitWifFrens.Api.Controllers
 
                 var createdUser = await _userManager.CreateAsync(user, registerDto.Password);
 
-                if (createdUser.Succeeded)
+                if (!createdUser.Succeeded)
                 {
-                    var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                    var confirmationLink = Url.Action("ConfirmEmail", "User",
-                                                      new { userEmail = user.Email, token = HttpUtility.UrlEncode(token) },
-                                                      protocol: Request.Scheme);
-
-                    await _emailSender.SendEmailAsync(user.Email, "Confirm your email",
-                        $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(confirmationLink)}'>clicking here</a>.");
-
-                    return Ok(new NewUserDto
-                    {
-                        UserName = user.Email,
-                        Token = _tokenService.GenerateToken(user)
-                    });
+                    return StatusCode(500, createdUser.Errors);
                 }
 
-                return StatusCode(500, createdUser.Errors);
+                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                var confirmationLink = Url.Action("ConfirmEmail", "User",
+                                                  new { userEmail = user.Email, token = HttpUtility.UrlEncode(token) },
+                                                  protocol: Request.Scheme);
+
+                await _emailSender.SendEmailAsync(user.Email, "Confirm your email",
+                    $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(confirmationLink)}'>clicking here</a>.");
+
+                var externalLoginInfo = await _signInManager.GetExternalLoginInfoAsync();
+                if (externalLoginInfo != null)
+                {
+                    var externalResult = await _userManager.AddLoginAsync(user, externalLoginInfo);
+                    if (!externalResult.Succeeded)
+                    {
+                        return BadRequest(externalResult.Errors);
+                    }
+                }
+
+                return Ok(new NewUserDto
+                {
+                    UserName = user.Email,
+                    Token = _tokenService.GenerateToken(user)
+                });
+
             }
             catch (Exception e)
             {
@@ -186,8 +253,33 @@ namespace FitWifFrens.Api.Controllers
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
-            await _signinManager.SignOutAsync();
+            await _signInManager.SignOutAsync();
             return Ok("Logged out successfully.");
+        }
+
+        [HttpDelete("remove-external-login")]
+        public async Task<IActionResult> RemoveExternalLogin([FromBody] RemoveExternalLoginDto removeExternalLoginDto)
+        {
+            var user = await _userManager.FindByEmailAsync(removeExternalLoginDto.Email);
+            if (user == null)
+            {
+                return NotFound("User not found.");
+            }
+
+            var logins = await _userManager.GetLoginsAsync(user);
+            if (logins.Count == 1 && await _userManager.HasPasswordAsync(user) == false)
+            {
+                return BadRequest("You cannot remove the last external login without setting a password.");
+            }
+
+            var result = await _userManager.RemoveLoginAsync(user, removeExternalLoginDto.LoginProvider, removeExternalLoginDto.ProviderKey);
+
+            if (!result.Succeeded)
+            {
+                return BadRequest(result.Errors);
+            }
+
+            return Ok("External login removed successfully.");
         }
 
         [HttpDelete("{email}")]

@@ -2,16 +2,16 @@
 
 namespace FitWifFrens.Api.Dtos.User
 {
-    public class LoginDto
+    public class RemoveExternalLoginDto
     {
         [Required]
         [EmailAddress]
         public string Email { get; set; } = string.Empty;
 
         [Required]
-        [DataType(DataType.Password)]
-        public string Password { get; set; } = string.Empty;
+        public string LoginProvider { get; set; } = string.Empty;
 
-        public bool RememberMe { get; set; }
+        [Required]
+        public string ProviderKey { get; set; } = string.Empty;
     }
 }

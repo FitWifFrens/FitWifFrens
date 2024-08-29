@@ -34,7 +34,7 @@ namespace FitWifFrens.Api
 #endif
                 }));
 
-            builder.Services.AddIdentity<User, IdentityRole>(options =>
+            builder.Services.AddIdentity<User, Role>(options =>
                 {
                     options.Password.RequireDigit = true;
                     options.Password.RequireLowercase = true;
@@ -67,8 +67,19 @@ namespace FitWifFrens.Api
                     ValidAudience = builder.Configuration["JWT:Audience"],
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(builder.Configuration["JWT:SigningKey"]))
+                        Encoding.UTF8.GetBytes(builder.Configuration["JWT:SigningKey"])) // todo: need to generate proper key after
                 };
+            }).AddGoogle(googleOptions =>
+            {
+                googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"];
+                googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+                googleOptions.SignInScheme = IdentityConstants.ExternalScheme;
+
+            }).AddFacebook(facebookOptions =>
+            {
+                facebookOptions.AppId = builder.Configuration["Authentication:Facebook:AppId"];
+                facebookOptions.AppSecret = builder.Configuration["Authentication:Facebook:AppSecret"];
+                facebookOptions.SignInScheme = IdentityConstants.ExternalScheme;
             });
 
             builder.Services.AddAuthorization();
