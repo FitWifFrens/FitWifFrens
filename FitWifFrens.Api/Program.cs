@@ -1,10 +1,12 @@
 using FitWifFrens.Api.Services;
 using FitWifFrens.Data;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using SendGrid.Extensions.DependencyInjection;
 using System.Text;
 
@@ -18,10 +20,54 @@ namespace FitWifFrens.Api
 
             // Add services to the container.
 
+            builder.Services.AddApplicationInsightsTelemetry(options =>
+            {
+                options.EnablePerformanceCounterCollectionModule = false;
+                options.EnableRequestTrackingTelemetryModule = false;
+                options.EnableEventCounterCollectionModule = false;
+                options.EnableDependencyTrackingTelemetryModule = false;
+                options.EnableAppServicesHeartbeatTelemetryModule = false;
+                options.EnableAzureInstanceMetadataTelemetryModule = false;
+                options.EnableQuickPulseMetricStream = false;
+                options.EnableAdaptiveSampling = true;
+                options.EnableHeartbeat = false;
+                options.AddAutoCollectedMetricExtractor = false;
+                options.EnableDiagnosticsTelemetryModule = false;
+            });
+
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "JWTToken_Auth_API",
+                    Version = "v1"
+                });
+                // JWT Bearer token configuration
+                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
+                {
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Description = "JWT Authorization header using the Bearer scheme. \r\n\r\n Enter 'Bearer' [space] and then your token in the text input below.\r\n\r\nExample: \"Bearer 1safsfsdfdfd\"",
+                });
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement {
+                    {
+                        new OpenApiSecurityScheme {
+                            Reference = new OpenApiReference {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        new string[] {}
+                    }
+                });
+            });
 
             var postgresConnection = builder.Configuration.GetConnectionString("PostgresConnection") ?? throw new InvalidOperationException("Connection string 'PostgresConnection' not found.");
             builder.Services.AddDbContext<DataContext>(options =>
@@ -51,14 +97,13 @@ namespace FitWifFrens.Api
 
             builder.Services.AddAuthentication(options =>
             {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultForbidScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultSignInScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultSignOutScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(options =>
+                options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+
+            }).AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
             {
+                options.SaveToken = true;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -80,13 +125,32 @@ namespace FitWifFrens.Api
                 facebookOptions.AppId = builder.Configuration["Authentication:Facebook:AppId"];
                 facebookOptions.AppSecret = builder.Configuration["Authentication:Facebook:AppSecret"];
                 facebookOptions.SignInScheme = IdentityConstants.ExternalScheme;
+
+            }).AddStrava(stravaOptions =>
+            {
+                stravaOptions.ClientId = builder.Configuration["Authentication:Strava:ClientId"];
+                stravaOptions.ClientSecret = builder.Configuration["Authentication:Strava:ClientSecret"];
+                stravaOptions.SignInScheme = IdentityConstants.ExternalScheme;
+
+                stravaOptions.Scope.Add("read_all");
+                stravaOptions.Scope.Add("profile:read_all");
+                stravaOptions.Scope.Add("activity:read_all");
+
+                stravaOptions.SaveTokens = true;
+
+            }).AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+            {
+                options.ExpireTimeSpan = TimeSpan.FromDays(7);
+                options.SlidingExpiration = true;
             });
 
             builder.Services.AddAuthorization();
 
-            builder.Services.AddScoped<TokenService>();
-
+            builder.Services.AddScoped<JwtTokenService>();
+            builder.Services.AddScoped<StravaService>();
             builder.Services.AddTransient<IEmailSender, EmailSender>();
+
+            builder.Services.AddHttpClient();
 
             builder.Services.Configure<DataProtectionTokenProviderOptions>(o =>
                 o.TokenLifespan = TimeSpan.FromHours(3));

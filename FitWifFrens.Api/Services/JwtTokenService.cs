@@ -6,12 +6,12 @@ using System.Text;
 
 namespace FitWifFrens.Api.Services
 {
-    public class TokenService
+    public class JwtTokenService
     {
         private readonly IConfiguration _config;
         private readonly SymmetricSecurityKey _key;
 
-        public TokenService(IConfiguration config)
+        public JwtTokenService(IConfiguration config)
         {
             _config = config;
             _key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JWT:SigningKey"]));
@@ -21,6 +21,7 @@ namespace FitWifFrens.Api.Services
         {
             var claims = new List<Claim>
             {
+                new (JwtRegisteredClaimNames.Name, user.UserName),
                 new (JwtRegisteredClaimNames.Email, user.Email.ToLower()),
                 new (JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };

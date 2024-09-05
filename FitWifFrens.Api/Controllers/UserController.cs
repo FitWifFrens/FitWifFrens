@@ -1,6 +1,8 @@
 ﻿using FitWifFrens.Api.Dtos.User;
 using FitWifFrens.Api.Services;
 using FitWifFrens.Data;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -14,15 +16,15 @@ namespace FitWifFrens.Api.Controllers
 {
     [ApiController]
     [Route("users")]
-    public class UserController : Controller
+    public class UserController : ControllerBase
     {
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
-        private readonly TokenService _tokenService;
+        private readonly JwtTokenService _tokenService;
         private readonly IEmailSender _emailSender;
 
         public UserController(UserManager<User> userManager, SignInManager<User> signInManager,
-            TokenService tokenService, IEmailSender emailSender)
+            JwtTokenService tokenService, IEmailSender emailSender)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -51,6 +53,16 @@ namespace FitWifFrens.Api.Controllers
             {
                 return Unauthorized("Username not found and/or password incorrect");
             }
+
+            // Sign in the user with cookies
+            var claims = new List<Claim>
+            {
+                new (ClaimTypes.Name, user.UserName),
+                new (ClaimTypes.Email, user.Email)
+            };
+
+            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
 
             return Ok(
                 new NewUserDto
@@ -81,11 +93,24 @@ namespace FitWifFrens.Api.Controllers
             if (result.Succeeded)
             {
                 var user = await _userManager.FindByEmailAsync(info.Principal.FindFirstValue(ClaimTypes.Email));
-                return Ok(new
+                if (user != null)
                 {
-                    Token = _tokenService.GenerateToken(user),
-                    UserName = user.Email
-                });
+                    // Sign in the user with cookies
+                    var claims = new List<Claim>
+                    {
+                        new (ClaimTypes.Name, user.UserName),
+                        new (ClaimTypes.Email, user.Email)
+                    };
+
+                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
+
+                    return Ok(new
+                    {
+                        Token = _tokenService.GenerateToken(user),
+                        UserName = user.Email
+                    });
+                }
             }
 
             // If the user does not have an account, create one
@@ -103,6 +128,16 @@ namespace FitWifFrens.Api.Controllers
                 {
                     await _userManager.AddLoginAsync(user, info);
                     await _signInManager.SignInAsync(user, isPersistent: false);
+
+                    // Sign in the user with cookies
+                    var claims = new List<Claim>
+                    {
+                        new (ClaimTypes.Name, user.UserName),
+                        new (ClaimTypes.Email, user.Email)
+                    };
+
+                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
 
                     return Ok(new
                     {
