@@ -1,9 +1,8 @@
 ﻿using FitWifFrens.Api.Services;
-using FitWifFrens.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace FitWifFrens.Api.Controllers
 {
@@ -13,13 +12,9 @@ namespace FitWifFrens.Api.Controllers
     public class StravaController : ControllerBase
     {
         private readonly StravaService _stravaService;
-        private readonly UserManager<User> _userManager;
-        private readonly SignInManager<User> _signInManager;
-        public StravaController(StravaService stravaService, UserManager<User> userManager, SignInManager<User> signInManager)
+        public StravaController(StravaService stravaService)
         {
             _stravaService = stravaService;
-            _userManager = userManager;
-            _signInManager = signInManager;
         }
 
         [HttpGet("isAuthenticated")]
@@ -69,9 +64,14 @@ namespace FitWifFrens.Api.Controllers
                 return BadRequest("Failed to retrieve Strava tokens.");
             }
 
-            var user = await _userManager.FindByEmailAsync(User.Identity.Name);
-            if (user == null) return BadRequest("User is null");
-            await _stravaService.SaveTokensAsync(user.Id, "Strava", accessToken, refreshToken,
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized("User is not authenticated.");
+            }
+
+            await _stravaService.SaveTokensAsync(userId, "Strava", accessToken, refreshToken,
                 DateTime.Parse(expiresAt));
             return Ok("Strava connected and tokens saved successfully.");
 

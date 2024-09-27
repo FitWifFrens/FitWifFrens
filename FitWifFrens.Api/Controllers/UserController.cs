@@ -58,7 +58,8 @@ namespace FitWifFrens.Api.Controllers
             var claims = new List<Claim>
             {
                 new (ClaimTypes.Name, user.UserName),
-                new (ClaimTypes.Email, user.Email)
+                new (ClaimTypes.Email, user.Email),
+                new (ClaimTypes.NameIdentifier, user.Id)
             };
 
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -99,7 +100,8 @@ namespace FitWifFrens.Api.Controllers
                     var claims = new List<Claim>
                     {
                         new (ClaimTypes.Name, user.UserName),
-                        new (ClaimTypes.Email, user.Email)
+                        new (ClaimTypes.Email, user.Email),
+                        new (ClaimTypes.NameIdentifier, user.Id)
                     };
 
                     var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -133,7 +135,8 @@ namespace FitWifFrens.Api.Controllers
                     var claims = new List<Claim>
                     {
                         new (ClaimTypes.Name, user.UserName),
-                        new (ClaimTypes.Email, user.Email)
+                        new (ClaimTypes.Email, user.Email),
+                        new (ClaimTypes.NameIdentifier, user.Id)
                     };
 
                     var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

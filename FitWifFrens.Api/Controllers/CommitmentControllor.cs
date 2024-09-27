@@ -2,9 +2,9 @@
 using FitWifFrens.Api.Mappers;
 using FitWifFrens.Api.Services;
 using FitWifFrens.Data;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace FitWifFrens.Api.Controllers
 {
@@ -33,7 +33,17 @@ namespace FitWifFrens.Api.Controllers
         [HttpGet("strava")]
         public async Task<IActionResult> GetStravaUserActivities(CancellationToken cancellationToken)
         {
-            var accessToken = await HttpContext.GetTokenAsync("access_token");
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized("User is not authenticated.");
+            }
+
+            var accessToken = await _dataContext.UserTokens
+                .Where(u => u.UserId == userId && u.Name == "access_token")
+                .Select(u => u.Value)
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (string.IsNullOrWhiteSpace(accessToken))
             {
