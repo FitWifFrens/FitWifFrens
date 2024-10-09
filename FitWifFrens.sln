@@ -3,10 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34728.123
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FitWifFrens.Web", "FitWifFrens.Web\FitWifFrens.Web.csproj", "{4FD3CC72-15EF-465F-B8F6-EE21AEBCF3B2}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FitWifFrens.Web.Client", "FitWifFrens.Web.Client\FitWifFrens.Web.Client.csproj", "{F823A22A-763D-4632-B49E-4B9184656691}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspNet.Security.OAuth.WorldId", "AspNet.Security.OAuth.WorldId\AspNet.Security.OAuth.WorldId.csproj", "{01D39F94-A95B-4E24-8546-8D86658C4E9D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FitWifFrens.Data", "FitWifFrens.Data\FitWifFrens.Data.csproj", "{198BFBB2-C032-4440-B5B5-546168C21587}"
@@ -15,7 +11,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FitWifFrens.Playground", "F
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspNet.Security.OAuth.Withings", "AspNet.Security.OAuth.Withings\AspNet.Security.OAuth.Withings.csproj", "{668E57FB-0254-4F6F-8510-A859701D2DB5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FitWifFrens.Api", "FitWifFrens.Api\FitWifFrens.Api.csproj", "{25F347E9-9EDA-474C-A01F-545AF4495DE7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FitWifFrens.Api", "FitWifFrens.Api\FitWifFrens.Api.csproj", "{25F347E9-9EDA-474C-A01F-545AF4495DE7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,14 +19,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{4FD3CC72-15EF-465F-B8F6-EE21AEBCF3B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4FD3CC72-15EF-465F-B8F6-EE21AEBCF3B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4FD3CC72-15EF-465F-B8F6-EE21AEBCF3B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4FD3CC72-15EF-465F-B8F6-EE21AEBCF3B2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F823A22A-763D-4632-B49E-4B9184656691}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F823A22A-763D-4632-B49E-4B9184656691}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F823A22A-763D-4632-B49E-4B9184656691}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F823A22A-763D-4632-B49E-4B9184656691}.Release|Any CPU.Build.0 = Release|Any CPU
 		{01D39F94-A95B-4E24-8546-8D86658C4E9D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{01D39F94-A95B-4E24-8546-8D86658C4E9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{01D39F94-A95B-4E24-8546-8D86658C4E9D}.Release|Any CPU.ActiveCfg = Release|Any CPU

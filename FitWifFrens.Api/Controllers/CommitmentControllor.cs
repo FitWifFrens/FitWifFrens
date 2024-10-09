@@ -1,6 +1,4 @@
-﻿using FitWifFrens.Api.Dtos;
-using FitWifFrens.Api.Mappers;
-using FitWifFrens.Api.Services;
+﻿using FitWifFrens.Api.Services;
 using FitWifFrens.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,15 +17,6 @@ namespace FitWifFrens.Api.Controllers
         {
             _dataContext = dataContext;
             _stravaService = stravaService;
-        }
-
-        [HttpGet]
-        [ProducesResponseType(200, Type = typeof(IEnumerable<CommitmentDto>))]
-        public async Task<IActionResult> GetAllCommitments()
-        {
-            var commitments = await _dataContext.Commitments.ToListAsync();
-
-            return Ok(commitments.Select(c => c.ToCommitmentDto()));
         }
 
         [HttpGet("strava")]

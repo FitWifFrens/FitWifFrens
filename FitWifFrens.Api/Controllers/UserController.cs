@@ -90,7 +90,9 @@ namespace FitWifFrens.Api.Controllers
                 return BadRequest("Error loading external login information.");
             }
 
+            // Check if the user has already linked this external login
             var result = await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false);
+
             if (result.Succeeded)
             {
                 var user = await _userManager.FindByEmailAsync(info.Principal.FindFirstValue(ClaimTypes.Email));
@@ -115,28 +117,59 @@ namespace FitWifFrens.Api.Controllers
                 }
             }
 
-            // If the user does not have an account, create one
+            // If the user does not have an external login, find the existing user and link the login
             var email = info.Principal.FindFirstValue(ClaimTypes.Email);
             if (email != null)
             {
-                var user = new User
+                var user = await _userManager.FindByEmailAsync(email);
+                if (user != null)
+                {
+                    // Link the external login to the existing user
+                    var identityResult = await _userManager.AddLoginAsync(user, info);
+                    if (identityResult.Succeeded)
+                    {
+                        await _signInManager.SignInAsync(user, isPersistent: false);
+
+                        // Sign in the user with cookies
+                        var claims = new List<Claim>
+                        {
+                            new (ClaimTypes.Name, user.UserName),
+                            new (ClaimTypes.Email, user.Email),
+                            new (ClaimTypes.NameIdentifier, user.Id)
+                        };
+
+                        var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
+
+                        return Ok(new
+                        {
+                            Token = _tokenService.GenerateToken(user),
+                            UserName = user.Email
+                        });
+                    }
+
+                    return BadRequest("Failed to link external login to existing user.");
+                }
+
+                // If the user doesn't exist, create a new user
+                var newUser = new User
                 {
                     UserName = email,
                     Email = email
                 };
 
-                var identityResult = await _userManager.CreateAsync(user);
-                if (identityResult.Succeeded)
+                var createResult = await _userManager.CreateAsync(newUser);
+                if (createResult.Succeeded)
                 {
-                    await _userManager.AddLoginAsync(user, info);
-                    await _signInManager.SignInAsync(user, isPersistent: false);
+                    await _userManager.AddLoginAsync(newUser, info);
+                    await _signInManager.SignInAsync(newUser, isPersistent: false);
 
-                    // Sign in the user with cookies
+                    // Sign in the new user with cookies
                     var claims = new List<Claim>
                     {
-                        new (ClaimTypes.Name, user.UserName),
-                        new (ClaimTypes.Email, user.Email),
-                        new (ClaimTypes.NameIdentifier, user.Id)
+                        new (ClaimTypes.Name, newUser.UserName),
+                        new (ClaimTypes.Email, newUser.Email),
+                        new (ClaimTypes.NameIdentifier, newUser.Id)
                     };
 
                     var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -144,10 +177,13 @@ namespace FitWifFrens.Api.Controllers
 
                     return Ok(new
                     {
-                        Token = _tokenService.GenerateToken(user),
-                        UserName = user.Email
+                        Token = _tokenService.GenerateToken(newUser),
+                        UserName = newUser.Email
                     });
                 }
+
+                return BadRequest("Failed to create a new user.");
+
             }
 
             return BadRequest("Failed to login via external provider.");
