@@ -328,6 +328,13 @@ namespace FitWifFrens.Web.Background
 
                                 _dataContext.Entry(user).State = EntityState.Modified;
                             }
+
+                            if (commitmentPeriod.Commitment.Balance > 0)
+                            {
+                                commitmentPeriod.Commitment.Balance = 0;
+
+                                _dataContext.Entry(commitmentPeriod.Commitment).State = EntityState.Modified;
+                            }
                         }
                         else if (failedStake > 0)
                         {
