@@ -1,11 +1,10 @@
 using AspNet.Security.OAuth.Strava;
 using AspNet.Security.OAuth.Withings;
+using CrystalQuartz.AspNetCore;
 using FitWifFrens.Data;
 using FitWifFrens.Web.Background;
 using FitWifFrens.Web.Components;
 using FitWifFrens.Web.Components.Account;
-using Hangfire;
-using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.MicrosoftAccount;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -13,6 +12,9 @@ using Microsoft.EntityFrameworkCore;
 using Nethereum.Metamask;
 using Nethereum.Metamask.Blazor;
 using Nethereum.UI;
+using Quartz;
+using Quartz.AspNetCore;
+using Quartz.Impl.AdoJobStore;
 
 namespace FitWifFrens.Web
 {
@@ -122,17 +124,6 @@ namespace FitWifFrens.Web
 
             builder.Services.AddHttpClient();
 
-            builder.Services.AddSingleton<AutomaticRetryAttribute>(new AutomaticRetryAttribute { Attempts = 3 });
-            builder.Services.AddHangfire((provider, configuration) =>
-            {
-                configuration.SetDataCompatibilityLevel(CompatibilityLevel.Version_180);
-                configuration.UseSimpleAssemblyNameTypeSerializer();
-                configuration.UseRecommendedSerializerSettings();
-                configuration.UseFilter(provider.GetRequiredService<AutomaticRetryAttribute>());
-                configuration.UsePostgreSqlStorage(postgresConnection);
-            });
-            builder.Services.AddHangfireServer();
-
             builder.Services.AddSingleton<RefreshTokenServiceConfiguration>(new RefreshTokenServiceConfiguration
             {
                 Microsoft = new RefreshTokenServiceConfiguration.RefreshTokenConfiguration(
@@ -150,8 +141,6 @@ namespace FitWifFrens.Web
             });
             builder.Services.AddScoped<RefreshTokenService>(); // TODO: singleton?
 
-            builder.Services.AddHostedService<JobService>();
-
             builder.Services.AddSingleton<BackgroundConfiguration>(new BackgroundConfiguration
             {
                 CallbackUrl = builder.Configuration.GetValue<string>("CallbackUrl")
@@ -161,6 +150,39 @@ namespace FitWifFrens.Web
             builder.Services.AddScoped<StravaService>();
             builder.Services.AddScoped<WithingsService>();
             builder.Services.AddScoped<CommitmentPeriodService>();
+
+            builder.Services.AddQuartz(options =>
+            {
+                options.UsePersistentStore(storeOptions =>
+                {
+                    storeOptions.UseClustering();
+
+                    storeOptions.UseProperties = true;
+
+                    storeOptions.UsePostgres(postgresOptions =>
+                    {
+                        postgresOptions.UseDriverDelegate<PostgreSQLDelegate>();
+                        postgresOptions.ConnectionString = postgresConnection;
+                        postgresOptions.TablePrefix = "quartz.qrtz_";
+                    });
+
+                    storeOptions.UseSystemTextJsonSerializer();
+                });
+
+                options.AddJob<MicrosoftJob>(MicrosoftJob.Key, j => j.StoreDurably());
+                options.AddJob<WithingsJob>(WithingsJob.Key, j => j.StoreDurably());
+
+                options.AddTrigger(t => t
+                    .WithIdentity(nameof(MicrosoftJob))
+                    //.WithCronSchedule("0 47 * * * ?")
+                    .WithCronSchedule("0 0/2 * * * ?")
+                    .ForJob(MicrosoftJob.Key));
+            });
+
+            builder.Services.AddQuartzServer(options =>
+            {
+                options.WaitForJobsToComplete = true;
+            });
 
             builder.Services.AddScoped<IMetamaskInterop, MetamaskBlazorInterop>();
             builder.Services.AddScoped<MetamaskHostProvider>();
@@ -177,7 +199,7 @@ namespace FitWifFrens.Web
 
             var app = builder.Build();
 
-            app.UseRequestLocalization("en-AU");
+            app.UseRequestLocalization("en-AU"); // TODO: ?
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
@@ -207,10 +229,9 @@ namespace FitWifFrens.Web
 
             app.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
 
-            app.UseHangfireDashboard("/hangfire", new DashboardOptions
-            {
-                Authorization = [new DashboardAuthorizationFilter()]
-            });
+            app.UseCrystalQuartz(() => app.Services.GetRequiredService<ISchedulerFactory>().GetScheduler().Result);
+
+            //app.UseCrystalQuartz(() => StdSchedulerFactory.GetDefaultScheduler().Result);
 
             app.Run();
         }

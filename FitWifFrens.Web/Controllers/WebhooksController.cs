@@ -1,7 +1,7 @@
 ﻿using FitWifFrens.Web.Background;
-using Hangfire;
 using Microsoft.ApplicationInsights;
 using Microsoft.AspNetCore.Mvc;
+using Quartz;
 using System.Data;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -12,12 +12,12 @@ namespace FitWifFrens.Web.Controllers
     [Route("api/webhooks")]
     public class WebhooksController : Controller
     {
-        private readonly IBackgroundJobClient _backgroundJobClient;
+        private readonly IScheduler _scheduler;
         private readonly TelemetryClient _telemetryClient;
 
-        public WebhooksController(IBackgroundJobClient backgroundJobClient, TelemetryClient telemetryClient)
+        public WebhooksController(IScheduler scheduler, TelemetryClient telemetryClient)
         {
-            _backgroundJobClient = backgroundJobClient;
+            _scheduler = scheduler;
             _telemetryClient = telemetryClient;
         }
 
@@ -34,10 +34,11 @@ namespace FitWifFrens.Web.Controllers
         public IActionResult UpdateStrava([FromBody] JsonElement dataJson)
         {
             _telemetryClient.TrackTrace("UpdateStrava ~ " + dataJson.GetRawText());
-
             if (dataJson.TryGetProperty("owner_id", out var stravaIdJson))
             {
-                _backgroundJobClient.Enqueue<StravaService>(s => s.UpdateProviderMetricValues(stravaIdJson.GetInt32().ToString(), CancellationToken.None));
+                var jobDataMap = new JobDataMap(1);
+                jobDataMap.Put("StravaId", stravaIdJson.GetInt32().ToString());
+                _scheduler.TriggerJob(StravaJob.JobKey, jobDataMap);
             }
 
             return Ok();
@@ -51,7 +52,9 @@ namespace FitWifFrens.Web.Controllers
 
             if (dataFrom.TryGetValue("userid", out var withingsIdValues))
             {
-                _backgroundJobClient.Enqueue<WithingsService>(s => s.UpdateProviderMetricValues(withingsIdValues.Single()!, CancellationToken.None)); // TODO: and then update goals
+                var jobDataMap = new JobDataMap(1);
+                jobDataMap.Put("WithingsId", withingsIdValues.Single()!);
+                _scheduler.TriggerJob(WithingsJob.JobKey, jobDataMap);
             }
 
             return Ok();

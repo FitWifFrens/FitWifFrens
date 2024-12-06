@@ -1,5 +1,4 @@
 ﻿using FitWifFrens.Data;
-using Hangfire;
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.AspNetCore.WebUtilities;
@@ -18,7 +17,6 @@ namespace FitWifFrens.Web.Background
         private readonly BackgroundConfiguration _backgroundConfiguration;
         private readonly RefreshTokenServiceConfiguration _refreshTokenServiceConfiguration;
         private readonly DataContext _dataContext;
-        private readonly IBackgroundJobClient _backgroundJobClient;
         private readonly HttpClient _httpClient;
         private readonly RefreshTokenService _refreshTokenService;
         private readonly TelemetryClient _telemetryClient;
@@ -27,12 +25,11 @@ namespace FitWifFrens.Web.Background
         private readonly ResiliencePipeline<HttpResponseMessage> _resiliencePipeline;
 
         public StravaService(BackgroundConfiguration backgroundConfiguration, RefreshTokenServiceConfiguration refreshTokenServiceConfiguration,
-            DataContext dataContext, IBackgroundJobClient backgroundJobClient, IHttpClientFactory httpClientFactory, RefreshTokenService refreshTokenService, TelemetryClient telemetryClient, ILogger<StravaService> logger)
+            DataContext dataContext, IHttpClientFactory httpClientFactory, RefreshTokenService refreshTokenService, TelemetryClient telemetryClient, ILogger<StravaService> logger)
         {
             _backgroundConfiguration = backgroundConfiguration;
             _refreshTokenServiceConfiguration = refreshTokenServiceConfiguration;
             _dataContext = dataContext;
-            _backgroundJobClient = backgroundJobClient;
             _refreshTokenService = refreshTokenService;
             _httpClient = httpClientFactory.CreateClient();
             _telemetryClient = telemetryClient;
