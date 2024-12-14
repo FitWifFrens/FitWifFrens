@@ -209,12 +209,16 @@ namespace FitWifFrens.Web.Background
                                     {
                                         // TODO: convert to local
                                         var userMetricProviderValueByDay = userMetricProviderValues.GroupBy(umpv => umpv.Time.ConvertTimeFromUtc().Date).OrderBy(g => g.Key).ToList();
-                                        var times = userMetricProviderValueByDay.Select(g => (double)g.Key.ToUnixTimeSeconds()).ToArray();
-                                        var values = userMetricProviderValueByDay.Select(g => g.Average(umpv => umpv.Value)).ToArray();
 
-                                        var (_, slope) = Fit.Line(times, values);
+                                        if (userMetricProviderValueByDay.Count >= 2)
+                                        {
+                                            var times = userMetricProviderValueByDay.Select(g => (double)g.Key.ToUnixTimeSeconds()).ToArray();
+                                            var values = userMetricProviderValueByDay.Select(g => g.Average(umpv => umpv.Value)).ToArray();
 
-                                        value = Math.Round(slope * commitmentPeriod.Commitment.Days * TimeSpan.FromDays(1).TotalSeconds, 1);
+                                            var (_, slope) = Fit.Line(times, values);
+
+                                            value = Math.Round(slope * commitmentPeriod.Commitment.Days * TimeSpan.FromDays(1).TotalSeconds, 1);
+                                        }
                                     }
 
                                     //var endUserProviderMetricValue = userMetricProviderValues.MaxBy(upmv => upmv.Time);
