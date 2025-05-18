@@ -28,19 +28,21 @@ namespace FitWifFrens.Web.Background
         private readonly IBackgroundJobClient _backgroundJobClient;
         private readonly HttpClient _httpClient;
         private readonly RefreshTokenService _refreshTokenService;
+        private readonly NotificationService _notificationService;
         private readonly TelemetryClient _telemetryClient;
         private readonly ILogger<WithingsService> _logger;
 
         private readonly ResiliencePipeline<ResponseJsonDocument> _resiliencePipeline;
 
         public WithingsService(BackgroundConfiguration backgroundConfiguration, DataContext dataContext, IBackgroundJobClient backgroundJobClient,
-            IHttpClientFactory httpClientFactory, RefreshTokenService refreshTokenService, TelemetryClient telemetryClient, ILogger<WithingsService> logger)
+            IHttpClientFactory httpClientFactory, RefreshTokenService refreshTokenService, NotificationService notificationService, TelemetryClient telemetryClient, ILogger<WithingsService> logger)
         {
             _backgroundConfiguration = backgroundConfiguration;
             _dataContext = dataContext;
             _backgroundJobClient = backgroundJobClient;
             _httpClient = httpClientFactory.CreateClient();
             _refreshTokenService = refreshTokenService;
+            _notificationService = notificationService;
             _telemetryClient = telemetryClient;
             _logger = logger;
 
@@ -294,6 +296,8 @@ namespace FitWifFrens.Web.Background
 
                                 if (userMetricProviderValue == null)
                                 {
+                                    _ = _notificationService.Notify($"{user.Email} just measured their blood pressure");
+
                                     _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
                                     {
                                         UserId = user.Id,

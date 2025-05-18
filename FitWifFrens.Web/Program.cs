@@ -157,6 +157,7 @@ namespace FitWifFrens.Web
                 CallbackUrl = builder.Configuration.GetValue<string>("CallbackUrl")
             });
 
+            builder.Services.AddScoped<NotificationService>();
             builder.Services.AddScoped<MicrosoftService>();
             builder.Services.AddScoped<StravaService>();
             builder.Services.AddScoped<WithingsService>();
