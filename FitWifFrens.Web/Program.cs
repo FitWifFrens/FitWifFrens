@@ -157,7 +157,13 @@ namespace FitWifFrens.Web
                 CallbackUrl = builder.Configuration.GetValue<string>("CallbackUrl")
             });
 
+            builder.Services.AddSingleton<NotificationServiceConfiguration>(new NotificationServiceConfiguration
+            {
+                Token = builder.Configuration.GetValue<string>("Services:Telegram:Token")!,
+                ChatId = builder.Configuration.GetValue<string>("Services:Telegram:ChatId")!,
+            });
             builder.Services.AddScoped<NotificationService>();
+
             builder.Services.AddScoped<MicrosoftService>();
             builder.Services.AddScoped<StravaService>();
             builder.Services.AddScoped<WithingsService>();

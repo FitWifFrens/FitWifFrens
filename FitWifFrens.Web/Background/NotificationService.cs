@@ -4,12 +4,14 @@ namespace FitWifFrens.Web.Background
 {
     public class NotificationService
     {
+        private readonly NotificationServiceConfiguration _notificationServiceConfiguration;
         private readonly HttpClient _httpClient;
         private readonly TelemetryClient _telemetryClient;
         private readonly ILogger<NotificationService> _logger;
 
-        public NotificationService(IHttpClientFactory httpClientFactory, TelemetryClient telemetryClient, ILogger<NotificationService> logger)
+        public NotificationService(NotificationServiceConfiguration notificationServiceConfiguration, IHttpClientFactory httpClientFactory, TelemetryClient telemetryClient, ILogger<NotificationService> logger)
         {
+            _notificationServiceConfiguration = notificationServiceConfiguration;
             _httpClient = httpClientFactory.CreateClient();
             _telemetryClient = telemetryClient;
             _logger = logger;
@@ -17,9 +19,9 @@ namespace FitWifFrens.Web.Background
 
         public async Task Notify(string message)
         {
-            await _httpClient.PostAsJsonAsync("https://api.telegram.org/bot8189809938:AAE5ooQCxlhKQgYynabpeFysvwoVNwMlQEY/sendMessage", new
+            await _httpClient.PostAsJsonAsync($"https://api.telegram.org/bot{_notificationServiceConfiguration.Token}/sendMessage", new
             {
-                chat_id = "-4626525805",
+                chat_id = _notificationServiceConfiguration.ChatId,
                 text = message
             });
         }
