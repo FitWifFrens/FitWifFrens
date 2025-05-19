@@ -265,6 +265,8 @@ namespace FitWifFrens.Web.Background
 
                                 if (userMetricProviderValue == null)
                                 {
+                                    _ = _notificationService.Notify($"{user.Email} just weighed in at {measureValue} kg");
+
                                     _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
                                     {
                                         UserId = user.Id,
@@ -366,6 +368,8 @@ namespace FitWifFrens.Web.Background
 
                             if (userMetricProviderValue == null)
                             {
+                                _ = _notificationService.Notify($"{user.Email} just logged a workout");
+
                                 _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
                                 {
                                     UserId = user.Id,

@@ -21,19 +21,21 @@ namespace FitWifFrens.Web.Background
         private readonly IBackgroundJobClient _backgroundJobClient;
         private readonly HttpClient _httpClient;
         private readonly RefreshTokenService _refreshTokenService;
+        private readonly NotificationService _notificationService;
         private readonly TelemetryClient _telemetryClient;
         private readonly ILogger<StravaService> _logger;
 
         private readonly ResiliencePipeline<HttpResponseMessage> _resiliencePipeline;
 
         public StravaService(BackgroundConfiguration backgroundConfiguration, RefreshTokenServiceConfiguration refreshTokenServiceConfiguration,
-            DataContext dataContext, IBackgroundJobClient backgroundJobClient, IHttpClientFactory httpClientFactory, RefreshTokenService refreshTokenService, TelemetryClient telemetryClient, ILogger<StravaService> logger)
+            DataContext dataContext, IBackgroundJobClient backgroundJobClient, IHttpClientFactory httpClientFactory, RefreshTokenService refreshTokenService, NotificationService notificationService, TelemetryClient telemetryClient, ILogger<StravaService> logger)
         {
             _backgroundConfiguration = backgroundConfiguration;
             _refreshTokenServiceConfiguration = refreshTokenServiceConfiguration;
             _dataContext = dataContext;
             _backgroundJobClient = backgroundJobClient;
             _refreshTokenService = refreshTokenService;
+            _notificationService = notificationService;
             _httpClient = httpClientFactory.CreateClient();
             _telemetryClient = telemetryClient;
             _logger = logger;
@@ -229,6 +231,8 @@ namespace FitWifFrens.Web.Background
 
                         if (userMetricProviderValue == null)
                         {
+                            _ = _notificationService.Notify($"{user.Email} just logged a workout");
+
                             _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
                             {
                                 UserId = user.Id,
