@@ -265,7 +265,10 @@ namespace FitWifFrens.Web.Background
 
                                 if (userMetricProviderValue == null)
                                 {
-                                    _ = _notificationService.Notify($"{user.Email} just weighed in at {measureValue} kg");
+                                    if (!string.IsNullOrWhiteSpace(user.Nickname))
+                                    {
+                                        _ = _notificationService.Notify($"{user.Nickname} just weighed in at {measureValue} kg");
+                                    }
 
                                     _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
                                     {
@@ -298,7 +301,10 @@ namespace FitWifFrens.Web.Background
 
                                 if (userMetricProviderValue == null)
                                 {
-                                    _ = _notificationService.Notify($"{user.Email} just measured their blood pressure");
+                                    if (!string.IsNullOrWhiteSpace(user.Nickname))
+                                    {
+                                        _ = _notificationService.Notify($"{user.Nickname} just measured their blood pressure");
+                                    }
 
                                     _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
                                     {
@@ -368,7 +374,10 @@ namespace FitWifFrens.Web.Background
 
                             if (userMetricProviderValue == null)
                             {
-                                _ = _notificationService.Notify($"{user.Email} just logged a workout");
+                                if (!string.IsNullOrWhiteSpace(user.Nickname))
+                                {
+                                    _ = _notificationService.Notify($"{user.Nickname} just logged a workout");
+                                }
 
                                 _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
                                 {

@@ -231,7 +231,10 @@ namespace FitWifFrens.Web.Background
 
                         if (userMetricProviderValue == null)
                         {
-                            _ = _notificationService.Notify($"{user.Email} just logged a workout");
+                            if (!string.IsNullOrWhiteSpace(user.Nickname))
+                            {
+                                _ = _notificationService.Notify($"{user.Nickname} just logged a workout");
+                            }
 
                             _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
                             {

@@ -11,6 +11,9 @@ namespace FitWifFrens.Data
         [ProtectedPersonalData]
         public override string? Email { get; set; }
 
+        [ProtectedPersonalData]
+        public string? Nickname { get; set; }
+
         public decimal Balance { get; set; }
 
         public ICollection<Deposit> Deposits { get; set; }
