@@ -4,7 +4,7 @@
     {
         public const string LocalTimeZoneId = "AUS Eastern Standard Time";
 
-        public static readonly int ProviderSearchDaysBack = 15;
+        public static readonly int ProviderSearchDaysBack = 45;
 
         public static readonly TimeSpan EndOfPeriodDelay = TimeSpan.FromHours(3);
 

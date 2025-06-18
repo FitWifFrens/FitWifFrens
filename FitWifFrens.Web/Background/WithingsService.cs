@@ -342,9 +342,7 @@ namespace FitWifFrens.Web.Background
                         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
                         {
                             { "action", "getworkouts" },
-                            //{ "lastupdate", DateTime.UtcNow.AddDays(-Constants.ProviderSearchDaysBack).ToUnixTimeSeconds().ToString() },
-                            { "startdateymd", DateTime.UtcNow.AddDays(-Constants.ProviderSearchDaysBack).ToString("yyyy-MM-dd") },
-                            { "enddateymd", DateTime.UtcNow.AddDays(1).ToString("yyyy-MM-dd") },
+                            { "lastupdate", DateTime.UtcNow.AddDays(-Constants.ProviderSearchDaysBack).ToUnixTimeSeconds().ToString() },
                         });
                         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));
@@ -356,15 +354,6 @@ namespace FitWifFrens.Web.Background
                     }, resilienceContext);
 
                     ResilienceContextPool.Shared.Return(resilienceContext);
-
-                    var data = responseJsonDocument.JsonDocument.RootElement.GetProperty("body").GetProperty("series")
-                        .EnumerateArray().Select(a =>
-                            $"{a.GetProperty("category").GetInt32()} on {DateTimeExs.FromUnixTimeSeconds(a.GetProperty("startdate").GetInt64(), DateTimeKind.Utc):s}").ToList();
-
-                    _telemetryClient.TrackTrace($"Found Withings data for user {user.Id} {string.Join(", ", data)} " +
-                                                $"(Status: {responseJsonDocument.JsonDocument.RootElement.GetProperty("status").GetInt32()}) " +
-                                                $"(More: {responseJsonDocument.JsonDocument.RootElement.GetProperty("body").GetProperty("more").GetBoolean()})", SeverityLevel.Information);
-
 
                     foreach (var activityJson in responseJsonDocument.JsonDocument.RootElement.GetProperty("body").GetProperty("series").EnumerateArray())
                     {
