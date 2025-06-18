@@ -342,7 +342,9 @@ namespace FitWifFrens.Web.Background
                         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
                         {
                             { "action", "getworkouts" },
-                            { "lastupdate", DateTime.UtcNow.AddDays(-Constants.ProviderSearchDaysBack).ToUnixTimeSeconds().ToString() },
+                            //{ "lastupdate", DateTime.UtcNow.AddDays(-Constants.ProviderSearchDaysBack).ToUnixTimeSeconds().ToString() },
+                            { "startdateymd", DateTime.UtcNow.AddDays(-Constants.ProviderSearchDaysBack).ToString("yyyy-MM-dd") },
+                            { "enddateymd", DateTime.UtcNow.AddDays(1).ToString("yyyy-MM-dd") },
                         });
                         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _refreshTokenService.GetWithingsToken(user.Id, rc.CancellationToken));
