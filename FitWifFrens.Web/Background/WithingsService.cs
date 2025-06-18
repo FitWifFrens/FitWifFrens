@@ -359,7 +359,9 @@ namespace FitWifFrens.Web.Background
                         .EnumerateArray().Select(a =>
                             $"{a.GetProperty("category").GetInt32()} on {DateTimeExs.FromUnixTimeSeconds(a.GetProperty("startdate").GetInt64(), DateTimeKind.Utc):s}").ToList();
 
-                    _telemetryClient.TrackTrace($"Found Withings data for user {user.Id} {string.Join(", ", data)}", SeverityLevel.Information);
+                    _telemetryClient.TrackTrace($"Found Withings data for user {user.Id} {string.Join(", ", data)} " +
+                                                $"(Status: {responseJsonDocument.JsonDocument.RootElement.GetProperty("status").GetInt32()}) " +
+                                                $"(More: {responseJsonDocument.JsonDocument.RootElement.GetProperty("body").GetProperty("more").GetBoolean()})", SeverityLevel.Information);
 
 
                     foreach (var activityJson in responseJsonDocument.JsonDocument.RootElement.GetProperty("body").GetProperty("series").EnumerateArray())
