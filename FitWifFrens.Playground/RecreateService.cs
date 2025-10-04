@@ -40,6 +40,42 @@ namespace FitWifFrens.Playground
 
             await _dataContext.SaveChangesAsync(CancellationToken.None);
 
+            _dataContext.Activities.AddRange(new List<Activity>
+            {
+                new()
+                {
+                    StartTime = new DateTime(2025, 1, 2, 18, 30, 10).ToUniversalTime(),
+                    ActivityType = "Running",
+                    ActiveCalories = 200,
+                    Distance = 7.14,
+                    Duration = new TimeSpan(1, 15, 45),
+                    Location = "Sydney",
+                    UserId = "65c79331-17f4-498c-bd91-7236518324ee"
+                },
+                new()
+                {
+                    StartTime = new DateTime(2025, 1, 3, 19, 30, 10).ToUniversalTime(),
+                    ActivityType = "Running",
+                    ActiveCalories = 100,
+                    Distance = 3.44,
+                    Duration = new TimeSpan(0, 25, 15),
+                    Location = "Sydney",
+                    UserId = "65c79331-17f4-498c-bd91-7236518324ee"
+                },
+                new()
+                {
+                    StartTime = new DateTime(2025, 1, 5, 19, 00, 30).ToUniversalTime(),
+                    ActivityType = "Running",
+                    ActiveCalories = 275,
+                    Distance = 10.05,
+                    Duration = new TimeSpan(1, 35, 05),
+                    Location = "Sydney",
+                    UserId = "65c79331-17f4-498c-bd91-7236518324ee"
+                },
+
+            });
+
+            await _dataContext.SaveChangesAsync(CancellationToken.None);
             Console.WriteLine("Done...");
         }
 

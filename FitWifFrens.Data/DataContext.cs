@@ -10,6 +10,8 @@ namespace FitWifFrens.Data
         {
         }
 
+        public DbSet<Activity> Activities { get; set; }
+
         protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
         {
             base.ConfigureConventions(configurationBuilder);
@@ -44,6 +46,11 @@ namespace FitWifFrens.Data
                     .WithOne(m => m.User)
                     .HasForeignKey(m => m.UserId)
                     .IsRequired();
+
+                b.HasMany(m => m.Activities)
+                    .WithOne(m => m.User)
+                    .HasForeignKey(m => m.UserId)
+                    .HasForeignKey(m => m.ProviderId);
             });
 
 
@@ -59,6 +66,9 @@ namespace FitWifFrens.Data
                     .HasForeignKey(m => m.RoleId)
                     .IsRequired();
             });
+
+            builder.Entity<Activity>()
+                .HasKey(a => new { a.UserId, a.ProviderId, a.StartTime });
         }
 
     }

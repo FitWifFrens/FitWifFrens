@@ -15,6 +15,9 @@ namespace FitWifFrens.Data
         public ICollection<UserLogin> Logins { get; set; }
         public ICollection<UserToken> Tokens { get; set; }
         public ICollection<UserRole> UserRoles { get; set; }
+
+        public ICollection<Activity> Activities { get; set; }
+        public ICollection<CommitmentUser> Commitments { get; set; }
     }
 
 }
