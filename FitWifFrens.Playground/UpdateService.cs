@@ -16,23 +16,131 @@ namespace FitWifFrens.Playground
         {
             await _dataContext.Database.MigrateAsync(cancellationToken);
 
-            var users = await _dataContext.Users.Where(u => u.Balance <= 0).ToListAsync(cancellationToken);
-
-            foreach (var user in users)
+            // var users = await _dataContext.Users.Where(u => u.Balance <= 0).ToListAsync(cancellationToken);
+            //
+            // foreach (var user in users)
+            // {
+            //     user.Balance += 100;
+            //
+            //     _dataContext.Entry(user).State = EntityState.Modified;
+            //
+            //     _dataContext.Deposits.Add(new Deposit
+            //     {
+            //         Transaction = "0x" + Guid.NewGuid().ToString().Replace("-", string.Empty),
+            //         UserId = user.Id,
+            //         Amount = 100,
+            //         Time = DateTime.UtcNow
+            //     });
+            // }
+            
+            _dataContext.Providers.AddRange(new List<Provider>
             {
-                user.Balance += 100;
-
-                _dataContext.Entry(user).State = EntityState.Modified;
-
-                _dataContext.Deposits.Add(new Deposit
+                new Provider
                 {
-                    Transaction = "0x" + Guid.NewGuid().ToString().Replace("-", string.Empty),
-                    UserId = user.Id,
-                    Amount = 100,
-                    Time = DateTime.UtcNow
-                });
-            }
-
+                    Name = "Telegram"
+                },
+            });
+            
+            _dataContext.Metrics.AddRange(new List<Metric>
+            {
+                new Metric
+                {
+                    Name = "Telegram Poll"
+                },
+            });
+            
+            _dataContext.MetricProviders.AddRange(new List<MetricProvider>
+            {
+                new MetricProvider
+                {
+                    ProviderName = "Telegram",
+                    MetricName = "Telegram Poll",
+                },
+            });
+            
+            _dataContext.MetricValues.AddRange(new List<MetricValue>
+            {
+                new MetricValue
+                {
+                    MetricName = "Telegram Poll",
+                    Type = MetricType.Count
+                },
+                new MetricValue
+                {
+                    MetricName = "Telegram Poll",
+                    Type = MetricType.Value
+                },
+            });
+            
+            _dataContext.Commitments.Add(new Commitment
+            {
+                Id = Guid.Parse("07c4559b-e5b5-4f77-a3c3-d9c0654298b8"),
+                Title = "Daily Diet Check-In",
+                Description = "Rate your diet each day. Win by logging every day and averaging better than holding steady.",
+                Image = "images/weight-loss1.png",
+                StartDate = new DateOnly(2026, 03, 23),
+                Days = 7,
+                ContractAddress = "0x142384ef21BB443416383A7FFeF3f1C3543c19eD",
+                Goals = new List<Goal>
+                {
+                    new Goal
+                    {
+                        MetricName = "Telegram Poll",
+                        MetricType = MetricType.Count,
+                        Rule = GoalRule.GreaterThanOrEqualTo,
+                        Value = 7
+                    },
+                    new Goal
+                    {
+                        MetricName = "Telegram Poll",
+                        MetricType = MetricType.Value,
+                        Rule = GoalRule.GreaterThan,
+                        Value = 3
+                    }
+                },
+                TelegramPollRule = new CommitmentTelegramPollRule
+                {
+                    Question = "How do you rate your diet?",
+                    RequireDailyResponses = true,
+                    AllowsMultipleAnswers = false,
+                    IsAnonymous = false,
+                    Options = new List<CommitmentTelegramPollRuleOption>
+                    {
+                        new CommitmentTelegramPollRuleOption
+                        {
+                            Index = 0,
+                            Text = "So clean my scale sends thank-you notes (losing weight)",
+                            Value = 5
+                        },
+                        new CommitmentTelegramPollRuleOption
+                        {
+                            Index = 1,
+                            Text = "Mostly solid, with tiny snack crimes (losing weight slowly)",
+                            Value = 4
+                        },
+                        new CommitmentTelegramPollRuleOption
+                        {
+                            Index = 2,
+                            Text = "Salad by day, snack goblin by night (holding steady)",
+                            Value = 3
+                        },
+                        new CommitmentTelegramPollRuleOption
+                        {
+                            Index = 3,
+                            Text = "Accidental bulk mode activated (getting fatter)",
+                            Value = 2
+                        },
+                        new CommitmentTelegramPollRuleOption
+                        {
+                            Index = 4,
+                            Text = "My meal plan is chaos and cheese (getting fatter fast)",
+                            Value = 1
+                        }
+                    }
+                },
+                Periods = new List<CommitmentPeriod>()
+            });
+            
             await _dataContext.SaveChangesAsync(cancellationToken);
         }
 
