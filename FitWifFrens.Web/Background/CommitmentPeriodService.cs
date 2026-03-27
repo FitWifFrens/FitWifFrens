@@ -157,6 +157,7 @@ namespace FitWifFrens.Web.Background
                 var commitmentPeriods = await _dataContext.CommitmentPeriods
                     .Include(cp => cp.Commitment).ThenInclude(c => c.Users)
                     .Include(cp => cp.Commitment).ThenInclude(c => c.Goals)
+                    .Include(cp => cp.Commitment).ThenInclude(c => c.TelegramPollRule)
                     .Include(cp => cp.Users).ThenInclude(cpu => cpu.Goals)
                     .Where(cp => cp.StartDate <= date && cp.Status == CommitmentPeriodStatus.Current)
                     .ToListAsync(cancellationToken);
@@ -170,6 +171,10 @@ namespace FitWifFrens.Web.Background
                     {
                         foreach (var commitmentPeriodUserGoals in commitmentPeriodUser.Goals.GroupBy(g => (g.MetricName, g.ProviderName)))
                         {
+                            var isTelegramPollGoals = commitmentPeriod.Commitment.TelegramPollRule != null &&
+                                                      commitmentPeriodUserGoals.Key.MetricName == "Telegram Poll" &&
+                                                      commitmentPeriodUserGoals.Key.ProviderName == "Telegram";
+
                             var valuesStartTime = commitmentPeriodUserGoals.Key.MetricName == "Weight"
                                 ? startTime.AddDays(-commitmentPeriod.Commitment.Days)
                                 : startTime;
@@ -184,7 +189,19 @@ namespace FitWifFrens.Web.Background
                                 var value = default(double?);
                                 if (commitmentPeriodUserGoal.MetricType == MetricType.Count)
                                 {
-                                    if (commitmentPeriodUserGoal.MetricName == "Blood Pressure")
+                                    if (isTelegramPollGoals)
+                                    {
+                                        var responses = await _dataContext.UserTelegramPollResponses
+                                            .Where(r => r.UserId == commitmentPeriodUser.UserId &&
+                                                        r.CommitmentPoll != null &&
+                                                        r.CommitmentPoll.CommitmentId == commitmentPeriod.CommitmentId &&
+                                                        r.AnsweredTime >= startTime &&
+                                                        r.AnsweredTime < endTime)
+                                            .ToListAsync(cancellationToken);
+
+                                        value = responses.Any() ? responses.Count : null;
+                                    }
+                                    else if (commitmentPeriodUserGoal.MetricName == "Blood Pressure")
                                     {
                                         var values = userMetricProviderValues.Where(upmv => upmv.MetricType == MetricType.Count).ToList();
 
@@ -205,7 +222,19 @@ namespace FitWifFrens.Web.Background
                                 }
                                 else if (commitmentPeriodUserGoal.MetricType == MetricType.Value)
                                 {
-                                    if (userMetricProviderValues.Count >= 2)
+                                    if (isTelegramPollGoals)
+                                    {
+                                        var responses = await _dataContext.UserTelegramPollResponses
+                                            .Where(r => r.UserId == commitmentPeriodUser.UserId &&
+                                                        r.CommitmentPoll != null &&
+                                                        r.CommitmentPoll.CommitmentId == commitmentPeriod.CommitmentId &&
+                                                        r.AnsweredTime >= startTime &&
+                                                        r.AnsweredTime < endTime)
+                                            .ToListAsync(cancellationToken);
+
+                                        value = responses.Any() ? Math.Round(responses.Average(r => r.Value), 2) : null;
+                                    }
+                                    else if (userMetricProviderValues.Count >= 2)
                                     {
                                         // TODO: convert to local
                                         var userMetricProviderValueByDay = userMetricProviderValues.GroupBy(umpv => umpv.Time.ConvertTimeFromUtc().Date).OrderBy(g => g.Key).ToList();

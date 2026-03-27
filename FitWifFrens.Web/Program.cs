@@ -4,6 +4,7 @@ using FitWifFrens.Data;
 using FitWifFrens.Web.Background;
 using FitWifFrens.Web.Components;
 using FitWifFrens.Web.Components.Account;
+using FitWifFrens.Web.Telegram;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.MicrosoftAccount;
@@ -45,6 +46,8 @@ namespace FitWifFrens.Web
                 .AddInteractiveWebAssemblyComponents();
 
             builder.Services.AddControllers();
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
 
             builder.Services.AddCascadingAuthenticationState();
             builder.Services.AddScoped<IdentityUserAccessor>();
@@ -68,17 +71,17 @@ namespace FitWifFrens.Web
 
                     options.SaveTokens = true;
                 })
-                .AddStrava(options =>
-                {
-                    options.ClientId = builder.Configuration.GetValue<string>("Authentication:Strava:ClientId")!;
-                    options.ClientSecret = builder.Configuration.GetValue<string>("Authentication:Strava:ClientSecret")!;
-
-                    options.Scope.Add("read_all");
-                    options.Scope.Add("profile:read_all");
-                    options.Scope.Add("activity:read_all");
-
-                    options.SaveTokens = true;
-                })
+                // .AddStrava(options =>
+                // {
+                //     options.ClientId = builder.Configuration.GetValue<string>("Authentication:Strava:ClientId")!;
+                //     options.ClientSecret = builder.Configuration.GetValue<string>("Authentication:Strava:ClientSecret")!;
+                //
+                //     options.Scope.Add("read_all");
+                //     options.Scope.Add("profile:read_all");
+                //     options.Scope.Add("activity:read_all");
+                //
+                //     options.SaveTokens = true;
+                // })
                 .AddWithings(options =>
                 {
                     options.ClientId = builder.Configuration.GetValue<string>("Authentication:Withings:ClientId")!;
@@ -100,14 +103,8 @@ namespace FitWifFrens.Web
 
             var postgresConnection = builder.Configuration.GetConnectionString("PostgresConnection") ?? throw new InvalidOperationException("Connection string 'PostgresConnection' not found.");
             builder.Services.AddDbContext<DataContext>(options =>
-                options.UseNpgsql(postgresConnection, o =>
-                {
-#if DEBUG
-                    o.SetPostgresVersion(11, 0);
-#else
-                    o.SetPostgresVersion(16, 3);
-#endif
-                }));
+                options.UseNpgsql(postgresConnection));
+            
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
             builder.Services.AddIdentityCore<User>(options =>
@@ -161,12 +158,17 @@ namespace FitWifFrens.Web
             {
                 Token = builder.Configuration.GetValue<string>("Services:Telegram:Token")!,
                 ChatId = builder.Configuration.GetValue<string>("Services:Telegram:ChatId")!,
+                WebhookSecretToken = builder.Configuration.GetValue<string>("Services:Telegram:WebhookSecretToken"),
             });
             builder.Services.AddScoped<NotificationService>();
+            builder.Services.AddSingleton<TelegramPollResponseStore>();
+            builder.Services.AddSingleton<TelegramPollService>();
 
             builder.Services.AddScoped<MicrosoftService>();
             builder.Services.AddScoped<StravaService>();
             builder.Services.AddScoped<WithingsService>();
+            builder.Services.AddScoped<TelegramPollJobService>();
+            builder.Services.AddScoped<TelegramPollSummaryService>();
             builder.Services.AddScoped<CommitmentPeriodService>();
 
             builder.Services.AddScoped<IMetamaskInterop, MetamaskBlazorInterop>();
@@ -191,6 +193,8 @@ namespace FitWifFrens.Web
             {
                 app.UseWebAssemblyDebugging();
                 app.UseMigrationsEndPoint();
+                app.UseSwagger();
+                app.UseSwaggerUI();
             }
             else
             {

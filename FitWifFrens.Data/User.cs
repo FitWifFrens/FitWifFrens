@@ -14,6 +14,9 @@ namespace FitWifFrens.Data
         [ProtectedPersonalData]
         public string? Nickname { get; set; }
 
+        [ProtectedPersonalData]
+        public long? TelegramUserId { get; set; }
+
         public decimal Balance { get; set; }
 
         public ICollection<Deposit> Deposits { get; set; }
@@ -21,6 +24,7 @@ namespace FitWifFrens.Data
         public ICollection<UserMetricProviderValue> MetricProviderValues { get; set; }
         public ICollection<CommitmentUser> Commitments { get; set; }
         public ICollection<CommitmentPeriodUser> CommitmentPeriods { get; set; }
+        public ICollection<UserTelegramPollResponse> TelegramPollResponses { get; set; }
         public ICollection<UserDisplay> Displays { get; set; }
 
         public ICollection<UserClaim> Claims { get; set; }

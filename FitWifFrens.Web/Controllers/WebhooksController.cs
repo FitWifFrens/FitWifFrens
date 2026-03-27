@@ -1,8 +1,8 @@
-﻿using FitWifFrens.Web.Background;
+using FitWifFrens.Web.Background;
+using FitWifFrens.Web.Telegram;
 using Hangfire;
 using Microsoft.ApplicationInsights;
 using Microsoft.AspNetCore.Mvc;
-using System.Data;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -13,11 +13,19 @@ namespace FitWifFrens.Web.Controllers
     public class WebhooksController : Controller
     {
         private readonly IBackgroundJobClient _backgroundJobClient;
+        private readonly NotificationServiceConfiguration _notificationServiceConfiguration;
+        private readonly TelegramPollService _telegramPollService;
         private readonly TelemetryClient _telemetryClient;
 
-        public WebhooksController(IBackgroundJobClient backgroundJobClient, TelemetryClient telemetryClient)
+        public WebhooksController(
+            IBackgroundJobClient backgroundJobClient,
+            NotificationServiceConfiguration notificationServiceConfiguration,
+            TelegramPollService telegramPollService,
+            TelemetryClient telemetryClient)
         {
             _backgroundJobClient = backgroundJobClient;
+            _notificationServiceConfiguration = notificationServiceConfiguration;
+            _telegramPollService = telegramPollService;
             _telemetryClient = telemetryClient;
         }
 
@@ -53,6 +61,20 @@ namespace FitWifFrens.Web.Controllers
             {
                 _backgroundJobClient.Enqueue<WithingsService>(s => s.UpdateProviderMetricValues(withingsIdValues.Single()!, CancellationToken.None)); // TODO: and then update goals
             }
+
+            return Ok();
+        }
+
+        [HttpPost("telegram")]
+        public async Task<IActionResult> UpdateTelegram([FromBody] JsonElement updateJson, [FromHeader(Name = "X-Telegram-Bot-Api-Secret-Token")] string? secretToken, CancellationToken cancellationToken)
+        {
+            if (!string.IsNullOrWhiteSpace(_notificationServiceConfiguration.WebhookSecretToken) &&
+                !string.Equals(_notificationServiceConfiguration.WebhookSecretToken, secretToken, StringComparison.Ordinal))
+            {
+                return Unauthorized();
+            }
+
+            await _telegramPollService.TryProcessUpdateAsync(updateJson, cancellationToken);
 
             return Ok();
         }

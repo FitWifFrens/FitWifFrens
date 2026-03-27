@@ -1,8 +1,9 @@
-﻿namespace FitWifFrens.Web.Background
+namespace FitWifFrens.Web.Background
 {
     public class NotificationServiceConfiguration
     {
-        public string Token { get; init; }
-        public string ChatId { get; init; }
+        public string Token { get; init; } = string.Empty;
+        public string ChatId { get; init; } = string.Empty;
+        public string? WebhookSecretToken { get; init; }
     }
 }

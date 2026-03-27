@@ -18,6 +18,10 @@ namespace FitWifFrens.Data
         public DbSet<CommitmentUser> CommitmentUsers { get; set; }
         public DbSet<CommitmentPeriodUser> CommitmentPeriodUsers { get; set; }
         public DbSet<CommitmentPeriodUserGoal> CommitmentPeriodUserGoals { get; set; }
+        public DbSet<CommitmentTelegramPollRule> CommitmentTelegramPollRules { get; set; }
+        public DbSet<CommitmentTelegramPollRuleOption> CommitmentTelegramPollRuleOptions { get; set; }
+        public DbSet<CommitmentTelegramPoll> CommitmentTelegramPolls { get; set; }
+        public DbSet<UserTelegramPollResponse> UserTelegramPollResponses { get; set; }
         public DbSet<Display> Displays { get; set; }
         public DbSet<UserDisplay> UserDisplays { get; set; }
 
@@ -64,6 +68,13 @@ namespace FitWifFrens.Data
                 b.HasMany(m => m.Displays)
                     .WithOne(m => m.User)
                     .HasForeignKey(m => m.UserId);
+
+                b.HasMany(m => m.TelegramPollResponses)
+                    .WithOne(m => m.User)
+                    .HasForeignKey(m => m.UserId);
+
+                b.HasIndex(m => m.TelegramUserId)
+                    .IsUnique();
 
                 b.HasMany(m => m.Claims)
                     .WithOne(m => m.User)
@@ -193,6 +204,10 @@ namespace FitWifFrens.Data
                     .WithOne(m => m.Commitment)
                     .HasForeignKey(m => m.CommitmentId);
 
+                b.HasOne(m => m.TelegramPollRule)
+                    .WithOne(m => m.Commitment)
+                    .HasForeignKey<CommitmentTelegramPollRule>(m => m.CommitmentId);
+
                 b.HasMany(m => m.Periods)
                     .WithOne(m => m.Commitment)
                     .HasForeignKey(m => m.CommitmentId);
@@ -241,6 +256,63 @@ namespace FitWifFrens.Data
             builder.Entity<CommitmentPeriodUserGoal>(b =>
             {
                 b.HasKey(m => new { m.CommitmentId, m.StartDate, m.EndDate, m.UserId, m.MetricName, m.MetricType, m.ProviderName });
+            });
+
+            builder.Entity<CommitmentTelegramPollRule>(b =>
+            {
+                b.HasKey(m => m.CommitmentId);
+
+                b.Property(m => m.Question)
+                    .HasMaxLength(2048);
+
+                b.HasMany(m => m.Options)
+                    .WithOne(m => m.Rule)
+                    .HasForeignKey(m => m.CommitmentId);
+
+                b.HasMany(m => m.Polls)
+                    .WithOne(m => m.Rule)
+                    .HasForeignKey(m => m.CommitmentId);
+            });
+
+            builder.Entity<CommitmentTelegramPollRuleOption>(b =>
+            {
+                b.HasKey(m => new { m.CommitmentId, m.Index });
+
+                b.Property(m => m.Text)
+                    .HasMaxLength(512);
+            });
+
+            builder.Entity<CommitmentTelegramPoll>(b =>
+            {
+                b.HasKey(m => m.PollId);
+
+                b.Property(m => m.PollId)
+                    .HasMaxLength(512);
+
+                b.Property(m => m.ChatId)
+                    .HasMaxLength(256);
+
+                b.HasMany(m => m.Responses)
+                    .WithOne(m => m.CommitmentPoll)
+                    .HasForeignKey(m => m.PollId);
+            });
+
+            builder.Entity<UserTelegramPollResponse>(b =>
+            {
+                b.HasKey(m => m.Id);
+
+                b.Property(m => m.PollId)
+                    .HasMaxLength(512);
+                
+                b.HasIndex(m => m.UpdateId)
+                    .IsUnique();
+
+                b.HasIndex(m => m.PollId);
+
+                b.HasIndex(m => m.AnsweredTime);
+
+                b.HasIndex(m => new { m.PollId, m.TelegramUserId })
+                    .IsUnique();
             });
 
 

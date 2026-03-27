@@ -16,6 +16,7 @@
         public decimal Balance { get; set; }
 
         public ICollection<Goal> Goals { get; set; }
+        public CommitmentTelegramPollRule? TelegramPollRule { get; set; }
 
         public ICollection<CommitmentPeriod> Periods { get; set; }
 

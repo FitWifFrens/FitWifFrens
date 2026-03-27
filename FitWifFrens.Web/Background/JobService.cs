@@ -1,5 +1,7 @@
 ﻿using Hangfire;
 
+using FitWifFrens.Web.Telegram;
+
 namespace FitWifFrens.Web.Background
 {
     public class JobService : IHostedService
@@ -22,6 +24,7 @@ namespace FitWifFrens.Web.Background
             _recurringJobManager.AddOrUpdate<MicrosoftService>(nameof(MicrosoftService) + nameof(MicrosoftService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Never);
             _recurringJobManager.AddOrUpdate<StravaService>(nameof(StravaService) + nameof(StravaService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Never);
             _recurringJobManager.AddOrUpdate<WithingsService>(nameof(WithingsService) + nameof(WithingsService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Never);
+            _recurringJobManager.AddOrUpdate<TelegramPollService>(nameof(TelegramPollService) + nameof(TelegramPollService.PullPollAnswerUpdates), s => s.PullPollAnswerUpdates(cancellationToken), Cron.Never);
 
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.CreateCommitmentPeriods), s => s.CreateCommitmentPeriods(cancellationToken), Cron.Never);
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriodUserGoals), s => s.UpdateCommitmentPeriodUserGoals(cancellationToken), Cron.Never);
@@ -33,11 +36,31 @@ namespace FitWifFrens.Web.Background
             _recurringJobManager.AddOrUpdate<MicrosoftService>(nameof(MicrosoftService) + nameof(MicrosoftService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Hourly());
             _recurringJobManager.AddOrUpdate<StravaService>(nameof(StravaService) + nameof(StravaService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Hourly());
             _recurringJobManager.AddOrUpdate<WithingsService>(nameof(WithingsService) + nameof(WithingsService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Hourly());
+            _recurringJobManager.AddOrUpdate<TelegramPollService>(nameof(TelegramPollService) + nameof(TelegramPollService.PullPollAnswerUpdates), s => s.PullPollAnswerUpdates(cancellationToken), Cron.Hourly());
 
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.CreateCommitmentPeriods), s => s.CreateCommitmentPeriods(cancellationToken), Cron.Hourly(5));
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriodUserGoals), s => s.UpdateCommitmentPeriodUserGoals(cancellationToken), Cron.Hourly(10));
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriods), s => s.UpdateCommitmentPeriods(cancellationToken), Cron.Hourly(15));
 #endif
+            
+            _recurringJobManager.AddOrUpdate<TelegramPollJobService>(
+                nameof(TelegramPollJobService) + nameof(TelegramPollJobService.SendDailyCommitmentTelegramPolls),
+                s => s.SendDailyCommitmentTelegramPolls(cancellationToken),
+                Cron.Daily(6),
+                new RecurringJobOptions
+                {
+                    TimeZone = TimeZoneInfo.Utc
+                });
+            
+            _recurringJobManager.AddOrUpdate<TelegramPollSummaryService>(
+                nameof(TelegramPollSummaryService) + nameof(TelegramPollSummaryService.SendWeeklyTelegramPollSummary),
+                s => s.SendWeeklyTelegramPollSummary(cancellationToken),
+                Cron.Weekly(DayOfWeek.Monday, 10),
+                new RecurringJobOptions
+                {
+                    TimeZone = TimeZoneInfo.Utc
+                });
+
             return Task.CompletedTask;
         }
 

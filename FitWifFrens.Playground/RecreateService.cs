@@ -37,6 +37,10 @@ namespace FitWifFrens.Playground
                 {
                     Name = "Withings"
                 },
+                new Provider
+                {
+                    Name = "Telegram"
+                },
             });
 
             _dataContext.Metrics.AddRange(new List<Metric>
@@ -64,6 +68,10 @@ namespace FitWifFrens.Playground
                 new Metric
                 {
                     Name = "Tasks"
+                },
+                new Metric
+                {
+                    Name = "Telegram Poll"
                 },
             });
 
@@ -115,6 +123,11 @@ namespace FitWifFrens.Playground
                     ProviderName = "Withings",
                     MetricName = "Weight",
                 },
+                new MetricProvider
+                {
+                    ProviderName = "Telegram",
+                    MetricName = "Telegram Poll",
+                },
             });
 
 
@@ -165,6 +178,16 @@ namespace FitWifFrens.Playground
                     MetricName = "Weight",
                     Type = MetricType.Value
                 },
+                new MetricValue
+                {
+                    MetricName = "Telegram Poll",
+                    Type = MetricType.Count
+                },
+                new MetricValue
+                {
+                    MetricName = "Telegram Poll",
+                    Type = MetricType.Value
+                },
             });
 
             await _dataContext.SaveChangesAsync(CancellationToken.None);
@@ -177,7 +200,7 @@ namespace FitWifFrens.Playground
                 Title = "120 minutes",
                 Description = "Record 3 runs with a total time of 120 minutes",
                 Image = "images/runner0.png",
-                StartDate = new DateOnly(2024, 07, 22),
+                StartDate = new DateOnly(2026, 03, 23),
                 Days = 7,
                 ContractAddress = "0xDF5B443589e6a6f395602Baa722e906EF0e9f0e2",
                 Goals = new List<Goal>
@@ -208,7 +231,7 @@ namespace FitWifFrens.Playground
                 Title = "180 minutes",
                 Description = "Record 4 runs with a total time of 180 minutes",
                 Image = "images/runner2.png",
-                StartDate = new DateOnly(2024, 07, 22),
+                StartDate = new DateOnly(2026, 03, 23),
                 Days = 7,
                 ContractAddress = "0x2b937ba128d275E16E7f26De7d8524C21d0BB7cA",
                 Goals = new List<Goal>
@@ -240,7 +263,7 @@ namespace FitWifFrens.Playground
                 Title = "3 workouts",
                 Description = "Record 3 workouts every week",
                 Image = "images/runner1.png",
-                StartDate = new DateOnly(2024, 07, 22),
+                StartDate = new DateOnly(2026, 03, 23),
                 Days = 7,
                 ContractAddress = "0x5b934ba128d275E16E7f26De7d8524C21d0BB7cA",
                 Goals = new List<Goal>
@@ -264,7 +287,7 @@ namespace FitWifFrens.Playground
                 Title = "Weight Loss",
                 Description = "Lose at least half a kilogram every 2 weeks",
                 Image = "images/weight-loss0.png",
-                StartDate = new DateOnly(2024, 07, 22),
+                StartDate = new DateOnly(2026, 03, 23),
                 Days = 14,
                 ContractAddress = "0x947384ef21BB443416383A7FFeF3f1C3543c19eD",
                 Goals = new List<Goal>
@@ -288,7 +311,7 @@ namespace FitWifFrens.Playground
                 Title = "Blood Pressure",
                 Description = "Measure your blood pressure at least once every 3 days",
                 Image = "images/blood-pressure0.png",
-                StartDate = new DateOnly(2024, 08, 05),
+                StartDate = new DateOnly(2026, 03, 27),
                 Days = 3,
                 ContractAddress = "0x344384ef21BB443416383A7FFeF3f1C3543c19eD",
                 Goals = new List<Goal>
@@ -304,6 +327,77 @@ namespace FitWifFrens.Playground
                 Periods = new List<CommitmentPeriod>()
             });
 
+            var commitment6Id = Guid.Parse("07c4559b-e5b5-4f77-a3c3-d9c0654298b8");
+
+            _dataContext.Commitments.Add(new Commitment
+            {
+                Id = commitment6Id,
+                Title = "Daily Diet Check-In",
+                Description = "Rate your diet each day. Win by logging every day and averaging better than holding steady.",
+                Image = "images/weight-loss1.png",
+                StartDate = new DateOnly(2026, 03, 23),
+                Days = 7,
+                ContractAddress = "0x142384ef21BB443416383A7FFeF3f1C3543c19eD",
+                Goals = new List<Goal>
+                {
+                    new Goal
+                    {
+                        MetricName = "Telegram Poll",
+                        MetricType = MetricType.Count,
+                        Rule = GoalRule.GreaterThanOrEqualTo,
+                        Value = 7
+                    },
+                    new Goal
+                    {
+                        MetricName = "Telegram Poll",
+                        MetricType = MetricType.Value,
+                        Rule = GoalRule.GreaterThan,
+                        Value = 3
+                    }
+                },
+                TelegramPollRule = new CommitmentTelegramPollRule
+                {
+                    Question = "How do you rate your diet?",
+                    RequireDailyResponses = true,
+                    AllowsMultipleAnswers = false,
+                    IsAnonymous = false,
+                    Options = new List<CommitmentTelegramPollRuleOption>
+                    {
+                        new CommitmentTelegramPollRuleOption
+                        {
+                            Index = 0,
+                            Text = "So clean my scale sends thank-you notes (losing weight)",
+                            Value = 5
+                        },
+                        new CommitmentTelegramPollRuleOption
+                        {
+                            Index = 1,
+                            Text = "Mostly solid, with tiny snack crimes (losing weight slowly)",
+                            Value = 4
+                        },
+                        new CommitmentTelegramPollRuleOption
+                        {
+                            Index = 2,
+                            Text = "Salad by day, snack goblin by night (holding steady)",
+                            Value = 3
+                        },
+                        new CommitmentTelegramPollRuleOption
+                        {
+                            Index = 3,
+                            Text = "Accidental bulk mode activated (getting fatter)",
+                            Value = 2
+                        },
+                        new CommitmentTelegramPollRuleOption
+                        {
+                            Index = 4,
+                            Text = "My meal plan is chaos and cheese (getting fatter fast)",
+                            Value = 1
+                        }
+                    }
+                },
+                Periods = new List<CommitmentPeriod>()
+            });
+
             await _dataContext.SaveChangesAsync(CancellationToken.None);
 
 
@@ -312,6 +406,7 @@ namespace FitWifFrens.Playground
             var user = new User
             {
                 Id = "65c79331-17f4-498c-bd91-7236518324ee",
+                Nickname = "Didge",
                 Balance = 100
             };
 
@@ -323,6 +418,13 @@ namespace FitWifFrens.Playground
             {
                 throw new Exception("104644b7-c482-49a0-b6d7-502ed79ea594");
             }
+            
+            _dataContext.UserMetricProviders.Add(new UserMetricProvider
+            {
+                UserId = user.Id,
+                MetricName = "Telegram Poll",
+                ProviderName = "Telegram",
+            });
 
             _dataContext.Deposits.Add(new Deposit
             {
