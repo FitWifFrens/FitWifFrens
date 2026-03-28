@@ -35,10 +35,18 @@ namespace FitWifFrens.Web.Background
             {
                 var now = _timeProvider.GetUtcNow().UtcDateTime;
                 var weekStartTime = now.AddDays(-7);
+                var monthStartTime = now.AddDays(-28);
 
                 var weeklyRaw = await _dataContext.UserMetricProviderValues
                     .AsNoTracking()
                     .Where(v => v.MetricName == "Weight" && v.MetricType == MetricType.Value && v.Time >= weekStartTime)
+                    .OrderBy(v => v.Time)
+                    .Select(v => new { v.UserId, v.User.Nickname, v.User.UserName, v.Value })
+                    .ToListAsync(cancellationToken);
+
+                var monthlyRaw = await _dataContext.UserMetricProviderValues
+                    .AsNoTracking()
+                    .Where(v => v.MetricName == "Weight" && v.MetricType == MetricType.Value && v.Time >= monthStartTime)
                     .OrderBy(v => v.Time)
                     .Select(v => new { v.UserId, v.User.Nickname, v.User.UserName, v.Value })
                     .ToListAsync(cancellationToken);
@@ -60,6 +68,16 @@ namespace FitWifFrens.Web.Background
                         g.Last().Value - g.First().Value))
                     .ToList();
 
+                var monthly = monthlyRaw
+                    .GroupBy(v => new { v.UserId, v.Nickname, v.UserName })
+                    .Select(g => new WeightAggregate(
+                        g.Key.UserId,
+                        g.Key.Nickname,
+                        g.Key.UserName,
+                        g.Count(),
+                        g.Last().Value - g.First().Value))
+                    .ToList();
+
                 var allTime = allTimeRaw
                     .GroupBy(v => new { v.UserId, v.Nickname, v.UserName })
                     .Select(g => new WeightAggregate(
@@ -70,7 +88,7 @@ namespace FitWifFrens.Web.Background
                         g.Last().Value - g.First().Value))
                     .ToList();
 
-                var message = BuildSummaryMessage(weekly, allTime);
+                var message = BuildSummaryMessage(weekly, monthly, allTime);
                 await _notificationService.Notify(message);
             }
             catch (Exception exception)
@@ -83,6 +101,7 @@ namespace FitWifFrens.Web.Background
 
         private static string BuildSummaryMessage(
             IReadOnlyCollection<WeightAggregate> weekly,
+            IReadOnlyCollection<WeightAggregate> monthly,
             IReadOnlyCollection<WeightAggregate> allTime)
         {
             var builder = new StringBuilder();
@@ -92,6 +111,10 @@ namespace FitWifFrens.Web.Background
 
             builder.AppendLine("Past 7 days:");
             AppendAggregateSection(builder, weekly);
+            builder.AppendLine();
+
+            builder.AppendLine("Past 4 weeks:");
+            AppendAggregateSection(builder, monthly);
             builder.AppendLine();
 
             builder.AppendLine("All time:");
