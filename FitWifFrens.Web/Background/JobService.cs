@@ -46,7 +46,7 @@ namespace FitWifFrens.Web.Background
             _recurringJobManager.AddOrUpdate<TelegramPollJobService>(
                 nameof(TelegramPollJobService) + nameof(TelegramPollJobService.SendDailyCommitmentTelegramPolls),
                 s => s.SendDailyCommitmentTelegramPolls(cancellationToken),
-                Cron.Daily(8),
+                Cron.Daily(9),
                 new RecurringJobOptions
                 {
                     TimeZone = TimeZoneInfo.Utc
