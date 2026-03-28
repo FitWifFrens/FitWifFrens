@@ -61,6 +61,15 @@ namespace FitWifFrens.Web.Background
                     TimeZone = TimeZoneInfo.Utc
                 });
 
+            _recurringJobManager.AddOrUpdate<TelegramWeightSummaryService>(
+                nameof(TelegramWeightSummaryService) + nameof(TelegramWeightSummaryService.SendWeeklyWeightSummary),
+                s => s.SendWeeklyWeightSummary(cancellationToken),
+                Cron.Weekly(DayOfWeek.Monday, 12),
+                new RecurringJobOptions
+                {
+                    TimeZone = TimeZoneInfo.Utc
+                });
+
             return Task.CompletedTask;
         }
 
