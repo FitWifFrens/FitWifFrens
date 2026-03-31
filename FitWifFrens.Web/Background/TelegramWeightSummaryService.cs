@@ -207,7 +207,8 @@ namespace FitWifFrens.Web.Background
                 var scatter = plot.Add.Scatter(xs, ys);
                 scatter.LegendText = userSeries.Name;
                 scatter.LineWidth = 2;
-                scatter.MarkerSize = 6;
+                scatter.MarkerSize = 4;
+                scatter.PathStrategy = new ScottPlot.PathStrategies.CubicSpline();
             }
 
             var zeroLine = plot.Add.HorizontalLine(0);
