@@ -25,5 +25,17 @@ namespace FitWifFrens.Web.Background
                 text = message
             });
         }
+
+        public async Task NotifyWithPhoto(Stream imageStream, string? caption = null)
+        {
+            using var content = new MultipartFormDataContent();
+            content.Add(new StringContent(_notificationServiceConfiguration.ChatId), "chat_id");
+            var streamContent = new StreamContent(imageStream);
+            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/png");
+            content.Add(streamContent, "photo", "chart.png");
+            if (!string.IsNullOrEmpty(caption))
+                content.Add(new StringContent(caption), "caption");
+            await _httpClient.PostAsync($"https://api.telegram.org/bot{_notificationServiceConfiguration.Token}/sendPhoto", content);
+        }
     }
 }

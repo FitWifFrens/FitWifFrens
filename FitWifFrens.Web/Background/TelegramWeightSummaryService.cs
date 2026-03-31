@@ -8,6 +8,8 @@ namespace FitWifFrens.Web.Background
     public class TelegramWeightSummaryService
     {
         private sealed record WeightAggregate(string UserId, string? Nickname, string? UserName, int Count, double WeightChange);
+        private sealed record WeightDataPoint(DateTime Time, double Change);
+        private sealed record UserWeightSeries(string Name, IReadOnlyList<WeightDataPoint> DataPoints);
 
         private readonly DataContext _dataContext;
         private readonly NotificationService _notificationService;
@@ -90,6 +92,35 @@ namespace FitWifFrens.Web.Background
 
                 var message = BuildSummaryMessage(weekly, monthly, allTime);
                 await _notificationService.Notify(message);
+
+                var threeMonthStartTime = now.AddMonths(-3);
+
+                var threeMonthRaw = await _dataContext.UserMetricProviderValues
+                    .AsNoTracking()
+                    .Where(v => v.MetricName == "Weight" && v.MetricType == MetricType.Value && v.Time >= threeMonthStartTime)
+                    .OrderBy(v => v.Time)
+                    .Select(v => new { v.UserId, v.User.Nickname, v.User.UserName, v.Time, v.Value })
+                    .ToListAsync(cancellationToken);
+
+                var threeMonthSeries = threeMonthRaw
+                    .GroupBy(v => new { v.UserId, v.Nickname, v.UserName })
+                    .Select(g =>
+                    {
+                        var baseline = g.First().Value;
+                        var name = !string.IsNullOrWhiteSpace(g.Key.Nickname) ? g.Key.Nickname!
+                                   : !string.IsNullOrWhiteSpace(g.Key.UserName) ? g.Key.UserName!
+                                   : g.Key.UserId;
+                        var dataPoints = g.Select(v => new WeightDataPoint(v.Time, v.Value - baseline)).ToList();
+                        return new UserWeightSeries(name, dataPoints);
+                    })
+                    .Where(s => s.DataPoints.Count >= 1)
+                    .ToList();
+
+                if (threeMonthSeries.Count > 0)
+                {
+                    using var chartStream = BuildThreeMonthChart(threeMonthSeries, threeMonthStartTime, now);
+                    await _notificationService.NotifyWithPhoto(chartStream);
+                }
             }
             catch (Exception exception)
             {
@@ -158,6 +189,39 @@ namespace FitWifFrens.Web.Background
             }
 
             return aggregate.UserId;
+        }
+
+        private static MemoryStream BuildThreeMonthChart(IReadOnlyList<UserWeightSeries> series, DateTime startTime, DateTime endTime)
+        {
+            var plot = new ScottPlot.Plot();
+
+            plot.Title("3 Month Weight Change");
+            plot.YLabel("Change (kg)");
+            plot.Axes.DateTimeTicksBottom();
+
+            foreach (var userSeries in series)
+            {
+                var xs = userSeries.DataPoints.Select(dp => dp.Time.ToOADate()).ToArray();
+                var ys = userSeries.DataPoints.Select(dp => dp.Change).ToArray();
+
+                var scatter = plot.Add.Scatter(xs, ys);
+                scatter.LegendText = userSeries.Name;
+                scatter.LineWidth = 2;
+                scatter.MarkerSize = 6;
+            }
+
+            var zeroLine = plot.Add.HorizontalLine(0);
+            zeroLine.Color = ScottPlot.Colors.Gray;
+            zeroLine.LineWidth = 1;
+            zeroLine.LinePattern = ScottPlot.LinePattern.Dashed;
+
+            plot.Axes.Bottom.Min = startTime.ToOADate();
+            plot.Axes.Bottom.Max = endTime.ToOADate();
+
+            plot.ShowLegend();
+
+            var bytes = plot.GetImageBytes(950, 500, ScottPlot.ImageFormat.Png);
+            return new MemoryStream(bytes);
         }
     }
 }
