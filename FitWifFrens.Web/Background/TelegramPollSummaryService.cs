@@ -35,6 +35,7 @@ namespace FitWifFrens.Web.Background
             {
                 var now = _timeProvider.GetUtcNow().UtcDateTime;
                 var weekStartTime = now.AddDays(-7);
+                var monthStartTime = now.AddDays(-28);
 
                 var weekly = await _dataContext.UserTelegramPollResponses
                     .AsNoTracking()
@@ -60,6 +61,18 @@ namespace FitWifFrens.Web.Background
                         g.Average(x => x.Value)))
                     .ToListAsync(cancellationToken);
 
+                var monthly = await _dataContext.UserTelegramPollResponses
+                    .AsNoTracking()
+                    .Where(r => r.UserId != null && r.CommitmentPoll != null && r.AnsweredTime >= monthStartTime)
+                    .GroupBy(r => new { UserId = r.UserId!, Nickname = r.User!.Nickname, UserName = r.User!.UserName })
+                    .Select(g => new PollAggregate(
+                        g.Key.UserId,
+                        g.Key.Nickname,
+                        g.Key.UserName,
+                        g.Count(),
+                        g.Average(x => x.Value)))
+                    .ToListAsync(cancellationToken);
+
                 var question = await _dataContext.UserTelegramPollResponses
                     .AsNoTracking()
                     .Where(r => r.CommitmentPoll != null)
@@ -68,7 +81,7 @@ namespace FitWifFrens.Web.Background
                     .OrderBy(q => q)
                     .FirstOrDefaultAsync(cancellationToken);
 
-                var message = BuildSummaryMessage(weekly, allTime, question);
+                var message = BuildSummaryMessage(weekly, monthly, allTime, question);
                 await _notificationService.Notify(message);
             }
             catch (Exception exception)
@@ -81,6 +94,7 @@ namespace FitWifFrens.Web.Background
 
         private static string BuildSummaryMessage(
             IReadOnlyCollection<PollAggregate> weekly,
+            IReadOnlyCollection<PollAggregate> monthly,
             IReadOnlyCollection<PollAggregate> allTime,
             string? question)
         {
@@ -91,6 +105,10 @@ namespace FitWifFrens.Web.Background
 
             builder.AppendLine("Past 7 days:");
             AppendAggregateSection(builder, weekly);
+            builder.AppendLine();
+
+            builder.AppendLine("Past 4 weeks:");
+            AppendAggregateSection(builder, monthly);
             builder.AppendLine();
 
             builder.AppendLine("All time:");
