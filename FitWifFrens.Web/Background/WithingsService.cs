@@ -267,7 +267,29 @@ namespace FitWifFrens.Web.Background
                                 {
                                     if (!string.IsNullOrWhiteSpace(user.Nickname))
                                     {
-                                        _ = _notificationService.Notify($"{user.Nickname} just weighed in at {measureValue} kg");
+                                        var monthStartTime = measureGroupTime.AddDays(-28);
+                                        var monthAgoValue = await _dataContext.UserMetricProviderValues
+                                            .AsNoTracking()
+                                            .Where(v => v.UserId == user.Id && v.MetricName == "Weight" && v.ProviderName == "Withings" &&
+                                                        v.MetricType == MetricType.Value && v.Time >= monthStartTime && v.Time < measureGroupTime)
+                                            .OrderBy(v => v.Time)
+                                            .Select(v => (double?)v.Value)
+                                            .FirstOrDefaultAsync(cancellationToken);
+
+                                        var message = $"{user.Nickname} just weighed in at {measureValue} kg";
+
+                                        if (monthAgoValue.HasValue)
+                                        {
+                                            var change = Math.Round(measureValue - monthAgoValue.Value, 1);
+                                            var changeText = change < 0
+                                                ? $"{Math.Abs(change):F1} kg lost"
+                                                : change > 0
+                                                    ? $"{change:F1} kg gained"
+                                                    : "no change";
+                                            message += $" ({changeText} past 4 weeks)";
+                                        }
+
+                                        _ = _notificationService.Notify(message);
                                     }
 
                                     _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
