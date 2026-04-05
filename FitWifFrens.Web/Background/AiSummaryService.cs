@@ -1,4 +1,5 @@
 using Anthropic.SDK;
+using Anthropic.SDK.Constants;
 using Anthropic.SDK.Messaging;
 
 namespace FitWifFrens.Web.Background
@@ -161,7 +162,7 @@ namespace FitWifFrens.Web.Background
             {
                 Messages = [new Message(RoleType.User, prompt)],
                 MaxTokens = 512,
-                Model = "claude-3-haiku-20240307",
+                Model = AnthropicModels.Claude3Haiku,
                 Stream = false,
                 Temperature = 1m,
             };
