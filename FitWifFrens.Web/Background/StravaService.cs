@@ -22,13 +22,14 @@ namespace FitWifFrens.Web.Background
         private readonly HttpClient _httpClient;
         private readonly RefreshTokenService _refreshTokenService;
         private readonly NotificationService _notificationService;
+        private readonly AiSummaryService _aiSummaryService;
         private readonly TelemetryClient _telemetryClient;
         private readonly ILogger<StravaService> _logger;
 
         private readonly ResiliencePipeline<HttpResponseMessage> _resiliencePipeline;
 
         public StravaService(BackgroundConfiguration backgroundConfiguration, RefreshTokenServiceConfiguration refreshTokenServiceConfiguration,
-            DataContext dataContext, IBackgroundJobClient backgroundJobClient, IHttpClientFactory httpClientFactory, RefreshTokenService refreshTokenService, NotificationService notificationService, TelemetryClient telemetryClient, ILogger<StravaService> logger)
+            DataContext dataContext, IBackgroundJobClient backgroundJobClient, IHttpClientFactory httpClientFactory, RefreshTokenService refreshTokenService, NotificationService notificationService, AiSummaryService aiSummaryService, TelemetryClient telemetryClient, ILogger<StravaService> logger)
         {
             _backgroundConfiguration = backgroundConfiguration;
             _refreshTokenServiceConfiguration = refreshTokenServiceConfiguration;
@@ -36,6 +37,7 @@ namespace FitWifFrens.Web.Background
             _backgroundJobClient = backgroundJobClient;
             _refreshTokenService = refreshTokenService;
             _notificationService = notificationService;
+            _aiSummaryService = aiSummaryService;
             _httpClient = httpClientFactory.CreateClient();
             _telemetryClient = telemetryClient;
             _logger = logger;
@@ -233,7 +235,19 @@ namespace FitWifFrens.Web.Background
                         {
                             if (!string.IsNullOrWhiteSpace(user.Nickname))
                             {
-                                _ = _notificationService.Notify($"{user.Nickname} just logged a workout");
+                                var factsRaw = await _dataContext.UserFacts
+                                    .AsNoTracking()
+                                    .Where(f => f.UserId == user.Id)
+                                    .Select(f => f.Fact)
+                                    .ToListAsync(cancellationToken);
+                                var userFacts = factsRaw.Count > 0
+                                    ? new Dictionary<string, List<string>> { { user.Nickname!, factsRaw } }
+                                    : null;
+
+                                var message = await _aiSummaryService.GenerateWorkoutMessage(
+                                    user.Nickname!, activityType!, activityMinutes, cancellationToken, userFacts);
+
+                                _ = _notificationService.Notify(message);
                             }
 
                             _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue

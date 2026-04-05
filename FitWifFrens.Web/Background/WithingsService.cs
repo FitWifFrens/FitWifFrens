@@ -403,7 +403,19 @@ namespace FitWifFrens.Web.Background
                             {
                                 if (!string.IsNullOrWhiteSpace(user.Nickname))
                                 {
-                                    _ = _notificationService.Notify($"{user.Nickname} just logged a workout");
+                                    var factsRaw = await _dataContext.UserFacts
+                                        .AsNoTracking()
+                                        .Where(f => f.UserId == user.Id)
+                                        .Select(f => f.Fact)
+                                        .ToListAsync(cancellationToken);
+                                    var userFacts = factsRaw.Count > 0
+                                        ? new Dictionary<string, List<string>> { { user.Nickname!, factsRaw } }
+                                        : null;
+
+                                    var message = await _aiSummaryService.GenerateWorkoutMessage(
+                                        user.Nickname!, "Workout", activityMinutes, cancellationToken, userFacts);
+
+                                    _ = _notificationService.Notify(message);
                                 }
 
                                 _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue

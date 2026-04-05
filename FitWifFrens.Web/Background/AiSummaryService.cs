@@ -203,6 +203,41 @@ namespace FitWifFrens.Web.Background
             return $"{name} just weighed in at {weight} kg{FormatMonthChange(monthChange)}";
         }
 
+        /// <summary>
+        /// Generates a short, fun message for a real-time workout notification.
+        /// Falls back to the provided default message if the AI call fails.
+        /// </summary>
+        public async Task<string> GenerateWorkoutMessage(
+            string name,
+            string activityType,
+            double minutes,
+            CancellationToken cancellationToken,
+            Dictionary<string, List<string>>? userFacts = null)
+        {
+            try
+            {
+                var prompt =
+                    $"You are a witty fitness group coach posting a real-time workout update to a group chat. " +
+                    $"{name} just logged a {activityType} for {minutes:F0} minutes. " +
+                    $"Write a single short message (max 20 words) reacting to this workout. " +
+                    $"Be fun and encouraging. Vary the style each time. Keep it friendly. " +
+                    FormatFactsForPrompt(userFacts) +
+                    $"Output only the message, no quotes, no extra text.";
+
+                var aiMessage = await CallClaude(prompt, cancellationToken);
+                if (aiMessage != null)
+                {
+                    return $"{name} just logged a {activityType} ({minutes:F0} min)\n{aiMessage}";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "AI workout message generation failed, using default. Error: {Message}", ex.Message);
+            }
+
+            return $"{name} just logged a {activityType} ({minutes:F0} min)";
+        }
+
         private static string FormatFitnessData(
             string name,
             double? weightChange,
