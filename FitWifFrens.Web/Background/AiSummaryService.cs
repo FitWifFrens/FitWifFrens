@@ -192,7 +192,7 @@ namespace FitWifFrens.Web.Background
                 var aiMessage = await CallClaude(prompt, cancellationToken);
                 if (aiMessage != null)
                 {
-                    return $"{name} just weighed in at {weight} kg\n{aiMessage}";
+                    return $"{name} just weighed in at {weight} kg{FormatMonthChange(monthChange)}\n{aiMessage}";
                 }
             }
             catch (Exception ex)
@@ -200,20 +200,7 @@ namespace FitWifFrens.Web.Background
                 _logger.LogError(ex, "AI weigh-in message generation failed, using default. Error: {Message}", ex.Message);
             }
 
-            // Fall back to the standard message
-            var fallback = $"{name} just weighed in at {weight} kg";
-            if (monthChange.HasValue)
-            {
-                var change = monthChange.Value;
-                var fallbackChangeText = change < 0
-                    ? $"{Math.Abs(change):F1} kg lost"
-                    : change > 0
-                        ? $"{change:F1} kg gained"
-                        : "no change";
-                fallback += $" ({fallbackChangeText} past 4 weeks)";
-            }
-
-            return fallback;
+            return $"{name} just weighed in at {weight} kg{FormatMonthChange(monthChange)}";
         }
 
         /// <summary>
@@ -284,6 +271,22 @@ namespace FitWifFrens.Web.Background
                 _logger.LogError(ex, "AI roast generation failed. Error: {Message}", ex.Message);
                 return null;
             }
+        }
+
+        private static string FormatMonthChange(double? monthChange)
+        {
+            if (!monthChange.HasValue)
+            {
+                return string.Empty;
+            }
+
+            var change = monthChange.Value;
+            var changeText = change < 0
+                ? $"{Math.Abs(change):F1} kg lost"
+                : change > 0
+                    ? $"{change:F1} kg gained"
+                    : "no change";
+            return $" ({changeText} past 4 weeks)";
         }
 
         private static string FormatFactsForPrompt(Dictionary<string, List<string>>? factsByName)
