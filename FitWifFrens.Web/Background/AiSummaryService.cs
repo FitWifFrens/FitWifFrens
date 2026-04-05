@@ -160,6 +160,62 @@ namespace FitWifFrens.Web.Background
             return result;
         }
 
+        /// <summary>
+        /// Generates a short, fun message for a real-time weigh-in notification.
+        /// Falls back to the provided default message if the AI call fails.
+        /// </summary>
+        public async Task<string> GenerateWeighInMessage(
+            string name,
+            double weight,
+            double? monthChange,
+            CancellationToken cancellationToken,
+            Dictionary<string, List<string>>? userFacts = null)
+        {
+            try
+            {
+                var changeText = monthChange.HasValue
+                    ? monthChange.Value < 0
+                        ? $"{Math.Abs(monthChange.Value):F1} kg lost over the past 4 weeks"
+                        : monthChange.Value > 0
+                            ? $"{monthChange.Value:F1} kg gained over the past 4 weeks"
+                            : "no change over the past 4 weeks"
+                    : "no previous data to compare";
+
+                var prompt =
+                    $"You are a witty fitness group coach posting a real-time weigh-in update to a group chat. " +
+                    $"{name} just weighed in at {weight} kg ({changeText}). " +
+                    $"Write a single short message (max 20 words) reacting to this weigh-in. " +
+                    $"Be fun, encouraging if they lost weight, playfully teasing if they gained. Keep it friendly. " +
+                    FormatFactsForPrompt(userFacts) +
+                    $"Output only the message, no quotes, no extra text.";
+
+                var aiMessage = await CallClaude(prompt, cancellationToken);
+                if (aiMessage != null)
+                {
+                    return $"{name} just weighed in at {weight} kg\n{aiMessage}";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "AI weigh-in message generation failed, using default. Error: {Message}", ex.Message);
+            }
+
+            // Fall back to the standard message
+            var fallback = $"{name} just weighed in at {weight} kg";
+            if (monthChange.HasValue)
+            {
+                var change = monthChange.Value;
+                var fallbackChangeText = change < 0
+                    ? $"{Math.Abs(change):F1} kg lost"
+                    : change > 0
+                        ? $"{change:F1} kg gained"
+                        : "no change";
+                fallback += $" ({fallbackChangeText} past 4 weeks)";
+            }
+
+            return fallback;
+        }
+
         private static string FormatFactsForPrompt(Dictionary<string, List<string>>? factsByName)
         {
             if (factsByName == null || factsByName.Count == 0)

@@ -29,13 +29,14 @@ namespace FitWifFrens.Web.Background
         private readonly HttpClient _httpClient;
         private readonly RefreshTokenService _refreshTokenService;
         private readonly NotificationService _notificationService;
+        private readonly AiSummaryService _aiSummaryService;
         private readonly TelemetryClient _telemetryClient;
         private readonly ILogger<WithingsService> _logger;
 
         private readonly ResiliencePipeline<ResponseJsonDocument> _resiliencePipeline;
 
         public WithingsService(BackgroundConfiguration backgroundConfiguration, DataContext dataContext, IBackgroundJobClient backgroundJobClient,
-            IHttpClientFactory httpClientFactory, RefreshTokenService refreshTokenService, NotificationService notificationService, TelemetryClient telemetryClient, ILogger<WithingsService> logger)
+            IHttpClientFactory httpClientFactory, RefreshTokenService refreshTokenService, NotificationService notificationService, AiSummaryService aiSummaryService, TelemetryClient telemetryClient, ILogger<WithingsService> logger)
         {
             _backgroundConfiguration = backgroundConfiguration;
             _dataContext = dataContext;
@@ -43,6 +44,7 @@ namespace FitWifFrens.Web.Background
             _httpClient = httpClientFactory.CreateClient();
             _refreshTokenService = refreshTokenService;
             _notificationService = notificationService;
+            _aiSummaryService = aiSummaryService;
             _telemetryClient = telemetryClient;
             _logger = logger;
 
@@ -276,18 +278,21 @@ namespace FitWifFrens.Web.Background
                                             .Select(v => (double?)v.Value)
                                             .FirstOrDefaultAsync(cancellationToken);
 
-                                        var message = $"{user.Nickname} just weighed in at {measureValue} kg";
+                                        double? monthChange = monthAgoValue.HasValue
+                                            ? Math.Round(measureValue - monthAgoValue.Value, 1)
+                                            : null;
 
-                                        if (monthAgoValue.HasValue)
-                                        {
-                                            var change = Math.Round(measureValue - monthAgoValue.Value, 1);
-                                            var changeText = change < 0
-                                                ? $"{Math.Abs(change):F1} kg lost"
-                                                : change > 0
-                                                    ? $"{change:F1} kg gained"
-                                                    : "no change";
-                                            message += $" ({changeText} past 4 weeks)";
-                                        }
+                                        var factsRaw = await _dataContext.UserFacts
+                                            .AsNoTracking()
+                                            .Where(f => f.UserId == user.Id)
+                                            .Select(f => f.Fact)
+                                            .ToListAsync(cancellationToken);
+                                        var userFacts = factsRaw.Count > 0
+                                            ? new Dictionary<string, List<string>> { { user.Nickname!, factsRaw } }
+                                            : null;
+
+                                        var message = await _aiSummaryService.GenerateWeighInMessage(
+                                            user.Nickname!, measureValue, monthChange, cancellationToken, userFacts);
 
                                         _ = _notificationService.Notify(message);
                                     }
