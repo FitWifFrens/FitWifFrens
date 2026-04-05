@@ -8,10 +8,15 @@ namespace FitWifFrens.Web.Background
         private readonly AnthropicClient? _client;
         private readonly ILogger<AiSummaryService> _logger;
 
-        public AiSummaryService(ILogger<AiSummaryService> logger, AnthropicClient? client = null)
+        public AiSummaryService(AnthropicClient? client, ILogger<AiSummaryService> logger)
         {
             _client = client;
             _logger = logger;
+
+            if (_client == null)
+            {
+                logger.LogInformation("AiSummaryService: no Anthropic API key configured, AI messages disabled.");
+            }
         }
 
         /// <summary>
@@ -47,7 +52,7 @@ namespace FitWifFrens.Web.Background
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "AI weight summary intro generation failed, using default.");
+                _logger.LogError(ex, "AI weight summary intro generation failed, using default. Error: {Message}", ex.Message);
                 return "Weight Summary";
             }
         }
@@ -83,7 +88,7 @@ namespace FitWifFrens.Web.Background
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "AI poll summary intro generation failed, using default.");
+                _logger.LogError(ex, "AI poll summary intro generation failed, using default. Error: {Message}", ex.Message);
                 return $"Q: {question}";
             }
         }
@@ -140,7 +145,7 @@ namespace FitWifFrens.Web.Background
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "AI correlation commentary generation failed, using defaults.");
+                _logger.LogError(ex, "AI correlation commentary generation failed, using defaults. Error: {Message}", ex.Message);
             }
 
             return result;
