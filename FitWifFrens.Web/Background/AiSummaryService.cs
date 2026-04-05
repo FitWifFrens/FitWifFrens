@@ -216,6 +216,76 @@ namespace FitWifFrens.Web.Background
             return fallback;
         }
 
+        /// <summary>
+        /// Generates a roast for a user based on their recent fitness data.
+        /// </summary>
+        public async Task<string?> GenerateRoast(
+            string name,
+            double? weightChange,
+            double? avgDietRating,
+            int weighInCount,
+            int pollResponseCount,
+            double exerciseMinutes,
+            double runningMinutes,
+            double workoutMinutes,
+            CancellationToken cancellationToken,
+            Dictionary<string, List<string>>? userFacts = null)
+        {
+            try
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine($"Name: {name}");
+                sb.AppendLine($"Past 4 weeks stats:");
+
+                if (weightChange.HasValue)
+                {
+                    var changeText = weightChange.Value < 0
+                        ? $"{Math.Abs(weightChange.Value):F1} kg lost"
+                        : weightChange.Value > 0
+                            ? $"{weightChange.Value:F1} kg gained"
+                            : "no change";
+                    sb.AppendLine($"- Weight: {changeText}, {weighInCount} weigh-ins");
+                }
+                else
+                {
+                    sb.AppendLine($"- Weight: no weigh-ins recorded");
+                }
+
+                if (pollResponseCount > 0)
+                {
+                    sb.AppendLine($"- Diet self-rating: avg {avgDietRating:F1}/5 from {pollResponseCount} responses (3 = flat, above 3 = good, below 3 = bad)");
+                }
+                else
+                {
+                    sb.AppendLine($"- Diet self-rating: no poll responses (not even bothering to rate themselves)");
+                }
+
+                sb.AppendLine($"- Exercise: {exerciseMinutes:F0} total minutes");
+                sb.AppendLine($"- Running: {runningMinutes:F0} minutes");
+                sb.AppendLine($"- Workouts: {workoutMinutes:F0} minutes");
+
+                var dataText = sb.ToString();
+
+                var prompt =
+                    $"You are a savage but funny roast comedian in a fitness group chat. " +
+                    $"Someone asked to be roasted based on their fitness data. Be brutally honest and hilarious. " +
+                    $"Focus on where they're slacking — low exercise, weight gain, bad diet ratings, missing weigh-ins, etc. " +
+                    $"If they have known facts, use those to make the roast more personal and cutting. " +
+                    $"Write 3-5 short punchy lines. Keep each line under 15 words. Be creative and varied. " +
+                    $"Keep it friendly enough that they'll laugh, not cry.\n\n" +
+                    $"{dataText}\n" +
+                    FormatFactsForPrompt(userFacts) +
+                    $"Output only the roast lines, nothing else.";
+
+                return await CallClaude(prompt, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "AI roast generation failed. Error: {Message}", ex.Message);
+                return null;
+            }
+        }
+
         private static string FormatFactsForPrompt(Dictionary<string, List<string>>? factsByName)
         {
             if (factsByName == null || factsByName.Count == 0)
