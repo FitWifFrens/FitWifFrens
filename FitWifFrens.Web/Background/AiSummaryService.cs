@@ -162,7 +162,7 @@ namespace FitWifFrens.Web.Background
             {
                 Messages = [new Message(RoleType.User, prompt)],
                 MaxTokens = 512,
-                Model = AnthropicModels.Claude3Haiku,
+                Model = "claude-haiku-4-5-20251001",
                 Stream = false,
                 Temperature = 1m,
             };
