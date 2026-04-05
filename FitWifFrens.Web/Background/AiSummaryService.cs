@@ -203,6 +203,50 @@ namespace FitWifFrens.Web.Background
             return $"{name} just weighed in at {weight} kg{FormatMonthChange(monthChange)}";
         }
 
+        private static string FormatFitnessData(
+            string name,
+            double? weightChange,
+            double? avgDietRating,
+            int weighInCount,
+            int pollResponseCount,
+            double exerciseMinutes,
+            double runningMinutes,
+            double workoutMinutes)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"Name: {name}");
+            sb.AppendLine($"Past 4 weeks stats:");
+
+            if (weightChange.HasValue)
+            {
+                var changeText = weightChange.Value < 0
+                    ? $"{Math.Abs(weightChange.Value):F1} kg lost"
+                    : weightChange.Value > 0
+                        ? $"{weightChange.Value:F1} kg gained"
+                        : "no change";
+                sb.AppendLine($"- Weight: {changeText}, {weighInCount} weigh-ins");
+            }
+            else
+            {
+                sb.AppendLine($"- Weight: no weigh-ins recorded");
+            }
+
+            if (pollResponseCount > 0)
+            {
+                sb.AppendLine($"- Diet self-rating: avg {avgDietRating:F1}/5 from {pollResponseCount} responses (3 = flat, above 3 = good, below 3 = bad)");
+            }
+            else
+            {
+                sb.AppendLine($"- Diet self-rating: no poll responses");
+            }
+
+            sb.AppendLine($"- Exercise: {exerciseMinutes:F0} total minutes");
+            sb.AppendLine($"- Running: {runningMinutes:F0} minutes");
+            sb.AppendLine($"- Workouts: {workoutMinutes:F0} minutes");
+
+            return sb.ToString();
+        }
+
         /// <summary>
         /// Generates a roast for a user based on their recent fitness data.
         /// </summary>
@@ -220,38 +264,7 @@ namespace FitWifFrens.Web.Background
         {
             try
             {
-                var sb = new StringBuilder();
-                sb.AppendLine($"Name: {name}");
-                sb.AppendLine($"Past 4 weeks stats:");
-
-                if (weightChange.HasValue)
-                {
-                    var changeText = weightChange.Value < 0
-                        ? $"{Math.Abs(weightChange.Value):F1} kg lost"
-                        : weightChange.Value > 0
-                            ? $"{weightChange.Value:F1} kg gained"
-                            : "no change";
-                    sb.AppendLine($"- Weight: {changeText}, {weighInCount} weigh-ins");
-                }
-                else
-                {
-                    sb.AppendLine($"- Weight: no weigh-ins recorded");
-                }
-
-                if (pollResponseCount > 0)
-                {
-                    sb.AppendLine($"- Diet self-rating: avg {avgDietRating:F1}/5 from {pollResponseCount} responses (3 = flat, above 3 = good, below 3 = bad)");
-                }
-                else
-                {
-                    sb.AppendLine($"- Diet self-rating: no poll responses (not even bothering to rate themselves)");
-                }
-
-                sb.AppendLine($"- Exercise: {exerciseMinutes:F0} total minutes");
-                sb.AppendLine($"- Running: {runningMinutes:F0} minutes");
-                sb.AppendLine($"- Workouts: {workoutMinutes:F0} minutes");
-
-                var dataText = sb.ToString();
+                var dataText = FormatFitnessData(name, weightChange, avgDietRating, weighInCount, pollResponseCount, exerciseMinutes, runningMinutes, workoutMinutes);
 
                 var prompt =
                     $"You are a savage but funny roast comedian in a fitness group chat. " +
@@ -269,6 +282,45 @@ namespace FitWifFrens.Web.Background
             catch (Exception ex)
             {
                 _logger.LogError(ex, "AI roast generation failed. Error: {Message}", ex.Message);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Generates an encouraging poem for a user based on their recent fitness data.
+        /// </summary>
+        public async Task<string?> GeneratePoem(
+            string name,
+            double? weightChange,
+            double? avgDietRating,
+            int weighInCount,
+            int pollResponseCount,
+            double exerciseMinutes,
+            double runningMinutes,
+            double workoutMinutes,
+            CancellationToken cancellationToken,
+            Dictionary<string, List<string>>? userFacts = null)
+        {
+            try
+            {
+                var dataText = FormatFitnessData(name, weightChange, avgDietRating, weighInCount, pollResponseCount, exerciseMinutes, runningMinutes, workoutMinutes);
+
+                var prompt =
+                    $"You are an encouraging and warm fitness group coach who writes short poems. " +
+                    $"Write a short rhyming poem (4-6 lines) celebrating this person's fitness journey. " +
+                    $"Highlight what they're doing well — any progress, consistency, or effort. " +
+                    $"If they're struggling, be gentle and motivating. Find the silver lining. " +
+                    $"If they have known facts, weave those in to make it personal. " +
+                    $"Keep it light, fun, and uplifting.\n\n" +
+                    $"{dataText}\n" +
+                    FormatFactsForPrompt(userFacts) +
+                    $"Output only the poem, nothing else.";
+
+                return await CallClaude(prompt, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "AI poem generation failed. Error: {Message}", ex.Message);
                 return null;
             }
         }

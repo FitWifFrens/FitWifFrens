@@ -155,7 +155,8 @@ namespace FitWifFrens.Web.Telegram
                         new { command = "remember", description = "Remember a fact — e.g. /remember @Phil loves cheese" },
                         new { command = "forget", description = "Forget a fact about yourself — e.g. /forget cheese" },
                         new { command = "facts", description = "List all remembered facts about yourself" },
-                        new { command = "roast", description = "Get roasted based on your fitness data" }
+                        new { command = "roast", description = "Get roasted based on your fitness data" },
+                        new { command = "poem", description = "Get an encouraging poem about your fitness journey" }
                     }
                 },
                 cancellationToken);
@@ -512,6 +513,14 @@ namespace FitWifFrens.Web.Telegram
                 return true;
             }
 
+            if (text.TrimEnd().Equals("/poem", StringComparison.OrdinalIgnoreCase) ||
+                text.StartsWith("/poem@", StringComparison.OrdinalIgnoreCase) ||
+                text.StartsWith("/poem ", StringComparison.OrdinalIgnoreCase))
+            {
+                await HandlePoemAsync(telegramUserId, message, chatId, messageId, cancellationToken);
+                return true;
+            }
+
             return false;
         }
 
@@ -714,6 +723,68 @@ namespace FitWifFrens.Web.Telegram
             }
         }
 
+        private sealed record UserFitnessData(
+            string Name,
+            double? WeightChange,
+            int WeighInCount,
+            double? AvgDietRating,
+            int PollResponseCount,
+            double ExerciseMinutes,
+            double RunningMinutes,
+            double WorkoutMinutes,
+            Dictionary<string, List<string>>? UserFacts);
+
+        private static async Task<UserFitnessData> GatherFitnessDataAsync(DataContext dataContext, User targetUser, CancellationToken cancellationToken)
+        {
+            var monthStartTime = DateTime.UtcNow.AddDays(-28);
+            var name = targetUser.Nickname ?? targetUser.UserName ?? "Unknown";
+
+            var weightValues = await dataContext.UserMetricProviderValues
+                .AsNoTracking()
+                .Where(v => v.UserId == targetUser.Id && v.MetricName == "Weight" && v.MetricType == MetricType.Value && v.Time >= monthStartTime)
+                .OrderBy(v => v.Time)
+                .Select(v => v.Value)
+                .ToListAsync(cancellationToken);
+
+            double? weightChange = weightValues.Count >= 2
+                ? Math.Round(weightValues.Last() - weightValues.First(), 1)
+                : null;
+
+            var pollResponses = await dataContext.UserTelegramPollResponses
+                .AsNoTracking()
+                .Where(r => r.UserId == targetUser.Id && r.CommitmentPoll != null && r.AnsweredTime >= monthStartTime)
+                .Select(r => r.Value)
+                .ToListAsync(cancellationToken);
+
+            var avgDietRating = pollResponses.Count > 0 ? pollResponses.Average() : (double?)null;
+
+            var exerciseMinutes = await dataContext.UserMetricProviderValues
+                .AsNoTracking()
+                .Where(v => v.UserId == targetUser.Id && v.MetricName == "Exercise" && v.MetricType == MetricType.Minutes && v.Time >= monthStartTime)
+                .SumAsync(v => v.Value, cancellationToken);
+
+            var runningMinutes = await dataContext.UserMetricProviderValues
+                .AsNoTracking()
+                .Where(v => v.UserId == targetUser.Id && v.MetricName == "Running" && v.MetricType == MetricType.Minutes && v.Time >= monthStartTime)
+                .SumAsync(v => v.Value, cancellationToken);
+
+            var workoutMinutes = await dataContext.UserMetricProviderValues
+                .AsNoTracking()
+                .Where(v => v.UserId == targetUser.Id && v.MetricName == "Workout" && v.MetricType == MetricType.Minutes && v.Time >= monthStartTime)
+                .SumAsync(v => v.Value, cancellationToken);
+
+            var factsRaw = await dataContext.UserFacts
+                .AsNoTracking()
+                .Where(f => f.UserId == targetUser.Id)
+                .Select(f => f.Fact)
+                .ToListAsync(cancellationToken);
+            var userFacts = factsRaw.Count > 0
+                ? new Dictionary<string, List<string>> { { name, factsRaw } }
+                : null;
+
+            return new UserFitnessData(name, weightChange, weightValues.Count, avgDietRating, pollResponses.Count, exerciseMinutes, runningMinutes, workoutMinutes, userFacts);
+        }
+
         private async Task HandleRoastAsync(long telegramUserId, JsonElement message, string chatId, int replyToMessageId, CancellationToken cancellationToken)
         {
             try
@@ -730,79 +801,60 @@ namespace FitWifFrens.Web.Telegram
                     return;
                 }
 
-                var monthStartTime = DateTime.UtcNow.AddDays(-28);
-                var name = targetUser.Nickname ?? targetUser.UserName ?? "Unknown";
-
-                // Weight data
-                var weightValues = await dataContext.UserMetricProviderValues
-                    .AsNoTracking()
-                    .Where(v => v.UserId == targetUser.Id && v.MetricName == "Weight" && v.MetricType == MetricType.Value && v.Time >= monthStartTime)
-                    .OrderBy(v => v.Time)
-                    .Select(v => v.Value)
-                    .ToListAsync(cancellationToken);
-
-                double? weightChange = weightValues.Count >= 2
-                    ? Math.Round(weightValues.Last() - weightValues.First(), 1)
-                    : null;
-
-                // Poll data
-                var pollResponses = await dataContext.UserTelegramPollResponses
-                    .AsNoTracking()
-                    .Where(r => r.UserId == targetUser.Id && r.CommitmentPoll != null && r.AnsweredTime >= monthStartTime)
-                    .Select(r => r.Value)
-                    .ToListAsync(cancellationToken);
-
-                var avgDietRating = pollResponses.Count > 0 ? pollResponses.Average() : (double?)null;
-
-                // Exercise data
-                var exerciseMinutes = await dataContext.UserMetricProviderValues
-                    .AsNoTracking()
-                    .Where(v => v.UserId == targetUser.Id && v.MetricName == "Exercise" && v.MetricType == MetricType.Minutes && v.Time >= monthStartTime)
-                    .SumAsync(v => v.Value, cancellationToken);
-
-                var runningMinutes = await dataContext.UserMetricProviderValues
-                    .AsNoTracking()
-                    .Where(v => v.UserId == targetUser.Id && v.MetricName == "Running" && v.MetricType == MetricType.Minutes && v.Time >= monthStartTime)
-                    .SumAsync(v => v.Value, cancellationToken);
-
-                var workoutMinutes = await dataContext.UserMetricProviderValues
-                    .AsNoTracking()
-                    .Where(v => v.UserId == targetUser.Id && v.MetricName == "Workout" && v.MetricType == MetricType.Minutes && v.Time >= monthStartTime)
-                    .SumAsync(v => v.Value, cancellationToken);
-
-                // User facts
-                var factsRaw = await dataContext.UserFacts
-                    .AsNoTracking()
-                    .Where(f => f.UserId == targetUser.Id)
-                    .Select(f => f.Fact)
-                    .ToListAsync(cancellationToken);
-                var userFacts = factsRaw.Count > 0
-                    ? new Dictionary<string, List<string>> { { name, factsRaw } }
-                    : null;
+                var data = await GatherFitnessDataAsync(dataContext, targetUser, cancellationToken);
 
                 var roast = await aiSummaryService.GenerateRoast(
-                    name,
-                    weightChange,
-                    avgDietRating,
-                    weightValues.Count,
-                    pollResponses.Count,
-                    exerciseMinutes,
-                    runningMinutes,
-                    workoutMinutes,
-                    cancellationToken,
-                    userFacts);
+                    data.Name, data.WeightChange, data.AvgDietRating, data.WeighInCount, data.PollResponseCount,
+                    data.ExerciseMinutes, data.RunningMinutes, data.WorkoutMinutes, cancellationToken, data.UserFacts);
 
                 if (string.IsNullOrWhiteSpace(roast))
                 {
-                    await SendReplyAsync(chatId, replyToMessageId, $"I tried to roast {name} but even AI couldn't find the words. That's how bad it is.", cancellationToken);
+                    await SendReplyAsync(chatId, replyToMessageId, $"I tried to roast {data.Name} but even AI couldn't find the words. That's how bad it is.", cancellationToken);
                     return;
                 }
 
-                await SendReplyAsync(chatId, replyToMessageId, $"Roasting {name}:\n\n{roast}", cancellationToken);
+                await SendReplyAsync(chatId, replyToMessageId, $"Roasting {data.Name}:\n\n{roast}", cancellationToken);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to handle /roast command. TelegramUserId={TelegramUserId}", telegramUserId);
+                await SendReplyAsync(chatId, replyToMessageId, "Something went wrong, try again later.", cancellationToken);
+            }
+        }
+
+        private async Task HandlePoemAsync(long telegramUserId, JsonElement message, string chatId, int replyToMessageId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await using var scope = _serviceScopeFactory.CreateAsyncScope();
+                var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+                var aiSummaryService = scope.ServiceProvider.GetRequiredService<AiSummaryService>();
+
+                var targetUser = await ResolveTargetUserAsync(dataContext, message, telegramUserId, cancellationToken);
+
+                if (targetUser == null)
+                {
+                    await SendReplyAsync(chatId, replyToMessageId, "Couldn't find that user. Make sure their Telegram account is linked.", cancellationToken);
+                    return;
+                }
+
+                var data = await GatherFitnessDataAsync(dataContext, targetUser, cancellationToken);
+
+                var poem = await aiSummaryService.GeneratePoem(
+                    data.Name, data.WeightChange, data.AvgDietRating, data.WeighInCount, data.PollResponseCount,
+                    data.ExerciseMinutes, data.RunningMinutes, data.WorkoutMinutes, cancellationToken, data.UserFacts);
+
+                if (string.IsNullOrWhiteSpace(poem))
+                {
+                    await SendReplyAsync(chatId, replyToMessageId, $"I tried to write a poem for {data.Name} but the muse didn't show up today.", cancellationToken);
+                    return;
+                }
+
+                await SendReplyAsync(chatId, replyToMessageId, $"A poem for {data.Name}:\n\n{poem}", cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to handle /poem command. TelegramUserId={TelegramUserId}", telegramUserId);
                 await SendReplyAsync(chatId, replyToMessageId, "Something went wrong, try again later.", cancellationToken);
             }
         }
