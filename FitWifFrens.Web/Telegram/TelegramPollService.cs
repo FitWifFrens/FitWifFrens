@@ -128,9 +128,9 @@ namespace FitWifFrens.Web.Telegram
                 {
                     commands = new[]
                     {
-                        new { command = "remember", description = "Remember a fact about you — e.g. /remember loves cheese" },
-                        new { command = "forget", description = "Forget a fact — e.g. /forget cheese" },
-                        new { command = "facts", description = "List all remembered facts about you" }
+                        new { command = "remember", description = "Remember a fact — e.g. /remember @Phil loves cheese" },
+                        new { command = "forget", description = "Forget a fact about yourself — e.g. /forget cheese" },
+                        new { command = "facts", description = "List all remembered facts about yourself" }
                     }
                 },
                 cancellationToken);
@@ -442,7 +442,7 @@ namespace FitWifFrens.Web.Telegram
                     return true;
                 }
 
-                await HandleRememberAsync(telegramUserId, fact, chatId, messageId, cancellationToken);
+                await HandleRememberAsync(telegramUserId, fact, message, chatId, messageId, cancellationToken);
                 return true;
             }
 
@@ -476,32 +476,110 @@ namespace FitWifFrens.Web.Telegram
             return false;
         }
 
-        private async Task HandleRememberAsync(long telegramUserId, string fact, string chatId, int replyToMessageId, CancellationToken cancellationToken)
+        private async Task<User?> ResolveTargetUserAsync(DataContext dataContext, JsonElement message, long senderTelegramUserId, CancellationToken cancellationToken)
+        {
+            // Check Telegram message entities for mentions with user IDs
+            if (message.TryGetProperty("entities", out var entities))
+            {
+                foreach (var entity in entities.EnumerateArray())
+                {
+                    var type = entity.TryGetProperty("type", out var typeJson) ? typeJson.GetString() : null;
+                    if (type != "mention" && type != "text_mention")
+                    {
+                        continue;
+                    }
+
+                    // text_mention has a user object with the ID directly
+                    if (type == "text_mention" && entity.TryGetProperty("user", out var mentionUser))
+                    {
+                        var mentionTelegramUserId = mentionUser.GetProperty("id").GetInt64();
+                        var user = await dataContext.Users
+                            .AsNoTracking()
+                            .SingleOrDefaultAsync(u => u.TelegramUserId == mentionTelegramUserId, cancellationToken);
+
+                        if (user != null)
+                        {
+                            return user;
+                        }
+                    }
+
+                    // Regular @mention — extract username from the message text and look up by Nickname
+                    if (type == "mention" && message.TryGetProperty("text", out var fullText))
+                    {
+                        var offset = entity.GetProperty("offset").GetInt32();
+                        var length = entity.GetProperty("length").GetInt32();
+                        var mentionText = fullText.GetString()?.Substring(offset, length).TrimStart('@');
+
+                        if (!string.IsNullOrWhiteSpace(mentionText))
+                        {
+                            var user = await dataContext.Users
+                                .AsNoTracking()
+                                .SingleOrDefaultAsync(u => u.Nickname == mentionText, cancellationToken);
+
+                            if (user != null)
+                            {
+                                return user;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Fall back to the sender
+            return await dataContext.Users
+                .AsNoTracking()
+                .SingleOrDefaultAsync(u => u.TelegramUserId == senderTelegramUserId, cancellationToken);
+        }
+
+        private static string StripLeadingMention(string text)
+        {
+            if (text.StartsWith('@'))
+            {
+                var spaceIndex = text.IndexOf(' ');
+                if (spaceIndex > 0)
+                {
+                    return text[(spaceIndex + 1)..].Trim();
+                }
+
+                return string.Empty;
+            }
+
+            return text;
+        }
+
+        private async Task HandleRememberAsync(long telegramUserId, string factText, JsonElement message, string chatId, int replyToMessageId, CancellationToken cancellationToken)
         {
             try
             {
                 await using var scope = _serviceScopeFactory.CreateAsyncScope();
                 var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
 
-                var user = await dataContext.Users
-                    .AsNoTracking()
-                    .SingleOrDefaultAsync(u => u.TelegramUserId == telegramUserId, cancellationToken);
+                var targetUser = await ResolveTargetUserAsync(dataContext, message, telegramUserId, cancellationToken);
 
-                if (user == null)
+                if (targetUser == null)
                 {
-                    await SendReplyAsync(chatId, replyToMessageId, "I don't know who you are yet. Please link your Telegram account first.", cancellationToken);
+                    await SendReplyAsync(chatId, replyToMessageId, "Couldn't find that user. Make sure their Telegram account is linked.", cancellationToken);
+                    return;
+                }
+
+                var fact = StripLeadingMention(factText);
+                if (string.IsNullOrWhiteSpace(fact))
+                {
+                    await SendReplyAsync(chatId, replyToMessageId, "Please provide a fact after the mention. E.g. /remember @Phil loves cheese", cancellationToken);
                     return;
                 }
 
                 dataContext.UserFacts.Add(new UserFact
                 {
-                    UserId = user.Id,
+                    UserId = targetUser.Id,
                     Fact = fact.Length > 2048 ? fact[..2048] : fact,
                     CreatedTime = DateTime.UtcNow
                 });
 
                 await dataContext.SaveChangesAsync(cancellationToken);
-                await SendReplyAsync(chatId, replyToMessageId, "Got it! I'll remember that.", cancellationToken);
+
+                var name = targetUser.Nickname ?? targetUser.UserName ?? "them";
+                await SendReplyAsync(chatId, replyToMessageId, $"Got it! I'll remember that about {name}.", cancellationToken);
             }
             catch (Exception ex)
             {
@@ -585,9 +663,10 @@ namespace FitWifFrens.Web.Telegram
                     return;
                 }
 
+                var name = user.Nickname ?? user.UserName ?? "you";
                 var lines = facts.Select((f, i) => $"{i + 1}. {f}");
-                var message = $"Here's what I remember about you:\n{string.Join("\n", lines)}";
-                await SendReplyAsync(chatId, replyToMessageId, message, cancellationToken);
+                var header = $"Here's what I remember about {name}:";
+                await SendReplyAsync(chatId, replyToMessageId, $"{header}\n{string.Join("\n", lines)}", cancellationToken);
             }
             catch (Exception ex)
             {

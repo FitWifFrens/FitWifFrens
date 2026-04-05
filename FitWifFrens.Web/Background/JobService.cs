@@ -36,7 +36,7 @@ namespace FitWifFrens.Web.Background
             _recurringJobManager.AddOrUpdate<MicrosoftService>(nameof(MicrosoftService) + nameof(MicrosoftService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Hourly());
             _recurringJobManager.AddOrUpdate<StravaService>(nameof(StravaService) + nameof(StravaService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Hourly());
             _recurringJobManager.AddOrUpdate<WithingsService>(nameof(WithingsService) + nameof(WithingsService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Hourly());
-            _recurringJobManager.AddOrUpdate<TelegramPollService>(nameof(TelegramPollService) + nameof(TelegramPollService.PullPollAnswerUpdates), s => s.PullPollAnswerUpdates(cancellationToken), Cron.MinuteInterval(5));
+            _recurringJobManager.AddOrUpdate<TelegramPollService>(nameof(TelegramPollService) + nameof(TelegramPollService.PullPollAnswerUpdates), s => s.PullPollAnswerUpdates(cancellationToken), Cron.MinuteInterval(1));
 
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.CreateCommitmentPeriods), s => s.CreateCommitmentPeriods(cancellationToken), Cron.Hourly(5));
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriodUserGoals), s => s.UpdateCommitmentPeriodUserGoals(cancellationToken), Cron.Hourly(10));
