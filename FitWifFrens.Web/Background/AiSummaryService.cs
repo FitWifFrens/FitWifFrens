@@ -238,6 +238,41 @@ namespace FitWifFrens.Web.Background
             return $"{name} just logged a {activityType} ({minutes:F0} min)";
         }
 
+        /// <summary>
+        /// Generates a short, fun message when a user responds to a diet poll.
+        /// Falls back to the provided default message if the AI call fails.
+        /// </summary>
+        public async Task<string> GeneratePollResponseMessage(
+            string name,
+            string question,
+            string chosenOption,
+            CancellationToken cancellationToken,
+            Dictionary<string, List<string>>? userFacts = null)
+        {
+            try
+            {
+                var prompt =
+                    $"You are a witty fitness group coach posting a real-time poll response update to a group chat. " +
+                    $"{name} just answered the daily poll \"{question}\" with \"{chosenOption}\". " +
+                    $"Write a single short message (max 20 words) reacting to their answer. " +
+                    $"Be fun, playful, and vary the style each time. If their answer is positive, be encouraging. If negative, be supportive. Keep it friendly. " +
+                    FormatFactsForPrompt(userFacts) +
+                    $"Output only the message, no quotes, no extra text.";
+
+                var aiMessage = await CallClaude(prompt, cancellationToken);
+                if (aiMessage != null)
+                {
+                    return $"{name} rated today's diet: {chosenOption}\n{aiMessage}";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "AI poll response message generation failed, using default. Error: {Message}", ex.Message);
+            }
+
+            return $"{name} rated today's diet: {chosenOption}";
+        }
+
         private static string FormatFitnessData(
             string name,
             double? weightChange,

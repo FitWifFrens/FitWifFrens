@@ -21,6 +21,8 @@ namespace FitWifFrens.Web.Telegram
         private readonly NotificationServiceConfiguration _notificationServiceConfiguration;
         private readonly TelegramPollResponseStore _responseStore;
         private readonly IServiceScopeFactory _serviceScopeFactory;
+        private readonly NotificationService _notificationService;
+        private readonly AiSummaryService _aiSummaryService;
         private readonly HttpClient _httpClient;
         private readonly TelemetryClient _telemetryClient;
         private readonly ILogger<TelegramBotService> _logger;
@@ -32,6 +34,8 @@ namespace FitWifFrens.Web.Telegram
             NotificationServiceConfiguration notificationServiceConfiguration,
             TelegramPollResponseStore responseStore,
             IServiceScopeFactory serviceScopeFactory,
+            NotificationService notificationService,
+            AiSummaryService aiSummaryService,
             IHttpClientFactory httpClientFactory,
             TelemetryClient telemetryClient,
             ILogger<TelegramBotService> logger)
@@ -40,6 +44,8 @@ namespace FitWifFrens.Web.Telegram
             _notificationServiceConfiguration = notificationServiceConfiguration;
             _responseStore = responseStore;
             _serviceScopeFactory = serviceScopeFactory;
+            _notificationService = notificationService;
+            _aiSummaryService = aiSummaryService;
             _httpClient = httpClientFactory.CreateClient();
             _telemetryClient = telemetryClient;
             _logger = logger;
@@ -387,6 +393,26 @@ namespace FitWifFrens.Web.Telegram
                     cancellationToken);
 
                 await UpdateTelegramPollGoalsAsync(dataContext, commitmentPeriodUser, cancellationToken);
+
+                if (!string.IsNullOrWhiteSpace(user.Nickname))
+                {
+                    var question = _pollContextById.TryGetValue(pollId, out var pollContext) ? pollContext.Question : "diet poll";
+                    var chosenOption = optionRule?.Text ?? $"option {optionIndex + 1}";
+
+                    var factsRaw = await dataContext.UserFacts
+                        .AsNoTracking()
+                        .Where(f => f.UserId == user.Id)
+                        .Select(f => f.Fact)
+                        .ToListAsync(cancellationToken);
+                    var userFacts = factsRaw.Count > 0
+                        ? new Dictionary<string, List<string>> { { user.Nickname!, factsRaw } }
+                        : null;
+
+                    var message = await _aiSummaryService.GeneratePollResponseMessage(
+                        user.Nickname!, question, chosenOption, cancellationToken, userFacts);
+
+                    _ = _notificationService.Notify(message);
+                }
             }
             catch (DbUpdateException exception)
             {
