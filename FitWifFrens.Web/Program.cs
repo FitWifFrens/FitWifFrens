@@ -177,6 +177,7 @@ namespace FitWifFrens.Web
             builder.Services.AddScoped<TelegramPollSummaryService>();
             builder.Services.AddScoped<TelegramWeightSummaryService>();
             builder.Services.AddScoped<TelegramCorrelationSummaryService>();
+            builder.Services.AddScoped<WeighInReminderService>();
             builder.Services.AddScoped<CommitmentPeriodService>();
 
             builder.Services.AddScoped<IMetamaskInterop, MetamaskBlazorInterop>();

@@ -239,6 +239,47 @@ namespace FitWifFrens.Web.Background
         }
 
         /// <summary>
+        /// Generates a fun reminder for a user who hasn't weighed in for a while.
+        /// Falls back to a default reminder if the AI call fails.
+        /// </summary>
+        public async Task<string> GenerateWeighInReminder(
+            string name,
+            int? daysSinceLastWeighIn,
+            CancellationToken cancellationToken,
+            Dictionary<string, List<string>>? userFacts = null)
+        {
+            try
+            {
+                var timeText = daysSinceLastWeighIn.HasValue
+                    ? $"{daysSinceLastWeighIn} days"
+                    : "a very long time";
+
+                var prompt =
+                    $"You are a witty fitness group coach posting a weigh-in reminder to a group chat. " +
+                    $"{name} hasn't weighed in for {timeText}. " +
+                    $"Write a single short message (max 20 words) reminding them to step on the scale. " +
+                    $"Be fun, playful, and slightly teasing but always friendly and encouraging. Vary the style each time. " +
+                    FormatFactsForPrompt(userFacts) +
+                    $"Output only the message, no quotes, no extra text.";
+
+                var aiMessage = await CallClaude(prompt, cancellationToken);
+                if (aiMessage != null)
+                {
+                    return aiMessage;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "AI weigh-in reminder generation failed, using default. Error: {Message}", ex.Message);
+            }
+
+            var defaultTimeText = daysSinceLastWeighIn.HasValue
+                ? $"{daysSinceLastWeighIn} days"
+                : "a while";
+            return $"Hey {name}, it's been {defaultTimeText} since your last weigh-in! Time to step on the scale!";
+        }
+
+        /// <summary>
         /// Generates a short, fun message when a user responds to a diet poll.
         /// Falls back to the provided default message if the AI call fails.
         /// </summary>

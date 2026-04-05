@@ -81,6 +81,15 @@ namespace FitWifFrens.Web.Background
                     TimeZone = TimeZoneInfo.Utc
                 });
 
+            _recurringJobManager.AddOrUpdate<WeighInReminderService>(
+                nameof(WeighInReminderService) + nameof(WeighInReminderService.SendWeighInReminders),
+                s => s.SendWeighInReminders(cancellationToken),
+                Cron.Daily(23),
+                new RecurringJobOptions
+                {
+                    TimeZone = TimeZoneInfo.Utc
+                });
+
             _backgroundJobClient.Enqueue<TelegramBotService>(s => s.RegisterBotCommandsAsync(CancellationToken.None));
 
             return Task.CompletedTask;
