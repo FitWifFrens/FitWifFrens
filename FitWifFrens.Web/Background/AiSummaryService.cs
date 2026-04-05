@@ -1,20 +1,21 @@
-using OpenAI.Chat;
+using Anthropic.SDK;
+using Anthropic.SDK.Messaging;
 
 namespace FitWifFrens.Web.Background
 {
     public class AiSummaryService
     {
-        private readonly ChatClient? _client;
+        private readonly AnthropicClient? _client;
         private readonly ILogger<AiSummaryService> _logger;
 
-        public AiSummaryService(ChatClient? client, ILogger<AiSummaryService> logger)
+        public AiSummaryService(AnthropicClient? client, ILogger<AiSummaryService> logger)
         {
             _client = client;
             _logger = logger;
 
             if (_client == null)
             {
-                logger.LogInformation("AiSummaryService: no OpenAI API key configured, AI messages disabled.");
+                logger.LogInformation("AiSummaryService: no Anthropic API key configured, AI messages disabled.");
             }
         }
 
@@ -47,7 +48,7 @@ namespace FitWifFrens.Web.Background
                     $"This week's data: {dataText}. " +
                     $"Output only the sentence, no quotes, no extra text.";
 
-                return await CallOpenAI(prompt, cancellationToken) ?? "Weight Summary";
+                return await CallClaude(prompt, cancellationToken) ?? "Weight Summary";
             }
             catch (Exception ex)
             {
@@ -83,7 +84,7 @@ namespace FitWifFrens.Web.Background
                     $"This week's ratings: {dataText}. " +
                     $"Output only the sentence, no quotes, no extra text.";
 
-                return await CallOpenAI(prompt, cancellationToken) ?? $"Q: {question}";
+                return await CallClaude(prompt, cancellationToken) ?? $"Q: {question}";
             }
             catch (Exception ex)
             {
@@ -125,19 +126,13 @@ namespace FitWifFrens.Web.Background
                     $"{dataText}\n\n" +
                     $"Output only the NAME: comment lines, nothing else.";
 
-                var response = await CallOpenAI(prompt, cancellationToken);
-                if (response == null)
-                {
-                    return result;
-                }
+                var response = await CallClaude(prompt, cancellationToken);
+                if (response == null) return result;
 
                 foreach (var line in response.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                 {
                     var colonIndex = line.IndexOf(':');
-                    if (colonIndex <= 0)
-                    {
-                        continue;
-                    }
+                    if (colonIndex <= 0) continue;
 
                     var name = line[..colonIndex].Trim();
                     var comment = line[(colonIndex + 1)..].Trim();
@@ -156,30 +151,27 @@ namespace FitWifFrens.Web.Background
             return result;
         }
 
-        private async Task<string?> CallOpenAI(string prompt, CancellationToken cancellationToken)
+        private async Task<string?> CallClaude(string prompt, CancellationToken cancellationToken)
         {
-            if (_client == null)
-            {
-                return null;
-            }
+            if (_client == null) return null;
 
-            _logger.LogInformation("AiSummaryService: calling OpenAI API.");
+            _logger.LogInformation("AiSummaryService: calling Claude API.");
 
-            var options = new ChatCompletionOptions
+            var parameters = new MessageParameters
             {
-                MaxOutputTokenCount = 512,
-                Temperature = 1f,
+                Messages = [new Message(RoleType.User, prompt)],
+                MaxTokens = 512,
+                Model = "claude-3-haiku-20240307",
+                Stream = false,
+                Temperature = 1m,
             };
 
-            var response = await _client.CompleteChatAsync(
-                [new UserChatMessage(prompt)],
-                options,
-                cancellationToken);
+            var response = await _client.Messages.GetClaudeMessageAsync(parameters);
 
-            _logger.LogInformation("AiSummaryService: OpenAI API responded. FinishReason={FinishReason}",
-                response.Value.FinishReason);
+            _logger.LogInformation("AiSummaryService: Claude API responded. StopReason={StopReason}, ContentCount={Count}",
+                response.StopReason, response.Content?.Count ?? 0);
 
-            var text = response.Value.Content?.FirstOrDefault()?.Text?.Trim();
+            var text = response.Content?.OfType<TextContent>().FirstOrDefault()?.Text?.Trim();
 
             if (string.IsNullOrWhiteSpace(text))
             {

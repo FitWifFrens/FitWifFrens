@@ -1,4 +1,4 @@
-using OpenAI.Chat;
+using Anthropic.SDK;
 using AspNet.Security.OAuth.Strava;
 using AspNet.Security.OAuth.Withings;
 using FitWifFrens.Data;
@@ -165,9 +165,9 @@ namespace FitWifFrens.Web
             builder.Services.AddSingleton<TelegramPollResponseStore>();
             builder.Services.AddSingleton<TelegramPollService>();
 
-            var openAiApiKey = builder.Configuration.GetValue<string>("Services:OpenAI:ApiKey");
-            builder.Services.AddSingleton<ChatClient?>(_ =>
-                string.IsNullOrWhiteSpace(openAiApiKey) ? null : new ChatClient("gpt-4o-mini", openAiApiKey));
+            var anthropicApiKey = builder.Configuration.GetValue<string>("Services:Anthropic:ApiKey");
+            builder.Services.AddSingleton<AnthropicClient?>(_ =>
+                string.IsNullOrWhiteSpace(anthropicApiKey) ? null : new AnthropicClient(anthropicApiKey));
             builder.Services.AddScoped<AiSummaryService>();
 
             builder.Services.AddScoped<MicrosoftService>();
