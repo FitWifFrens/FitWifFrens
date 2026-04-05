@@ -11,6 +11,7 @@ namespace FitWifFrens.Web.Background
 
         private readonly DataContext _dataContext;
         private readonly NotificationService _notificationService;
+        private readonly AiSummaryService _aiSummaryService;
         private readonly TimeProvider _timeProvider;
         private readonly TelemetryClient _telemetryClient;
         private readonly ILogger<TelegramPollSummaryService> _logger;
@@ -18,12 +19,14 @@ namespace FitWifFrens.Web.Background
         public TelegramPollSummaryService(
             DataContext dataContext,
             NotificationService notificationService,
+            AiSummaryService aiSummaryService,
             TimeProvider timeProvider,
             TelemetryClient telemetryClient,
             ILogger<TelegramPollSummaryService> logger)
         {
             _dataContext = dataContext;
             _notificationService = notificationService;
+            _aiSummaryService = aiSummaryService;
             _timeProvider = timeProvider;
             _telemetryClient = telemetryClient;
             _logger = logger;
@@ -81,7 +84,13 @@ namespace FitWifFrens.Web.Background
                     .OrderBy(q => q)
                     .FirstOrDefaultAsync(cancellationToken);
 
-                var message = BuildSummaryMessage(weekly, monthly, allTime, question);
+                var resolvedQuestion = question ?? "How do you rate your diet?";
+                var introLine = await _aiSummaryService.GeneratePollSummaryIntro(
+                    resolvedQuestion,
+                    weekly.Select(a => (ResolveName(a), a.AverageValue)),
+                    cancellationToken);
+
+                var message = BuildSummaryMessage(introLine, weekly, monthly, allTime);
                 await _notificationService.Notify(message);
             }
             catch (Exception exception)
@@ -93,14 +102,14 @@ namespace FitWifFrens.Web.Background
         }
 
         private static string BuildSummaryMessage(
+            string introLine,
             IReadOnlyCollection<PollAggregate> weekly,
             IReadOnlyCollection<PollAggregate> monthly,
-            IReadOnlyCollection<PollAggregate> allTime,
-            string? question)
+            IReadOnlyCollection<PollAggregate> allTime)
         {
             var builder = new StringBuilder();
 
-            builder.AppendLine($"Q: {question ?? "How do you rate your diet?"}");
+            builder.AppendLine(introLine);
             builder.AppendLine();
 
             builder.AppendLine("Past 7 days:");

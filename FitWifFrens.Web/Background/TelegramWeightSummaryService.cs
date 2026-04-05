@@ -13,6 +13,7 @@ namespace FitWifFrens.Web.Background
 
         private readonly DataContext _dataContext;
         private readonly NotificationService _notificationService;
+        private readonly AiSummaryService _aiSummaryService;
         private readonly TimeProvider _timeProvider;
         private readonly TelemetryClient _telemetryClient;
         private readonly ILogger<TelegramWeightSummaryService> _logger;
@@ -20,12 +21,14 @@ namespace FitWifFrens.Web.Background
         public TelegramWeightSummaryService(
             DataContext dataContext,
             NotificationService notificationService,
+            AiSummaryService aiSummaryService,
             TimeProvider timeProvider,
             TelemetryClient telemetryClient,
             ILogger<TelegramWeightSummaryService> logger)
         {
             _dataContext = dataContext;
             _notificationService = notificationService;
+            _aiSummaryService = aiSummaryService;
             _timeProvider = timeProvider;
             _telemetryClient = telemetryClient;
             _logger = logger;
@@ -90,7 +93,11 @@ namespace FitWifFrens.Web.Background
                         g.Last().Value - g.First().Value))
                     .ToList();
 
-                var message = BuildSummaryMessage(weekly, monthly, allTime);
+                var introLine = await _aiSummaryService.GenerateWeightSummaryIntro(
+                    weekly.Select(a => (ResolveName(a), a.WeightChange)),
+                    cancellationToken);
+
+                var message = BuildSummaryMessage(introLine, weekly, monthly, allTime);
                 await _notificationService.Notify(message);
 
                 var threeMonthStartTime = now.AddMonths(-3);
@@ -131,13 +138,14 @@ namespace FitWifFrens.Web.Background
         }
 
         private static string BuildSummaryMessage(
+            string introLine,
             IReadOnlyCollection<WeightAggregate> weekly,
             IReadOnlyCollection<WeightAggregate> monthly,
             IReadOnlyCollection<WeightAggregate> allTime)
         {
             var builder = new StringBuilder();
 
-            builder.AppendLine("Weight Summary");
+            builder.AppendLine(introLine);
             builder.AppendLine();
 
             builder.AppendLine("Past 7 days:");

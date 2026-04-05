@@ -11,6 +11,7 @@ namespace FitWifFrens.Web.Background
 
         private readonly DataContext _dataContext;
         private readonly NotificationService _notificationService;
+        private readonly AiSummaryService _aiSummaryService;
         private readonly TimeProvider _timeProvider;
         private readonly TelemetryClient _telemetryClient;
         private readonly ILogger<TelegramCorrelationSummaryService> _logger;
@@ -18,12 +19,14 @@ namespace FitWifFrens.Web.Background
         public TelegramCorrelationSummaryService(
             DataContext dataContext,
             NotificationService notificationService,
+            AiSummaryService aiSummaryService,
             TimeProvider timeProvider,
             TelemetryClient telemetryClient,
             ILogger<TelegramCorrelationSummaryService> logger)
         {
             _dataContext = dataContext;
             _notificationService = notificationService;
+            _aiSummaryService = aiSummaryService;
             _timeProvider = timeProvider;
             _telemetryClient = telemetryClient;
             _logger = logger;
@@ -71,7 +74,12 @@ namespace FitWifFrens.Web.Background
                     return;
                 }
 
-                var message = BuildSummaryMessage(correlations);
+                var commentaryInputs = correlations.Select(c =>
+                    (c.Name, c.AvgDietRating, c.WeightChange, GetFallbackCommentary(c.AvgDietRating, c.WeightChange)));
+
+                var commentaries = await _aiSummaryService.GenerateCorrelationCommentaries(commentaryInputs, cancellationToken);
+
+                var message = BuildSummaryMessage(correlations, commentaries);
                 await _notificationService.Notify(message);
 
                 using var chartStream = BuildCorrelationChart(correlations);
@@ -85,7 +93,7 @@ namespace FitWifFrens.Web.Background
             }
         }
 
-        private static string BuildSummaryMessage(IReadOnlyList<UserCorrelation> correlations)
+        private static string BuildSummaryMessage(IReadOnlyList<UserCorrelation> correlations, Dictionary<string, string> commentaries)
         {
             var builder = new StringBuilder();
 
@@ -100,15 +108,17 @@ namespace FitWifFrens.Web.Background
                         ? $"{c.WeightChange:F1} kg gained"
                         : "no change";
 
+                var commentary = commentaries.TryGetValue(c.Name, out var aiComment) ? aiComment : GetFallbackCommentary(c.AvgDietRating, c.WeightChange);
+
                 builder.AppendLine($"- {c.Name}: avg diet rating {c.AvgDietRating:F1}/5, {weightText}");
-                builder.AppendLine($"  {GetCommentary(c.AvgDietRating, c.WeightChange)}");
+                builder.AppendLine($"  {commentary}");
             }
 
             var message = builder.ToString().TrimEnd();
             return message.Length <= 4000 ? message : message[..4000];
         }
 
-        private static string GetCommentary(double avgRating, double weightChange)
+        private static string GetFallbackCommentary(double avgRating, double weightChange)
         {
             // Above 3 = expects weight loss, below 3 = expects weight gain, 3 = flat
             var expectsLoss = avgRating > 3.0;

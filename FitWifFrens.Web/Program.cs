@@ -1,3 +1,4 @@
+using Anthropic.SDK;
 using AspNet.Security.OAuth.Strava;
 using AspNet.Security.OAuth.Withings;
 using FitWifFrens.Data;
@@ -164,11 +165,19 @@ namespace FitWifFrens.Web
             builder.Services.AddSingleton<TelegramPollResponseStore>();
             builder.Services.AddSingleton<TelegramPollService>();
 
+            var anthropicApiKey = builder.Configuration.GetValue<string>("Services:Anthropic:ApiKey");
+            if (!string.IsNullOrWhiteSpace(anthropicApiKey))
+            {
+                builder.Services.AddSingleton(new AnthropicClient(anthropicApiKey));
+            }
+            builder.Services.AddScoped<AiSummaryService>();
+
             builder.Services.AddScoped<MicrosoftService>();
             builder.Services.AddScoped<StravaService>();
             builder.Services.AddScoped<WithingsService>();
             builder.Services.AddScoped<TelegramPollJobService>();
             builder.Services.AddScoped<TelegramPollSummaryService>();
+            builder.Services.AddScoped<TelegramWeightSummaryService>();
             builder.Services.AddScoped<TelegramCorrelationSummaryService>();
             builder.Services.AddScoped<CommitmentPeriodService>();
 
