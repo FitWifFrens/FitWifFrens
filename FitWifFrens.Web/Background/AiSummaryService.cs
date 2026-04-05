@@ -5,10 +5,10 @@ namespace FitWifFrens.Web.Background
 {
     public class AiSummaryService
     {
-        private readonly AnthropicClient _client;
+        private readonly AnthropicClient? _client;
         private readonly ILogger<AiSummaryService> _logger;
 
-        public AiSummaryService(AnthropicClient client, ILogger<AiSummaryService> logger)
+        public AiSummaryService(ILogger<AiSummaryService> logger, AnthropicClient? client = null)
         {
             _client = client;
             _logger = logger;
@@ -148,6 +148,8 @@ namespace FitWifFrens.Web.Background
 
         private async Task<string?> CallClaude(string prompt, CancellationToken cancellationToken)
         {
+            if (_client == null) return null;
+
             var parameters = new MessageParameters
             {
                 Messages = [new Message(RoleType.User, prompt)],

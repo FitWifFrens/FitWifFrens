@@ -165,7 +165,11 @@ namespace FitWifFrens.Web
             builder.Services.AddSingleton<TelegramPollResponseStore>();
             builder.Services.AddSingleton<TelegramPollService>();
 
-            builder.Services.AddSingleton(new AnthropicClient(builder.Configuration.GetValue<string>("Services:Anthropic:ApiKey")!));
+            var anthropicApiKey = builder.Configuration.GetValue<string>("Services:Anthropic:ApiKey");
+            if (!string.IsNullOrWhiteSpace(anthropicApiKey))
+            {
+                builder.Services.AddSingleton(new AnthropicClient(anthropicApiKey));
+            }
             builder.Services.AddScoped<AiSummaryService>();
 
             builder.Services.AddScoped<MicrosoftService>();
