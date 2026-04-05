@@ -155,16 +155,30 @@ namespace FitWifFrens.Web.Background
         {
             if (_client == null) return null;
 
+            _logger.LogInformation("AiSummaryService: calling Claude API.");
+
             var parameters = new MessageParameters
             {
                 Messages = [new Message(RoleType.User, prompt)],
                 MaxTokens = 512,
                 Model = "claude-3-haiku-20240307",
-                Temperature = 1.0m,
+                Stream = false,
+                Temperature = 1m,
             };
 
             var response = await _client.Messages.GetClaudeMessageAsync(parameters);
-            return response.Content.OfType<TextContent>().FirstOrDefault()?.Text?.Trim();
+
+            _logger.LogInformation("AiSummaryService: Claude API responded. StopReason={StopReason}, ContentCount={Count}",
+                response.StopReason, response.Content?.Count ?? 0);
+
+            var text = response.Content?.OfType<TextContent>().FirstOrDefault()?.Text?.Trim();
+
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                _logger.LogWarning("AiSummaryService: response contained no text content.");
+            }
+
+            return text;
         }
     }
 }
