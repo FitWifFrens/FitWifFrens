@@ -20,11 +20,12 @@ namespace FitWifFrens.Web.Background
 #if DEBUG
             _recurringJobManager.AddOrUpdate<StravaService>(nameof(StravaService) + nameof(StravaService.UpdateWebhook), s => s.UpdateWebhook(cancellationToken), Cron.Never);
             _recurringJobManager.AddOrUpdate<WithingsService>(nameof(WithingsService) + nameof(WithingsService.UpdateWebhooks), s => s.UpdateWebhooks(cancellationToken), Cron.Never);
+            _recurringJobManager.AddOrUpdate<TelegramPollService>(nameof(TelegramPollService) + nameof(TelegramPollService.UpdateWebhook), s => s.UpdateWebhook(cancellationToken), Cron.Never);
 
             _recurringJobManager.AddOrUpdate<MicrosoftService>(nameof(MicrosoftService) + nameof(MicrosoftService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Never);
             _recurringJobManager.AddOrUpdate<StravaService>(nameof(StravaService) + nameof(StravaService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Never);
             _recurringJobManager.AddOrUpdate<WithingsService>(nameof(WithingsService) + nameof(WithingsService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Never);
-            _recurringJobManager.AddOrUpdate<TelegramPollService>(nameof(TelegramPollService) + nameof(TelegramPollService.PullPollAnswerUpdates), s => s.PullPollAnswerUpdates(cancellationToken), Cron.Never);
+            _recurringJobManager.AddOrUpdate<TelegramPollService>(nameof(TelegramPollService) + nameof(TelegramPollService.PullUpdates), s => s.PullUpdates(cancellationToken), Cron.Never);
 
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.CreateCommitmentPeriods), s => s.CreateCommitmentPeriods(cancellationToken), Cron.Never);
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriodUserGoals), s => s.UpdateCommitmentPeriodUserGoals(cancellationToken), Cron.Never);
@@ -32,11 +33,12 @@ namespace FitWifFrens.Web.Background
 #else
             _recurringJobManager.AddOrUpdate<StravaService>(nameof(StravaService) + nameof(StravaService.UpdateWebhook), s => s.UpdateWebhook(cancellationToken), Cron.Never);
             _recurringJobManager.AddOrUpdate<WithingsService>(nameof(WithingsService) + nameof(WithingsService.UpdateWebhooks), s => s.UpdateWebhooks(cancellationToken), Cron.Never);
+            _recurringJobManager.AddOrUpdate<TelegramPollService>(nameof(TelegramPollService) + nameof(TelegramPollService.UpdateWebhook), s => s.UpdateWebhook(cancellationToken), Cron.Never);
 
             _recurringJobManager.AddOrUpdate<MicrosoftService>(nameof(MicrosoftService) + nameof(MicrosoftService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Hourly());
             _recurringJobManager.AddOrUpdate<StravaService>(nameof(StravaService) + nameof(StravaService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Hourly());
             _recurringJobManager.AddOrUpdate<WithingsService>(nameof(WithingsService) + nameof(WithingsService.UpdateProviderMetricValues), s => s.UpdateProviderMetricValues(cancellationToken), Cron.Hourly());
-            _recurringJobManager.AddOrUpdate<TelegramPollService>(nameof(TelegramPollService) + nameof(TelegramPollService.PullPollAnswerUpdates), s => s.PullPollAnswerUpdates(cancellationToken), Cron.MinuteInterval(1));
+            _recurringJobManager.AddOrUpdate<TelegramPollService>(nameof(TelegramPollService) + nameof(TelegramPollService.PullUpdates), s => s.PullUpdates(cancellationToken), Cron.MinuteInterval(5));
 
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.CreateCommitmentPeriods), s => s.CreateCommitmentPeriods(cancellationToken), Cron.Hourly(5));
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriodUserGoals), s => s.UpdateCommitmentPeriodUserGoals(cancellationToken), Cron.Hourly(10));

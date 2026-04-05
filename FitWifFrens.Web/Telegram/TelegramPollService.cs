@@ -17,6 +17,7 @@ namespace FitWifFrens.Web.Telegram
     {
         private sealed record PollContext(string Question, IReadOnlyList<string> Options, string ChatId, int MessageId, Guid? CommitmentId);
 
+        private readonly BackgroundConfiguration _backgroundConfiguration;
         private readonly NotificationServiceConfiguration _notificationServiceConfiguration;
         private readonly TelegramPollResponseStore _responseStore;
         private readonly IServiceScopeFactory _serviceScopeFactory;
@@ -27,6 +28,7 @@ namespace FitWifFrens.Web.Telegram
         private readonly ConcurrentDictionary<string, PollContext> _pollContextById = new();
 
         public TelegramPollService(
+            BackgroundConfiguration backgroundConfiguration,
             NotificationServiceConfiguration notificationServiceConfiguration,
             TelegramPollResponseStore responseStore,
             IServiceScopeFactory serviceScopeFactory,
@@ -34,6 +36,7 @@ namespace FitWifFrens.Web.Telegram
             TelemetryClient telemetryClient,
             ILogger<TelegramPollService> logger)
         {
+            _backgroundConfiguration = backgroundConfiguration;
             _notificationServiceConfiguration = notificationServiceConfiguration;
             _responseStore = responseStore;
             _serviceScopeFactory = serviceScopeFactory;
@@ -98,6 +101,27 @@ namespace FitWifFrens.Web.Telegram
         public IReadOnlyCollection<TelegramPollVote> GetResponses(string pollId)
         {
             return _responseStore.GetResponses(pollId);
+        }
+
+        public async Task UpdateWebhook(CancellationToken cancellationToken)
+        {
+            if (!string.IsNullOrWhiteSpace(_backgroundConfiguration.CallbackUrl))
+            {
+                try
+                {
+                    await SetWebhookAsync(
+                        $"{_backgroundConfiguration.CallbackUrl}/api/webhooks/telegram",
+                        _notificationServiceConfiguration.WebhookSecretToken,
+                        cancellationToken);
+
+                    _logger.LogInformation("Telegram webhook registered at {CallbackUrl}/api/webhooks/telegram", _backgroundConfiguration.CallbackUrl);
+                }
+                catch (Exception exception)
+                {
+                    _telemetryClient.TrackException(exception);
+                    throw;
+                }
+            }
         }
 
         public async Task SetWebhookAsync(string webhookUrl, string? secretToken = null, CancellationToken cancellationToken = default)
@@ -199,7 +223,7 @@ namespace FitWifFrens.Web.Telegram
             return true;
         }
 
-        public async Task<int> PullPollAnswerUpdates(CancellationToken cancellationToken = default)
+        public async Task<int> PullUpdates(CancellationToken cancellationToken = default)
         {
             var lastUpdateId = _responseStore.GetLastUpdateId();
             var response = await _httpClient.PostAsJsonAsync(
