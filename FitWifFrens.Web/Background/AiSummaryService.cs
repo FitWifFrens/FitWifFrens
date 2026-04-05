@@ -154,11 +154,11 @@ namespace FitWifFrens.Web.Background
             {
                 Messages = [new Message(RoleType.User, prompt)],
                 MaxTokens = 512,
-                Model = AnthropicModels.Claude3Haiku,
+                Model = "claude-3-haiku-20240307",
                 Temperature = 1.0m,
             };
 
-            var response = await _client.Messages.GetClaudeMessageAsync(parameters, cancellationToken);
+            var response = await _client.Messages.GetClaudeMessageAsync(parameters);
             return response.Content.OfType<TextContent>().FirstOrDefault()?.Text?.Trim();
         }
     }
