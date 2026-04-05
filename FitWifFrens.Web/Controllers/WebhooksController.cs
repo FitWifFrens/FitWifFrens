@@ -14,13 +14,13 @@ namespace FitWifFrens.Web.Controllers
     {
         private readonly IBackgroundJobClient _backgroundJobClient;
         private readonly NotificationServiceConfiguration _notificationServiceConfiguration;
-        private readonly TelegramPollService _telegramPollService;
+        private readonly TelegramBotService _telegramPollService;
         private readonly TelemetryClient _telemetryClient;
 
         public WebhooksController(
             IBackgroundJobClient backgroundJobClient,
             NotificationServiceConfiguration notificationServiceConfiguration,
-            TelegramPollService telegramPollService,
+            TelegramBotService telegramPollService,
             TelemetryClient telemetryClient)
         {
             _backgroundJobClient = backgroundJobClient;

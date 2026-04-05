@@ -13,7 +13,7 @@ namespace FitWifFrens.Web.Telegram
         int MessageId,
         string ChatId);
 
-    public sealed class TelegramPollService
+    public sealed class TelegramBotService
     {
         private sealed record PollContext(string Question, IReadOnlyList<string> Options, string ChatId, int MessageId, Guid? CommitmentId);
 
@@ -23,18 +23,18 @@ namespace FitWifFrens.Web.Telegram
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly HttpClient _httpClient;
         private readonly TelemetryClient _telemetryClient;
-        private readonly ILogger<TelegramPollService> _logger;
+        private readonly ILogger<TelegramBotService> _logger;
 
         private readonly ConcurrentDictionary<string, PollContext> _pollContextById = new();
 
-        public TelegramPollService(
+        public TelegramBotService(
             BackgroundConfiguration backgroundConfiguration,
             NotificationServiceConfiguration notificationServiceConfiguration,
             TelegramPollResponseStore responseStore,
             IServiceScopeFactory serviceScopeFactory,
             IHttpClientFactory httpClientFactory,
             TelemetryClient telemetryClient,
-            ILogger<TelegramPollService> logger)
+            ILogger<TelegramBotService> logger)
         {
             _backgroundConfiguration = backgroundConfiguration;
             _notificationServiceConfiguration = notificationServiceConfiguration;

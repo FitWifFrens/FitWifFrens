@@ -8,14 +8,14 @@ namespace FitWifFrens.Web.Background
     public class TelegramPollJobService
     {
         private readonly DataContext _dataContext;
-        private readonly TelegramPollService _telegramPollService;
+        private readonly TelegramBotService _telegramPollService;
         private readonly TimeProvider _timeProvider;
         private readonly TelemetryClient _telemetryClient;
         private readonly ILogger<TelegramPollJobService> _logger;
 
         public TelegramPollJobService(
             DataContext dataContext,
-            TelegramPollService telegramPollService,
+            TelegramBotService telegramPollService,
             TimeProvider timeProvider,
             TelemetryClient telemetryClient,
             ILogger<TelegramPollJobService> logger)
