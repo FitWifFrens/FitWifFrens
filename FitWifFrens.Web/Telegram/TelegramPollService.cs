@@ -237,6 +237,12 @@ namespace FitWifFrens.Web.Telegram
                 },
                 cancellationToken);
 
+            if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                _logger.LogInformation("Telegram getUpdates returned 409 Conflict — webhook is active, skipping polling.");
+                return 0;
+            }
+
             response.EnsureSuccessStatusCode();
 
             using var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
