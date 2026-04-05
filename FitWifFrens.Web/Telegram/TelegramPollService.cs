@@ -113,15 +113,39 @@ namespace FitWifFrens.Web.Telegram
                 {
                     url = webhookUrl,
                     secret_token = secretToken,
-                    allowed_updates = new[] { "poll_answer" }
+                    allowed_updates = new[] { "poll_answer", "message" }
                 },
                 cancellationToken);
 
             response.EnsureSuccessStatusCode();
         }
 
+        public async Task RegisterBotCommandsAsync(CancellationToken cancellationToken = default)
+        {
+            var response = await _httpClient.PostAsJsonAsync(
+                $"https://api.telegram.org/bot{_notificationServiceConfiguration.Token}/setMyCommands",
+                new
+                {
+                    commands = new[]
+                    {
+                        new { command = "remember", description = "Remember a fact about you — e.g. /remember loves cheese" },
+                        new { command = "forget", description = "Forget a fact — e.g. /forget cheese" },
+                        new { command = "facts", description = "List all remembered facts about you" }
+                    }
+                },
+                cancellationToken);
+
+            response.EnsureSuccessStatusCode();
+            _logger.LogInformation("Telegram bot commands registered.");
+        }
+
         public async Task<bool> TryProcessUpdateAsync(JsonElement update, CancellationToken cancellationToken = default)
         {
+            if (update.TryGetProperty("message", out var message))
+            {
+                return await TryProcessMessageCommandAsync(message, cancellationToken);
+            }
+
             if (!update.TryGetProperty("poll_answer", out var pollAnswer))
             {
                 return false;
@@ -184,7 +208,7 @@ namespace FitWifFrens.Web.Telegram
                 {
                     offset = lastUpdateId + 1,
                     timeout = 0,
-                    allowed_updates = new[] { "poll_answer" }
+                    allowed_updates = new[] { "poll_answer", "message" }
                 },
                 cancellationToken);
 
@@ -382,6 +406,207 @@ namespace FitWifFrens.Web.Telegram
             }
 
             await dataContext.SaveChangesAsync(cancellationToken);
+        }
+
+        private async Task<bool> TryProcessMessageCommandAsync(JsonElement message, CancellationToken cancellationToken)
+        {
+            if (!message.TryGetProperty("text", out var textJson))
+            {
+                return false;
+            }
+
+            var text = textJson.GetString();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            var fromUser = message.GetProperty("from");
+            var telegramUserId = fromUser.GetProperty("id").GetInt64();
+            var chatId = message.GetProperty("chat").GetProperty("id").ToString();
+            var messageId = message.GetProperty("message_id").GetInt32();
+
+            if (text.StartsWith("/remember ", StringComparison.OrdinalIgnoreCase) ||
+                text.StartsWith("/remember@", StringComparison.OrdinalIgnoreCase))
+            {
+                var spaceIndex = text.IndexOf(' ');
+                if (spaceIndex < 0)
+                {
+                    return false;
+                }
+
+                var fact = text[(spaceIndex + 1)..].Trim();
+                if (string.IsNullOrWhiteSpace(fact))
+                {
+                    await SendReplyAsync(chatId, messageId, "Please provide a fact to remember. E.g. /remember loves cheese", cancellationToken);
+                    return true;
+                }
+
+                await HandleRememberAsync(telegramUserId, fact, chatId, messageId, cancellationToken);
+                return true;
+            }
+
+            if (text.StartsWith("/forget ", StringComparison.OrdinalIgnoreCase) ||
+                text.StartsWith("/forget@", StringComparison.OrdinalIgnoreCase))
+            {
+                var spaceIndex = text.IndexOf(' ');
+                if (spaceIndex < 0)
+                {
+                    return false;
+                }
+
+                var search = text[(spaceIndex + 1)..].Trim();
+                if (string.IsNullOrWhiteSpace(search))
+                {
+                    await SendReplyAsync(chatId, messageId, "Please provide text to match. E.g. /forget cheese", cancellationToken);
+                    return true;
+                }
+
+                await HandleForgetAsync(telegramUserId, search, chatId, messageId, cancellationToken);
+                return true;
+            }
+
+            if (text.TrimEnd().Equals("/facts", StringComparison.OrdinalIgnoreCase) ||
+                text.StartsWith("/facts@", StringComparison.OrdinalIgnoreCase))
+            {
+                await HandleFactsAsync(telegramUserId, chatId, messageId, cancellationToken);
+                return true;
+            }
+
+            return false;
+        }
+
+        private async Task HandleRememberAsync(long telegramUserId, string fact, string chatId, int replyToMessageId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await using var scope = _serviceScopeFactory.CreateAsyncScope();
+                var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+
+                var user = await dataContext.Users
+                    .AsNoTracking()
+                    .SingleOrDefaultAsync(u => u.TelegramUserId == telegramUserId, cancellationToken);
+
+                if (user == null)
+                {
+                    await SendReplyAsync(chatId, replyToMessageId, "I don't know who you are yet. Please link your Telegram account first.", cancellationToken);
+                    return;
+                }
+
+                dataContext.UserFacts.Add(new UserFact
+                {
+                    UserId = user.Id,
+                    Fact = fact.Length > 2048 ? fact[..2048] : fact,
+                    CreatedTime = DateTime.UtcNow
+                });
+
+                await dataContext.SaveChangesAsync(cancellationToken);
+                await SendReplyAsync(chatId, replyToMessageId, "Got it! I'll remember that.", cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to handle /remember command. TelegramUserId={TelegramUserId}", telegramUserId);
+                await SendReplyAsync(chatId, replyToMessageId, "Something went wrong, try again later.", cancellationToken);
+            }
+        }
+
+        private async Task HandleForgetAsync(long telegramUserId, string search, string chatId, int replyToMessageId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await using var scope = _serviceScopeFactory.CreateAsyncScope();
+                var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+
+                var user = await dataContext.Users
+                    .AsNoTracking()
+                    .SingleOrDefaultAsync(u => u.TelegramUserId == telegramUserId, cancellationToken);
+
+                if (user == null)
+                {
+                    await SendReplyAsync(chatId, replyToMessageId, "I don't know who you are yet. Please link your Telegram account first.", cancellationToken);
+                    return;
+                }
+
+                var searchLower = search.ToLowerInvariant();
+                var facts = await dataContext.UserFacts
+                    .Where(f => f.UserId == user.Id)
+                    .ToListAsync(cancellationToken);
+
+                var matching = facts
+                    .Where(f => f.Fact.ToLowerInvariant().Contains(searchLower))
+                    .ToList();
+
+                if (matching.Count == 0)
+                {
+                    await SendReplyAsync(chatId, replyToMessageId, "No matching facts found. Use /facts to see what I remember.", cancellationToken);
+                    return;
+                }
+
+                dataContext.UserFacts.RemoveRange(matching);
+                await dataContext.SaveChangesAsync(cancellationToken);
+
+                var plural = matching.Count == 1 ? "fact" : "facts";
+                await SendReplyAsync(chatId, replyToMessageId, $"Done! Forgot {matching.Count} {plural}.", cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to handle /forget command. TelegramUserId={TelegramUserId}", telegramUserId);
+                await SendReplyAsync(chatId, replyToMessageId, "Something went wrong, try again later.", cancellationToken);
+            }
+        }
+
+        private async Task HandleFactsAsync(long telegramUserId, string chatId, int replyToMessageId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await using var scope = _serviceScopeFactory.CreateAsyncScope();
+                var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+
+                var user = await dataContext.Users
+                    .AsNoTracking()
+                    .SingleOrDefaultAsync(u => u.TelegramUserId == telegramUserId, cancellationToken);
+
+                if (user == null)
+                {
+                    await SendReplyAsync(chatId, replyToMessageId, "I don't know who you are yet. Please link your Telegram account first.", cancellationToken);
+                    return;
+                }
+
+                var facts = await dataContext.UserFacts
+                    .AsNoTracking()
+                    .Where(f => f.UserId == user.Id)
+                    .OrderBy(f => f.CreatedTime)
+                    .Select(f => f.Fact)
+                    .ToListAsync(cancellationToken);
+
+                if (facts.Count == 0)
+                {
+                    await SendReplyAsync(chatId, replyToMessageId, "I don't have any facts about you yet. Use /remember to add some!", cancellationToken);
+                    return;
+                }
+
+                var lines = facts.Select((f, i) => $"{i + 1}. {f}");
+                var message = $"Here's what I remember about you:\n{string.Join("\n", lines)}";
+                await SendReplyAsync(chatId, replyToMessageId, message, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to handle /facts command. TelegramUserId={TelegramUserId}", telegramUserId);
+                await SendReplyAsync(chatId, replyToMessageId, "Something went wrong, try again later.", cancellationToken);
+            }
+        }
+
+        private async Task SendReplyAsync(string chatId, int replyToMessageId, string text, CancellationToken cancellationToken)
+        {
+            await _httpClient.PostAsJsonAsync(
+                $"https://api.telegram.org/bot{_notificationServiceConfiguration.Token}/sendMessage",
+                new
+                {
+                    chat_id = chatId,
+                    text,
+                    reply_to_message_id = replyToMessageId
+                },
+                cancellationToken);
         }
 
         private static async Task UpdateTelegramPollGoalsAsync(

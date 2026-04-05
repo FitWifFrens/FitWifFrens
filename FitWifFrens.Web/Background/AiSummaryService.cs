@@ -1,6 +1,7 @@
 using Anthropic.SDK;
 using Anthropic.SDK.Constants;
 using Anthropic.SDK.Messaging;
+using System.Text;
 
 namespace FitWifFrens.Web.Background
 {
@@ -26,7 +27,8 @@ namespace FitWifFrens.Web.Background
         /// </summary>
         public async Task<string> GenerateWeightSummaryIntro(
             IEnumerable<(string Name, double WeightChange)> weekly,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            Dictionary<string, List<string>>? userFacts = null)
         {
             try
             {
@@ -47,6 +49,7 @@ namespace FitWifFrens.Web.Background
                     $"Write a single short sentence (max 15 words) as an intro to the weekly weight summary. " +
                     $"Keep it fun, positive, and vary the style each time — sometimes motivational, sometimes playful. " +
                     $"This week's data: {dataText}. " +
+                    FormatFactsForPrompt(userFacts) +
                     $"Output only the sentence, no quotes, no extra text.";
 
                 return await CallClaude(prompt, cancellationToken) ?? "Weight Summary";
@@ -65,7 +68,8 @@ namespace FitWifFrens.Web.Background
         public async Task<string> GeneratePollSummaryIntro(
             string question,
             IEnumerable<(string Name, double AverageRating)> weekly,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            Dictionary<string, List<string>>? userFacts = null)
         {
             try
             {
@@ -83,6 +87,7 @@ namespace FitWifFrens.Web.Background
                     $"Write a single short sentence (max 15 words) as an intro to the poll summary results. " +
                     $"Keep it fun and vary the style each time. " +
                     $"This week's ratings: {dataText}. " +
+                    FormatFactsForPrompt(userFacts) +
                     $"Output only the sentence, no quotes, no extra text.";
 
                 return await CallClaude(prompt, cancellationToken) ?? $"Q: {question}";
@@ -100,7 +105,8 @@ namespace FitWifFrens.Web.Background
         /// </summary>
         public async Task<Dictionary<string, string>> GenerateCorrelationCommentaries(
             IEnumerable<(string Name, double AvgDietRating, double WeightChange, string DefaultCommentary)> correlations,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            Dictionary<string, List<string>>? userFacts = null)
         {
             var correlationList = correlations.ToList();
             var result = correlationList.ToDictionary(c => c.Name, c => c.DefaultCommentary);
@@ -123,8 +129,10 @@ namespace FitWifFrens.Web.Background
                     $"You are a witty fitness group coach writing brief comments for a weekly group stats message. " +
                     $"For each person below, write one short witty sentence (max 12 words) commenting on how their diet rating compared to their actual weight change. " +
                     $"Be funny, varied in style, and mildly sarcastic where appropriate — but always keep it friendly. " +
+                    $"If you know fun facts about a person, occasionally weave them in. " +
                     $"Return exactly one line per person in this format: NAME: comment\n\n" +
                     $"{dataText}\n\n" +
+                    FormatFactsForPrompt(userFacts) +
                     $"Output only the NAME: comment lines, nothing else.";
 
                 var response = await CallClaude(prompt, cancellationToken);
@@ -150,6 +158,26 @@ namespace FitWifFrens.Web.Background
             }
 
             return result;
+        }
+
+        private static string FormatFactsForPrompt(Dictionary<string, List<string>>? factsByName)
+        {
+            if (factsByName == null || factsByName.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            var sb = new StringBuilder();
+            sb.Append("Known facts about group members (use these to personalize your responses when relevant): ");
+            foreach (var (name, facts) in factsByName)
+            {
+                foreach (var fact in facts)
+                {
+                    sb.Append($"{name}: {fact}. ");
+                }
+            }
+
+            return sb.ToString();
         }
 
         private async Task<string?> CallClaude(string prompt, CancellationToken cancellationToken)

@@ -26,6 +26,7 @@ namespace FitWifFrens.Data
         public ICollection<CommitmentPeriodUser> CommitmentPeriods { get; set; }
         public ICollection<UserTelegramPollResponse> TelegramPollResponses { get; set; }
         public ICollection<UserDisplay> Displays { get; set; }
+        public ICollection<UserFact> Facts { get; set; }
 
         public ICollection<UserClaim> Claims { get; set; }
         public ICollection<UserLogin> Logins { get; set; }

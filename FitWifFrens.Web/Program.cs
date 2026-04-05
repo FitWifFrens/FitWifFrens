@@ -194,6 +194,12 @@ namespace FitWifFrens.Web
 
             var app = builder.Build();
 
+            using (var scope = app.Services.CreateScope())
+            {
+                var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+                dataContext.Database.Migrate();
+            }
+
             app.UseRequestLocalization("en-AU");
 
             // Configure the HTTP request pipeline.

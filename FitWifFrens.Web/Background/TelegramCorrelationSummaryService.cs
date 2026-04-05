@@ -74,10 +74,20 @@ namespace FitWifFrens.Web.Background
                     return;
                 }
 
+                var userIds = pollData.Select(p => p.UserId).Distinct().ToList();
+                var factsRaw = await _dataContext.UserFacts
+                    .AsNoTracking()
+                    .Where(f => f.UserId != null && userIds.Contains(f.UserId))
+                    .Select(f => new { Name = f.User!.Nickname ?? f.User.UserName ?? f.UserId!, f.Fact })
+                    .ToListAsync(cancellationToken);
+                var userFacts = factsRaw
+                    .GroupBy(f => f.Name)
+                    .ToDictionary(g => g.Key, g => g.Select(x => x.Fact).ToList());
+
                 var commentaryInputs = correlations.Select(c =>
                     (c.Name, c.AvgDietRating, c.WeightChange, GetFallbackCommentary(c.AvgDietRating, c.WeightChange)));
 
-                var commentaries = await _aiSummaryService.GenerateCorrelationCommentaries(commentaryInputs, cancellationToken);
+                var commentaries = await _aiSummaryService.GenerateCorrelationCommentaries(commentaryInputs, cancellationToken, userFacts);
 
                 var message = BuildSummaryMessage(correlations, commentaries);
                 await _notificationService.Notify(message);

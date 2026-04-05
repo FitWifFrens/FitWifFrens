@@ -84,11 +84,22 @@ namespace FitWifFrens.Web.Background
                     .OrderBy(q => q)
                     .FirstOrDefaultAsync(cancellationToken);
 
+                var userIds = weekly.Select(w => w.UserId).Distinct().ToList();
+                var factsRaw = await _dataContext.UserFacts
+                    .AsNoTracking()
+                    .Where(f => f.UserId != null && userIds.Contains(f.UserId))
+                    .Select(f => new { Name = f.User!.Nickname ?? f.User.UserName ?? f.UserId!, f.Fact })
+                    .ToListAsync(cancellationToken);
+                var userFacts = factsRaw
+                    .GroupBy(f => f.Name)
+                    .ToDictionary(g => g.Key, g => g.Select(x => x.Fact).ToList());
+
                 var resolvedQuestion = question ?? "How do you rate your diet?";
                 var introLine = await _aiSummaryService.GeneratePollSummaryIntro(
                     resolvedQuestion,
                     weekly.Select(a => (ResolveName(a), a.AverageValue)),
-                    cancellationToken);
+                    cancellationToken,
+                    userFacts);
 
                 var message = BuildSummaryMessage(introLine, weekly, monthly, allTime);
                 await _notificationService.Notify(message);

@@ -24,6 +24,7 @@ namespace FitWifFrens.Data
         public DbSet<UserTelegramPollResponse> UserTelegramPollResponses { get; set; }
         public DbSet<Display> Displays { get; set; }
         public DbSet<UserDisplay> UserDisplays { get; set; }
+        public DbSet<UserFact> UserFacts { get; set; }
 
         public DataContext(DbContextOptions<DataContext> options)
             : base(options)
@@ -66,6 +67,10 @@ namespace FitWifFrens.Data
                     .HasForeignKey(m => m.UserId);
 
                 b.HasMany(m => m.Displays)
+                    .WithOne(m => m.User)
+                    .HasForeignKey(m => m.UserId);
+
+                b.HasMany(m => m.Facts)
                     .WithOne(m => m.User)
                     .HasForeignKey(m => m.UserId);
 
@@ -313,6 +318,17 @@ namespace FitWifFrens.Data
 
                 b.HasIndex(m => new { m.PollId, m.TelegramUserId })
                     .IsUnique();
+            });
+
+
+            builder.Entity<UserFact>(b =>
+            {
+                b.HasKey(m => m.Id);
+
+                b.Property(m => m.Fact)
+                    .HasMaxLength(2048);
+
+                b.HasIndex(m => m.UserId);
             });
 
 

@@ -79,6 +79,8 @@ namespace FitWifFrens.Web.Background
                     TimeZone = TimeZoneInfo.Utc
                 });
 
+            _backgroundJobClient.Enqueue<TelegramPollService>(s => s.RegisterBotCommandsAsync(CancellationToken.None));
+
             return Task.CompletedTask;
         }
 
