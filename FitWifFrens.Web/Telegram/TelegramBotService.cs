@@ -21,8 +21,6 @@ namespace FitWifFrens.Web.Telegram
         private readonly NotificationServiceConfiguration _notificationServiceConfiguration;
         private readonly TelegramPollResponseStore _responseStore;
         private readonly IServiceScopeFactory _serviceScopeFactory;
-        private readonly NotificationService _notificationService;
-        private readonly AiSummaryService _aiSummaryService;
         private readonly HttpClient _httpClient;
         private readonly TelemetryClient _telemetryClient;
         private readonly ILogger<TelegramBotService> _logger;
@@ -34,8 +32,6 @@ namespace FitWifFrens.Web.Telegram
             NotificationServiceConfiguration notificationServiceConfiguration,
             TelegramPollResponseStore responseStore,
             IServiceScopeFactory serviceScopeFactory,
-            NotificationService notificationService,
-            AiSummaryService aiSummaryService,
             IHttpClientFactory httpClientFactory,
             TelemetryClient telemetryClient,
             ILogger<TelegramBotService> logger)
@@ -44,8 +40,6 @@ namespace FitWifFrens.Web.Telegram
             _notificationServiceConfiguration = notificationServiceConfiguration;
             _responseStore = responseStore;
             _serviceScopeFactory = serviceScopeFactory;
-            _notificationService = notificationService;
-            _aiSummaryService = aiSummaryService;
             _httpClient = httpClientFactory.CreateClient();
             _telemetryClient = telemetryClient;
             _logger = logger;
@@ -312,6 +306,8 @@ namespace FitWifFrens.Web.Telegram
             {
                 await using var scope = _serviceScopeFactory.CreateAsyncScope();
                 var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+                var notificationService = scope.ServiceProvider.GetRequiredService<NotificationService>();
+                var aiSummaryService = scope.ServiceProvider.GetRequiredService<AiSummaryService>();
 
                 if (await dataContext.UserTelegramPollResponses.AnyAsync(r => r.UpdateId == updateId, cancellationToken))
                 {
@@ -408,10 +404,10 @@ namespace FitWifFrens.Web.Telegram
                         ? new Dictionary<string, List<string>> { { user.Nickname!, factsRaw } }
                         : null;
 
-                    var message = await _aiSummaryService.GeneratePollResponseMessage(
+                    var message = await aiSummaryService.GeneratePollResponseMessage(
                         user.Nickname!, question, chosenOption, cancellationToken, userFacts);
 
-                    _ = _notificationService.Notify(message);
+                    _ = notificationService.Notify(message);
                 }
             }
             catch (DbUpdateException exception)
