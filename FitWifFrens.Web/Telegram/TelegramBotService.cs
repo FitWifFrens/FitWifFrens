@@ -21,8 +21,6 @@ namespace FitWifFrens.Web.Telegram
         private readonly NotificationServiceConfiguration _notificationServiceConfiguration;
         private readonly TelegramPollResponseStore _responseStore;
         private readonly IServiceScopeFactory _serviceScopeFactory;
-        private readonly NotificationService _notificationService;
-        private readonly AiSummaryService _aiSummaryService;
         private readonly HttpClient _httpClient;
         private readonly TelemetryClient _telemetryClient;
         private readonly ILogger<TelegramBotService> _logger;
@@ -34,8 +32,6 @@ namespace FitWifFrens.Web.Telegram
             NotificationServiceConfiguration notificationServiceConfiguration,
             TelegramPollResponseStore responseStore,
             IServiceScopeFactory serviceScopeFactory,
-            NotificationService notificationService,
-            AiSummaryService aiSummaryService,
             IHttpClientFactory httpClientFactory,
             TelemetryClient telemetryClient,
             ILogger<TelegramBotService> logger)
@@ -44,8 +40,6 @@ namespace FitWifFrens.Web.Telegram
             _notificationServiceConfiguration = notificationServiceConfiguration;
             _responseStore = responseStore;
             _serviceScopeFactory = serviceScopeFactory;
-            _notificationService = notificationService;
-            _aiSummaryService = aiSummaryService;
             _httpClient = httpClientFactory.CreateClient();
             _telemetryClient = telemetryClient;
             _logger = logger;
@@ -312,6 +306,8 @@ namespace FitWifFrens.Web.Telegram
             {
                 await using var scope = _serviceScopeFactory.CreateAsyncScope();
                 var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+                var notificationService = scope.ServiceProvider.GetRequiredService<NotificationService>();
+                var aiSummaryService = scope.ServiceProvider.GetRequiredService<AiSummaryService>();
 
                 if (await dataContext.UserTelegramPollResponses.AnyAsync(r => r.UpdateId == updateId, cancellationToken))
                 {
@@ -408,10 +404,10 @@ namespace FitWifFrens.Web.Telegram
                         ? new Dictionary<string, List<string>> { { user.Nickname!, factsRaw } }
                         : null;
 
-                    var message = await _aiSummaryService.GeneratePollResponseMessage(
+                    var message = await aiSummaryService.GeneratePollResponseMessage(
                         user.Nickname!, question, chosenOption, cancellationToken, userFacts);
 
-                    _ = _notificationService.Notify(message);
+                    _ = notificationService.Notify(message);
                 }
             }
             catch (DbUpdateException exception)
@@ -481,8 +477,14 @@ namespace FitWifFrens.Web.Telegram
 
             var fromUser = message.GetProperty("from");
             var telegramUserId = fromUser.GetProperty("id").GetInt64();
+            var telegramUsername = fromUser.TryGetProperty("username", out var usernameJson) ? usernameJson.GetString() : null;
             var chatId = message.GetProperty("chat").GetProperty("id").ToString();
             var messageId = message.GetProperty("message_id").GetInt32();
+
+            if (!string.IsNullOrWhiteSpace(telegramUsername))
+            {
+                _ = UpdateTelegramUsernameAsync(telegramUserId, telegramUsername, cancellationToken);
+            }
 
             if (text.StartsWith("/remember ", StringComparison.OrdinalIgnoreCase) ||
                 text.StartsWith("/remember@", StringComparison.OrdinalIgnoreCase))
@@ -577,7 +579,7 @@ namespace FitWifFrens.Web.Telegram
                         }
                     }
 
-                    // Regular @mention — extract username from the message text and look up by Nickname
+                    // Regular @mention — extract username from the message text and look up by stored TelegramUsername
                     if (type == "mention" && message.TryGetProperty("text", out var fullText))
                     {
                         var offset = entity.GetProperty("offset").GetInt32();
@@ -586,9 +588,10 @@ namespace FitWifFrens.Web.Telegram
 
                         if (!string.IsNullOrWhiteSpace(mentionText))
                         {
+                            var mentionTextLower = mentionText.ToLowerInvariant();
                             var user = await dataContext.Users
                                 .AsNoTracking()
-                                .SingleOrDefaultAsync(u => u.Nickname == mentionText, cancellationToken);
+                                .SingleOrDefaultAsync(u => u.TelegramUsername != null && u.TelegramUsername.ToLower() == mentionTextLower, cancellationToken);
 
                             if (user != null)
                             {
@@ -603,6 +606,28 @@ namespace FitWifFrens.Web.Telegram
             return await dataContext.Users
                 .AsNoTracking()
                 .SingleOrDefaultAsync(u => u.TelegramUserId == senderTelegramUserId, cancellationToken);
+        }
+
+        private async Task UpdateTelegramUsernameAsync(long telegramUserId, string telegramUsername, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await using var scope = _serviceScopeFactory.CreateAsyncScope();
+                var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+
+                var user = await dataContext.Users
+                    .SingleOrDefaultAsync(u => u.TelegramUserId == telegramUserId, cancellationToken);
+
+                if (user != null && !string.Equals(user.TelegramUsername, telegramUsername, StringComparison.OrdinalIgnoreCase))
+                {
+                    user.TelegramUsername = telegramUsername;
+                    await dataContext.SaveChangesAsync(cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to update TelegramUsername. TelegramUserId={TelegramUserId}", telegramUserId);
+            }
         }
 
         private static string StripLeadingMention(string text)
