@@ -17,6 +17,9 @@ namespace FitWifFrens.Data
         [ProtectedPersonalData]
         public long? TelegramUserId { get; set; }
 
+        [ProtectedPersonalData]
+        public string? TelegramUsername { get; set; }
+
         public decimal Balance { get; set; }
 
         public ICollection<Deposit> Deposits { get; set; }

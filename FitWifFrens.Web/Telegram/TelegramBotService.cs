@@ -481,8 +481,14 @@ namespace FitWifFrens.Web.Telegram
 
             var fromUser = message.GetProperty("from");
             var telegramUserId = fromUser.GetProperty("id").GetInt64();
+            var telegramUsername = fromUser.TryGetProperty("username", out var usernameJson) ? usernameJson.GetString() : null;
             var chatId = message.GetProperty("chat").GetProperty("id").ToString();
             var messageId = message.GetProperty("message_id").GetInt32();
+
+            if (!string.IsNullOrWhiteSpace(telegramUsername))
+            {
+                _ = UpdateTelegramUsernameAsync(telegramUserId, telegramUsername, cancellationToken);
+            }
 
             if (text.StartsWith("/remember ", StringComparison.OrdinalIgnoreCase) ||
                 text.StartsWith("/remember@", StringComparison.OrdinalIgnoreCase))
@@ -577,7 +583,7 @@ namespace FitWifFrens.Web.Telegram
                         }
                     }
 
-                    // Regular @mention — extract username from the message text and look up by Nickname
+                    // Regular @mention — extract username from the message text and look up by stored TelegramUsername
                     if (type == "mention" && message.TryGetProperty("text", out var fullText))
                     {
                         var offset = entity.GetProperty("offset").GetInt32();
@@ -589,7 +595,7 @@ namespace FitWifFrens.Web.Telegram
                             var mentionTextLower = mentionText.ToLowerInvariant();
                             var user = await dataContext.Users
                                 .AsNoTracking()
-                                .SingleOrDefaultAsync(u => u.Nickname != null && u.Nickname.ToLower() == mentionTextLower, cancellationToken);
+                                .SingleOrDefaultAsync(u => u.TelegramUsername != null && u.TelegramUsername.ToLower() == mentionTextLower, cancellationToken);
 
                             if (user != null)
                             {
@@ -604,6 +610,28 @@ namespace FitWifFrens.Web.Telegram
             return await dataContext.Users
                 .AsNoTracking()
                 .SingleOrDefaultAsync(u => u.TelegramUserId == senderTelegramUserId, cancellationToken);
+        }
+
+        private async Task UpdateTelegramUsernameAsync(long telegramUserId, string telegramUsername, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await using var scope = _serviceScopeFactory.CreateAsyncScope();
+                var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+
+                var user = await dataContext.Users
+                    .SingleOrDefaultAsync(u => u.TelegramUserId == telegramUserId, cancellationToken);
+
+                if (user != null && !string.Equals(user.TelegramUsername, telegramUsername, StringComparison.OrdinalIgnoreCase))
+                {
+                    user.TelegramUsername = telegramUsername;
+                    await dataContext.SaveChangesAsync(cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to update TelegramUsername. TelegramUserId={TelegramUserId}", telegramUserId);
+            }
         }
 
         private static string StripLeadingMention(string text)
