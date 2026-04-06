@@ -586,9 +586,10 @@ namespace FitWifFrens.Web.Telegram
 
                         if (!string.IsNullOrWhiteSpace(mentionText))
                         {
+                            var mentionTextLower = mentionText.ToLowerInvariant();
                             var user = await dataContext.Users
                                 .AsNoTracking()
-                                .SingleOrDefaultAsync(u => u.Nickname == mentionText, cancellationToken);
+                                .SingleOrDefaultAsync(u => u.Nickname != null && u.Nickname.ToLower() == mentionTextLower, cancellationToken);
 
                             if (user != null)
                             {
