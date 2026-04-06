@@ -453,9 +453,6 @@ namespace FitWifFrens.Data.Migrations
                     b.Property<long?>("TelegramUserId")
                         .HasColumnType("bigint");
 
-                    b.Property<string>("TelegramUsername")
-                        .HasColumnType("text");
-
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean");
 
