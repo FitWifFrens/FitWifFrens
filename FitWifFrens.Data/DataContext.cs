@@ -25,6 +25,7 @@ namespace FitWifFrens.Data
         public DbSet<Display> Displays { get; set; }
         public DbSet<UserDisplay> UserDisplays { get; set; }
         public DbSet<UserFact> UserFacts { get; set; }
+        public DbSet<BotSoul> BotSouls { get; set; }
 
         public DataContext(DbContextOptions<DataContext> options)
             : base(options)
@@ -329,6 +330,20 @@ namespace FitWifFrens.Data
                     .HasMaxLength(2048);
 
                 b.HasIndex(m => m.UserId);
+            });
+
+
+            builder.Entity<BotSoul>(b =>
+            {
+                b.HasKey(m => m.Id);
+
+                b.Property(m => m.ChatId)
+                    .HasMaxLength(256);
+
+                b.Property(m => m.Trait)
+                    .HasMaxLength(2048);
+
+                b.HasIndex(m => m.ChatId);
             });
 
 

@@ -1,6 +1,8 @@
 using Anthropic.SDK;
 using Anthropic.SDK.Constants;
 using Anthropic.SDK.Messaging;
+using FitWifFrens.Data;
+using Microsoft.EntityFrameworkCore;
 using System.Text;
 
 namespace FitWifFrens.Web.Background
@@ -28,7 +30,8 @@ namespace FitWifFrens.Web.Background
         public async Task<string> GenerateWeightSummaryIntro(
             IEnumerable<(string Name, double WeightChange)> weekly,
             CancellationToken cancellationToken,
-            Dictionary<string, List<string>>? userFacts = null)
+            Dictionary<string, List<string>>? userFacts = null,
+            string? soulPrompt = null)
         {
             try
             {
@@ -52,7 +55,7 @@ namespace FitWifFrens.Web.Background
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the sentence, no quotes, no extra text.";
 
-                return await CallClaude(prompt, cancellationToken) ?? "Weight Summary";
+                return await CallClaude(prompt, cancellationToken, soulPrompt) ?? "Weight Summary";
             }
             catch (Exception ex)
             {
@@ -69,7 +72,8 @@ namespace FitWifFrens.Web.Background
             string question,
             IEnumerable<(string Name, double AverageRating)> weekly,
             CancellationToken cancellationToken,
-            Dictionary<string, List<string>>? userFacts = null)
+            Dictionary<string, List<string>>? userFacts = null,
+            string? soulPrompt = null)
         {
             try
             {
@@ -90,7 +94,7 @@ namespace FitWifFrens.Web.Background
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the sentence, no quotes, no extra text.";
 
-                return await CallClaude(prompt, cancellationToken) ?? $"Q: {question}";
+                return await CallClaude(prompt, cancellationToken, soulPrompt) ?? $"Q: {question}";
             }
             catch (Exception ex)
             {
@@ -106,7 +110,8 @@ namespace FitWifFrens.Web.Background
         public async Task<Dictionary<string, string>> GenerateCorrelationCommentaries(
             IEnumerable<(string Name, double AvgDietRating, double WeightChange, string DefaultCommentary)> correlations,
             CancellationToken cancellationToken,
-            Dictionary<string, List<string>>? userFacts = null)
+            Dictionary<string, List<string>>? userFacts = null,
+            string? soulPrompt = null)
         {
             var correlationList = correlations.ToList();
             var result = correlationList.ToDictionary(c => c.Name, c => c.DefaultCommentary);
@@ -135,7 +140,7 @@ namespace FitWifFrens.Web.Background
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the NAME: comment lines, nothing else.";
 
-                var response = await CallClaude(prompt, cancellationToken);
+                var response = await CallClaude(prompt, cancellationToken, soulPrompt);
                 if (response == null) return result;
 
                 foreach (var line in response.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
@@ -169,7 +174,8 @@ namespace FitWifFrens.Web.Background
             double weight,
             double? monthChange,
             CancellationToken cancellationToken,
-            Dictionary<string, List<string>>? userFacts = null)
+            Dictionary<string, List<string>>? userFacts = null,
+            string? soulPrompt = null)
         {
             try
             {
@@ -189,7 +195,7 @@ namespace FitWifFrens.Web.Background
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
 
-                var aiMessage = await CallClaude(prompt, cancellationToken);
+                var aiMessage = await CallClaude(prompt, cancellationToken, soulPrompt);
                 if (aiMessage != null)
                 {
                     return $"{name} just weighed in at {weight} kg{FormatMonthChange(monthChange)}\n{aiMessage}";
@@ -212,7 +218,8 @@ namespace FitWifFrens.Web.Background
             string activityType,
             double minutes,
             CancellationToken cancellationToken,
-            Dictionary<string, List<string>>? userFacts = null)
+            Dictionary<string, List<string>>? userFacts = null,
+            string? soulPrompt = null)
         {
             try
             {
@@ -224,7 +231,7 @@ namespace FitWifFrens.Web.Background
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
 
-                var aiMessage = await CallClaude(prompt, cancellationToken);
+                var aiMessage = await CallClaude(prompt, cancellationToken, soulPrompt);
                 if (aiMessage != null)
                 {
                     return $"{name} just logged a {activityType} ({minutes:F0} min)\n{aiMessage}";
@@ -246,7 +253,8 @@ namespace FitWifFrens.Web.Background
             string name,
             int? daysSinceLastWeighIn,
             CancellationToken cancellationToken,
-            Dictionary<string, List<string>>? userFacts = null)
+            Dictionary<string, List<string>>? userFacts = null,
+            string? soulPrompt = null)
         {
             try
             {
@@ -262,7 +270,7 @@ namespace FitWifFrens.Web.Background
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
 
-                var aiMessage = await CallClaude(prompt, cancellationToken);
+                var aiMessage = await CallClaude(prompt, cancellationToken, soulPrompt);
                 if (aiMessage != null)
                 {
                     return aiMessage;
@@ -288,7 +296,8 @@ namespace FitWifFrens.Web.Background
             string question,
             string chosenOption,
             CancellationToken cancellationToken,
-            Dictionary<string, List<string>>? userFacts = null)
+            Dictionary<string, List<string>>? userFacts = null,
+            string? soulPrompt = null)
         {
             try
             {
@@ -300,7 +309,7 @@ namespace FitWifFrens.Web.Background
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
 
-                var aiMessage = await CallClaude(prompt, cancellationToken);
+                var aiMessage = await CallClaude(prompt, cancellationToken, soulPrompt);
                 if (aiMessage != null)
                 {
                     return $"{name} rated today's diet: {chosenOption}\n{aiMessage}";
@@ -371,7 +380,8 @@ namespace FitWifFrens.Web.Background
             double runningMinutes,
             double workoutMinutes,
             CancellationToken cancellationToken,
-            Dictionary<string, List<string>>? userFacts = null)
+            Dictionary<string, List<string>>? userFacts = null,
+            string? soulPrompt = null)
         {
             try
             {
@@ -388,7 +398,7 @@ namespace FitWifFrens.Web.Background
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the roast lines, nothing else.";
 
-                return await CallClaude(prompt, cancellationToken);
+                return await CallClaude(prompt, cancellationToken, soulPrompt);
             }
             catch (Exception ex)
             {
@@ -410,7 +420,8 @@ namespace FitWifFrens.Web.Background
             double runningMinutes,
             double workoutMinutes,
             CancellationToken cancellationToken,
-            Dictionary<string, List<string>>? userFacts = null)
+            Dictionary<string, List<string>>? userFacts = null,
+            string? soulPrompt = null)
         {
             try
             {
@@ -427,7 +438,7 @@ namespace FitWifFrens.Web.Background
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the poem, nothing else.";
 
-                return await CallClaude(prompt, cancellationToken);
+                return await CallClaude(prompt, cancellationToken, soulPrompt);
             }
             catch (Exception ex)
             {
@@ -452,6 +463,35 @@ namespace FitWifFrens.Web.Background
             return $" ({changeText} past 4 weeks)";
         }
 
+        public static async Task<string?> LoadSoulPromptAsync(DataContext dataContext, string chatId, CancellationToken cancellationToken)
+        {
+            var traits = await dataContext.BotSouls
+                .AsNoTracking()
+                .Where(t => t.ChatId == chatId)
+                .OrderBy(t => t.CreatedTime)
+                .Select(t => t.Trait)
+                .ToListAsync(cancellationToken);
+
+            return FormatSoulForPrompt(traits);
+        }
+
+        public static string? FormatSoulForPrompt(IReadOnlyList<string> traits)
+        {
+            if (traits.Count == 0)
+            {
+                return null;
+            }
+
+            var sb = new StringBuilder();
+            sb.AppendLine("You have the following personality and identity. Stay in character at all times:");
+            foreach (var trait in traits)
+            {
+                sb.AppendLine($"- {trait}");
+            }
+
+            return sb.ToString();
+        }
+
         private static string FormatFactsForPrompt(Dictionary<string, List<string>>? factsByName)
         {
             if (factsByName == null || factsByName.Count == 0)
@@ -472,7 +512,7 @@ namespace FitWifFrens.Web.Background
             return sb.ToString();
         }
 
-        private async Task<string?> CallClaude(string prompt, CancellationToken cancellationToken)
+        private async Task<string?> CallClaude(string prompt, CancellationToken cancellationToken, string? soulPrompt = null)
         {
             if (_client == null) return null;
 
@@ -485,6 +525,7 @@ namespace FitWifFrens.Web.Background
                 Model = "claude-haiku-4-5-20251001",
                 Stream = false,
                 Temperature = 1m,
+                SystemMessage = soulPrompt,
             };
 
             var response = await _client.Messages.GetClaudeMessageAsync(parameters);

@@ -103,10 +103,12 @@ namespace FitWifFrens.Web.Background
                     .GroupBy(f => f.Name)
                     .ToDictionary(g => g.Key, g => g.Select(x => x.Fact).ToList());
 
+                var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(_dataContext, _notificationService.ChatId, cancellationToken);
                 var introLine = await _aiSummaryService.GenerateWeightSummaryIntro(
                     weekly.Select(a => (ResolveName(a), a.WeightChange)),
                     cancellationToken,
-                    userFacts);
+                    userFacts,
+                    soulPrompt);
 
                 var message = BuildSummaryMessage(introLine, weekly, monthly, allTime);
                 await _notificationService.Notify(message);

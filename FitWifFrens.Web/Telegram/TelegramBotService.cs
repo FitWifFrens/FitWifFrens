@@ -156,7 +156,10 @@ namespace FitWifFrens.Web.Telegram
                         new { command = "forget", description = "Forget a fact about yourself — e.g. /forget cheese" },
                         new { command = "facts", description = "List all remembered facts about yourself" },
                         new { command = "roast", description = "Get roasted based on your fitness data" },
-                        new { command = "poem", description = "Get an encouraging poem about your fitness journey" }
+                        new { command = "poem", description = "Get an encouraging poem about your fitness journey" },
+                        new { command = "soul", description = "Add a personality trait — e.g. /soul You love dad jokes" },
+                        new { command = "purge", description = "Remove a personality trait — e.g. /purge dad jokes" },
+                        new { command = "personality", description = "Show the bot's current personality" }
                     }
                 },
                 cancellationToken);
@@ -404,8 +407,11 @@ namespace FitWifFrens.Web.Telegram
                         ? new Dictionary<string, List<string>> { { user.Nickname!, factsRaw } }
                         : null;
 
+                    var pollChatId = pollContext?.ChatId ?? _notificationServiceConfiguration.ChatId;
+                    var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(dataContext, pollChatId, cancellationToken);
+
                     var message = await aiSummaryService.GeneratePollResponseMessage(
-                        user.Nickname!, question, chosenOption, cancellationToken, userFacts);
+                        user.Nickname!, question, chosenOption, cancellationToken, userFacts, soulPrompt);
 
                     _ = notificationService.Notify(message);
                 }
@@ -546,6 +552,44 @@ namespace FitWifFrens.Web.Telegram
                 text.StartsWith("/poem ", StringComparison.OrdinalIgnoreCase))
             {
                 await HandlePoemAsync(telegramUserId, message, chatId, messageId, cancellationToken);
+                return true;
+            }
+
+            if (text.StartsWith("/soul ", StringComparison.OrdinalIgnoreCase) ||
+                text.StartsWith("/soul@", StringComparison.OrdinalIgnoreCase))
+            {
+                var spaceIndex = text.IndexOf(' ');
+                if (spaceIndex < 0)
+                {
+                    return false;
+                }
+
+                var trait = text[(spaceIndex + 1)..].Trim();
+                if (string.IsNullOrWhiteSpace(trait))
+                {
+                    await SendReplyAsync(chatId, messageId, "Please provide a personality trait. E.g. /soul You are a sarcastic fitness buddy", cancellationToken);
+                    return true;
+                }
+
+                await HandleSoulAsync(trait, chatId, messageId, cancellationToken);
+                return true;
+            }
+
+            if (text.TrimEnd().Equals("/purge", StringComparison.OrdinalIgnoreCase) ||
+                text.StartsWith("/purge@", StringComparison.OrdinalIgnoreCase) ||
+                text.StartsWith("/purge ", StringComparison.OrdinalIgnoreCase))
+            {
+                var spaceIndex = text.IndexOf(' ');
+                var search = spaceIndex >= 0 ? text[(spaceIndex + 1)..].Trim() : null;
+
+                await HandlePurgeAsync(string.IsNullOrWhiteSpace(search) ? null : search, chatId, messageId, cancellationToken);
+                return true;
+            }
+
+            if (text.TrimEnd().Equals("/personality", StringComparison.OrdinalIgnoreCase) ||
+                text.StartsWith("/personality@", StringComparison.OrdinalIgnoreCase))
+            {
+                await HandlePersonalityAsync(chatId, messageId, cancellationToken);
                 return true;
             }
 
@@ -853,10 +897,11 @@ namespace FitWifFrens.Web.Telegram
                 }
 
                 var data = await GatherFitnessDataAsync(dataContext, targetUser, cancellationToken);
+                var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(dataContext, chatId, cancellationToken);
 
                 var roast = await aiSummaryService.GenerateRoast(
                     data.Name, data.WeightChange, data.AvgDietRating, data.WeighInCount, data.PollResponseCount,
-                    data.ExerciseMinutes, data.RunningMinutes, data.WorkoutMinutes, cancellationToken, data.UserFacts);
+                    data.ExerciseMinutes, data.RunningMinutes, data.WorkoutMinutes, cancellationToken, data.UserFacts, soulPrompt);
 
                 if (string.IsNullOrWhiteSpace(roast))
                 {
@@ -890,10 +935,11 @@ namespace FitWifFrens.Web.Telegram
                 }
 
                 var data = await GatherFitnessDataAsync(dataContext, targetUser, cancellationToken);
+                var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(dataContext, chatId, cancellationToken);
 
                 var poem = await aiSummaryService.GeneratePoem(
                     data.Name, data.WeightChange, data.AvgDietRating, data.WeighInCount, data.PollResponseCount,
-                    data.ExerciseMinutes, data.RunningMinutes, data.WorkoutMinutes, cancellationToken, data.UserFacts);
+                    data.ExerciseMinutes, data.RunningMinutes, data.WorkoutMinutes, cancellationToken, data.UserFacts, soulPrompt);
 
                 if (string.IsNullOrWhiteSpace(poem))
                 {
@@ -906,6 +952,98 @@ namespace FitWifFrens.Web.Telegram
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to handle /poem command. TelegramUserId={TelegramUserId}", telegramUserId);
+                await SendReplyAsync(chatId, replyToMessageId, "Something went wrong, try again later.", cancellationToken);
+            }
+        }
+
+        private async Task HandleSoulAsync(string trait, string chatId, int replyToMessageId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await using var scope = _serviceScopeFactory.CreateAsyncScope();
+                var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+
+                dataContext.BotSouls.Add(new BotSoul
+                {
+                    ChatId = chatId,
+                    Trait = trait.Length > 2048 ? trait[..2048] : trait,
+                    CreatedTime = DateTime.UtcNow
+                });
+
+                await dataContext.SaveChangesAsync(cancellationToken);
+
+                await SendReplyAsync(chatId, replyToMessageId, $"Soul updated. I'll remember: \"{trait}\"", cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to handle /soul command.");
+                await SendReplyAsync(chatId, replyToMessageId, "Something went wrong, try again later.", cancellationToken);
+            }
+        }
+
+        private async Task HandlePurgeAsync(string? search, string chatId, int replyToMessageId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await using var scope = _serviceScopeFactory.CreateAsyncScope();
+                var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+
+                var traits = await dataContext.BotSouls
+                    .Where(t => t.ChatId == chatId)
+                    .ToListAsync(cancellationToken);
+
+                var matching = search != null
+                    ? traits.Where(t => t.Trait.ToLowerInvariant().Contains(search.ToLowerInvariant())).ToList()
+                    : traits;
+
+                if (matching.Count == 0)
+                {
+                    await SendReplyAsync(chatId, replyToMessageId, "No personality traits to purge. Use /personality to see what I've got.", cancellationToken);
+                    return;
+                }
+
+                dataContext.BotSouls.RemoveRange(matching);
+                await dataContext.SaveChangesAsync(cancellationToken);
+
+                var plural = matching.Count == 1 ? "trait" : "traits";
+                var message = search != null
+                    ? $"Purged {matching.Count} {plural} from my soul."
+                    : $"Purged all {matching.Count} {plural}. I'm a blank slate now.";
+                await SendReplyAsync(chatId, replyToMessageId, message, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to handle /purge command.");
+                await SendReplyAsync(chatId, replyToMessageId, "Something went wrong, try again later.", cancellationToken);
+            }
+        }
+
+        private async Task HandlePersonalityAsync(string chatId, int replyToMessageId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await using var scope = _serviceScopeFactory.CreateAsyncScope();
+                var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+
+                var traits = await dataContext.BotSouls
+                    .AsNoTracking()
+                    .Where(t => t.ChatId == chatId)
+                    .OrderBy(t => t.CreatedTime)
+                    .Select(t => t.Trait)
+                    .ToListAsync(cancellationToken);
+
+                if (traits.Count == 0)
+                {
+                    await SendReplyAsync(chatId, replyToMessageId, "I don't have a personality yet. Use /soul to give me one!", cancellationToken);
+                    return;
+                }
+
+                var lines = traits.Select((t, i) => $"{i + 1}. {t}");
+                await SendReplyAsync(chatId, replyToMessageId, $"My personality:\n{string.Join("\n", lines)}", cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to handle /personality command.");
                 await SendReplyAsync(chatId, replyToMessageId, "Something went wrong, try again later.", cancellationToken);
             }
         }

@@ -95,11 +95,13 @@ namespace FitWifFrens.Web.Background
                     .ToDictionary(g => g.Key, g => g.Select(x => x.Fact).ToList());
 
                 var resolvedQuestion = question ?? "How do you rate your diet?";
+                var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(_dataContext, _notificationService.ChatId, cancellationToken);
                 var introLine = await _aiSummaryService.GeneratePollSummaryIntro(
                     resolvedQuestion,
                     weekly.Select(a => (ResolveName(a), a.AverageValue)),
                     cancellationToken,
-                    userFacts);
+                    userFacts,
+                    soulPrompt);
 
                 var message = BuildSummaryMessage(introLine, weekly, monthly, allTime);
                 await _notificationService.Notify(message);

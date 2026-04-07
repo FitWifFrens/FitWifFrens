@@ -17,6 +17,8 @@ namespace FitWifFrens.Web.Background
             _logger = logger;
         }
 
+        public string ChatId => _notificationServiceConfiguration.ChatId;
+
         public async Task Notify(string message)
         {
             await _httpClient.PostAsJsonAsync($"https://api.telegram.org/bot{_notificationServiceConfiguration.Token}/sendMessage", new

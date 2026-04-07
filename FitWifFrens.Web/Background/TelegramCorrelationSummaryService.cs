@@ -87,7 +87,8 @@ namespace FitWifFrens.Web.Background
                 var commentaryInputs = correlations.Select(c =>
                     (c.Name, c.AvgDietRating, c.WeightChange, GetFallbackCommentary(c.AvgDietRating, c.WeightChange)));
 
-                var commentaries = await _aiSummaryService.GenerateCorrelationCommentaries(commentaryInputs, cancellationToken, userFacts);
+                var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(_dataContext, _notificationService.ChatId, cancellationToken);
+                var commentaries = await _aiSummaryService.GenerateCorrelationCommentaries(commentaryInputs, cancellationToken, userFacts, soulPrompt);
 
                 var message = BuildSummaryMessage(correlations, commentaries);
                 await _notificationService.Notify(message);

@@ -244,8 +244,9 @@ namespace FitWifFrens.Web.Background
                                     ? new Dictionary<string, List<string>> { { user.Nickname!, factsRaw } }
                                     : null;
 
+                                var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(_dataContext, _notificationService.ChatId, cancellationToken);
                                 var message = await _aiSummaryService.GenerateWorkoutMessage(
-                                    user.Nickname!, activityType!, activityMinutes, cancellationToken, userFacts);
+                                    user.Nickname!, activityType!, activityMinutes, cancellationToken, userFacts, soulPrompt);
 
                                 _ = _notificationService.Notify(message);
                             }

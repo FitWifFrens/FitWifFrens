@@ -74,8 +74,9 @@ namespace FitWifFrens.Web.Background
                         ? new Dictionary<string, List<string>> { { user.Nickname!, factsRaw } }
                         : null;
 
+                    var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(_dataContext, _notificationService.ChatId, cancellationToken);
                     var message = await _aiSummaryService.GenerateWeighInReminder(
-                        user.Nickname!, daysSince, cancellationToken, userFacts);
+                        user.Nickname!, daysSince, cancellationToken, userFacts, soulPrompt);
 
                     _ = _notificationService.Notify(message);
                 }
