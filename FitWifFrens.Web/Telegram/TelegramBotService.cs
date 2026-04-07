@@ -154,11 +154,13 @@ namespace FitWifFrens.Web.Telegram
                     {
                         new { command = "remember", description = "Remember a fact — e.g. /remember @Phil loves cheese" },
                         new { command = "forget", description = "Forget a fact about yourself — e.g. /forget cheese" },
+                        new { command = "forgetall", description = "Forget ALL facts about yourself" },
                         new { command = "facts", description = "List all remembered facts about yourself" },
                         new { command = "roast", description = "Get roasted based on your fitness data" },
                         new { command = "poem", description = "Get an encouraging poem about your fitness journey" },
                         new { command = "soul", description = "Add a personality trait — e.g. /soul You love dad jokes" },
                         new { command = "purge", description = "Remove a personality trait — e.g. /purge dad jokes" },
+                        new { command = "purgeall", description = "Remove ALL personality traits" },
                         new { command = "personality", description = "Show the bot's current personality" }
                     }
                 },
@@ -532,6 +534,13 @@ namespace FitWifFrens.Web.Telegram
                 return true;
             }
 
+            if (text.TrimEnd().Equals("/forgetall", StringComparison.OrdinalIgnoreCase) ||
+                text.StartsWith("/forgetall@", StringComparison.OrdinalIgnoreCase))
+            {
+                await HandleForgetAllAsync(telegramUserId, chatId, messageId, cancellationToken);
+                return true;
+            }
+
             if (text.TrimEnd().Equals("/facts", StringComparison.OrdinalIgnoreCase) ||
                 text.StartsWith("/facts@", StringComparison.OrdinalIgnoreCase))
             {
@@ -575,14 +584,30 @@ namespace FitWifFrens.Web.Telegram
                 return true;
             }
 
-            if (text.TrimEnd().Equals("/purge", StringComparison.OrdinalIgnoreCase) ||
-                text.StartsWith("/purge@", StringComparison.OrdinalIgnoreCase) ||
-                text.StartsWith("/purge ", StringComparison.OrdinalIgnoreCase))
+            if (text.StartsWith("/purge ", StringComparison.OrdinalIgnoreCase) ||
+                text.StartsWith("/purge@", StringComparison.OrdinalIgnoreCase))
             {
                 var spaceIndex = text.IndexOf(' ');
-                var search = spaceIndex >= 0 ? text[(spaceIndex + 1)..].Trim() : null;
+                if (spaceIndex < 0)
+                {
+                    return false;
+                }
 
-                await HandlePurgeAsync(string.IsNullOrWhiteSpace(search) ? null : search, chatId, messageId, cancellationToken);
+                var search = text[(spaceIndex + 1)..].Trim();
+                if (string.IsNullOrWhiteSpace(search))
+                {
+                    await SendReplyAsync(chatId, messageId, "Please provide text to match. E.g. /purge sarcastic", cancellationToken);
+                    return true;
+                }
+
+                await HandlePurgeAsync(search, chatId, messageId, cancellationToken);
+                return true;
+            }
+
+            if (text.TrimEnd().Equals("/purgeall", StringComparison.OrdinalIgnoreCase) ||
+                text.StartsWith("/purgeall@", StringComparison.OrdinalIgnoreCase))
+            {
+                await HandlePurgeAllAsync(chatId, messageId, cancellationToken);
                 return true;
             }
 
@@ -772,6 +797,46 @@ namespace FitWifFrens.Web.Telegram
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to handle /forget command. TelegramUserId={TelegramUserId}", telegramUserId);
+                await SendReplyAsync(chatId, replyToMessageId, "Something went wrong, try again later.", cancellationToken);
+            }
+        }
+
+        private async Task HandleForgetAllAsync(long telegramUserId, string chatId, int replyToMessageId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await using var scope = _serviceScopeFactory.CreateAsyncScope();
+                var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+
+                var user = await dataContext.Users
+                    .AsNoTracking()
+                    .SingleOrDefaultAsync(u => u.TelegramUserId == telegramUserId, cancellationToken);
+
+                if (user == null)
+                {
+                    await SendReplyAsync(chatId, replyToMessageId, "I don't know who you are yet. Please link your Telegram account first.", cancellationToken);
+                    return;
+                }
+
+                var facts = await dataContext.UserFacts
+                    .Where(f => f.UserId == user.Id)
+                    .ToListAsync(cancellationToken);
+
+                if (facts.Count == 0)
+                {
+                    await SendReplyAsync(chatId, replyToMessageId, "Nothing to forget — I don't have any facts about you.", cancellationToken);
+                    return;
+                }
+
+                dataContext.UserFacts.RemoveRange(facts);
+                await dataContext.SaveChangesAsync(cancellationToken);
+
+                var plural = facts.Count == 1 ? "fact" : "facts";
+                await SendReplyAsync(chatId, replyToMessageId, $"Done! Forgot all {facts.Count} {plural}. Clean slate!", cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to handle /forgetall command. TelegramUserId={TelegramUserId}", telegramUserId);
                 await SendReplyAsync(chatId, replyToMessageId, "Something went wrong, try again later.", cancellationToken);
             }
         }
@@ -981,7 +1046,42 @@ namespace FitWifFrens.Web.Telegram
             }
         }
 
-        private async Task HandlePurgeAsync(string? search, string chatId, int replyToMessageId, CancellationToken cancellationToken)
+        private async Task HandlePurgeAsync(string search, string chatId, int replyToMessageId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await using var scope = _serviceScopeFactory.CreateAsyncScope();
+                var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+
+                var searchLower = search.ToLowerInvariant();
+                var traits = await dataContext.BotSouls
+                    .Where(t => t.ChatId == chatId)
+                    .ToListAsync(cancellationToken);
+
+                var matching = traits
+                    .Where(t => t.Trait.ToLowerInvariant().Contains(searchLower))
+                    .ToList();
+
+                if (matching.Count == 0)
+                {
+                    await SendReplyAsync(chatId, replyToMessageId, "No matching personality traits found. Use /personality to see what I've got.", cancellationToken);
+                    return;
+                }
+
+                dataContext.BotSouls.RemoveRange(matching);
+                await dataContext.SaveChangesAsync(cancellationToken);
+
+                var plural = matching.Count == 1 ? "trait" : "traits";
+                await SendReplyAsync(chatId, replyToMessageId, $"Purged {matching.Count} {plural} from my soul.", cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to handle /purge command.");
+                await SendReplyAsync(chatId, replyToMessageId, "Something went wrong, try again later.", cancellationToken);
+            }
+        }
+
+        private async Task HandlePurgeAllAsync(string chatId, int replyToMessageId, CancellationToken cancellationToken)
         {
             try
             {
@@ -992,28 +1092,21 @@ namespace FitWifFrens.Web.Telegram
                     .Where(t => t.ChatId == chatId)
                     .ToListAsync(cancellationToken);
 
-                var matching = search != null
-                    ? traits.Where(t => t.Trait.ToLowerInvariant().Contains(search.ToLowerInvariant())).ToList()
-                    : traits;
-
-                if (matching.Count == 0)
+                if (traits.Count == 0)
                 {
-                    await SendReplyAsync(chatId, replyToMessageId, "No personality traits to purge. Use /personality to see what I've got.", cancellationToken);
+                    await SendReplyAsync(chatId, replyToMessageId, "Nothing to purge — I don't have a personality yet.", cancellationToken);
                     return;
                 }
 
-                dataContext.BotSouls.RemoveRange(matching);
+                dataContext.BotSouls.RemoveRange(traits);
                 await dataContext.SaveChangesAsync(cancellationToken);
 
-                var plural = matching.Count == 1 ? "trait" : "traits";
-                var message = search != null
-                    ? $"Purged {matching.Count} {plural} from my soul."
-                    : $"Purged all {matching.Count} {plural}. I'm a blank slate now.";
-                await SendReplyAsync(chatId, replyToMessageId, message, cancellationToken);
+                var plural = traits.Count == 1 ? "trait" : "traits";
+                await SendReplyAsync(chatId, replyToMessageId, $"Purged all {traits.Count} {plural}. I'm a blank slate now.", cancellationToken);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to handle /purge command.");
+                _logger.LogError(ex, "Failed to handle /purgeall command.");
                 await SendReplyAsync(chatId, replyToMessageId, "Something went wrong, try again later.", cancellationToken);
             }
         }
