@@ -161,7 +161,8 @@ namespace FitWifFrens.Web.Telegram
                         new { command = "soul", description = "Add a personality trait — e.g. /soul You love dad jokes" },
                         new { command = "purge", description = "Remove a personality trait — e.g. /purge dad jokes" },
                         new { command = "purgeall", description = "Remove ALL personality traits" },
-                        new { command = "personality", description = "Show the bot's current personality" }
+                        new { command = "personality", description = "Show the bot's current personality" },
+                        new { command = "balance", description = "Check your current FitWifFrens balance" }
                     }
                 },
                 cancellationToken);
@@ -618,6 +619,13 @@ namespace FitWifFrens.Web.Telegram
                 return true;
             }
 
+            if (text.TrimEnd().Equals("/balance", StringComparison.OrdinalIgnoreCase) ||
+                text.StartsWith("/balance@", StringComparison.OrdinalIgnoreCase))
+            {
+                await HandleBalanceAsync(telegramUserId, chatId, messageId, cancellationToken);
+                return true;
+            }
+
             return false;
         }
 
@@ -1017,6 +1025,59 @@ namespace FitWifFrens.Web.Telegram
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to handle /poem command. TelegramUserId={TelegramUserId}", telegramUserId);
+                await SendReplyAsync(chatId, replyToMessageId, "Something went wrong, try again later.", cancellationToken);
+            }
+        }
+
+        private async Task HandleBalanceAsync(long telegramUserId, string chatId, int replyToMessageId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await using var scope = _serviceScopeFactory.CreateAsyncScope();
+                var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+                var aiSummaryService = scope.ServiceProvider.GetRequiredService<AiSummaryService>();
+
+                var user = await dataContext.Users
+                    .AsNoTracking()
+                    .SingleOrDefaultAsync(u => u.TelegramUserId == telegramUserId, cancellationToken);
+
+                if (user == null)
+                {
+                    await SendReplyAsync(chatId, replyToMessageId, "Couldn't find your account. Make sure your Telegram is linked to FitWifFrens.", cancellationToken);
+                    return;
+                }
+
+                var name = user.Nickname ?? user.UserName ?? "Mystery User";
+                var balance = user.Balance;
+
+                var factsRaw = await dataContext.UserFacts
+                    .AsNoTracking()
+                    .Where(f => f.UserId == user.Id)
+                    .Select(f => f.Fact)
+                    .ToListAsync(cancellationToken);
+
+                var userFacts = factsRaw.Count > 0
+                    ? new Dictionary<string, List<string>> { { name, factsRaw } }
+                    : null;
+
+                var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(dataContext, chatId, cancellationToken);
+
+                var aiMessage = await aiSummaryService.GenerateBalanceMessage(name, balance, cancellationToken, userFacts, soulPrompt);
+
+                var balanceText = $"💰 {name}'s balance: {balance:F4} tokens";
+
+                if (!string.IsNullOrWhiteSpace(aiMessage))
+                {
+                    await SendReplyAsync(chatId, replyToMessageId, $"{balanceText}\n\n{aiMessage}", cancellationToken);
+                }
+                else
+                {
+                    await SendReplyAsync(chatId, replyToMessageId, balanceText, cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to handle /balance command. TelegramUserId={TelegramUserId}", telegramUserId);
                 await SendReplyAsync(chatId, replyToMessageId, "Something went wrong, try again later.", cancellationToken);
             }
         }
