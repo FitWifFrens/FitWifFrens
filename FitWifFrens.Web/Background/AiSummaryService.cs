@@ -447,6 +447,53 @@ namespace FitWifFrens.Web.Background
             }
         }
 
+        /// <summary>
+        /// Generates an entertaining commentary about a user's current balance.
+        /// </summary>
+        public async Task<string?> GenerateBalanceMessage(
+            string name,
+            decimal balance,
+            CancellationToken cancellationToken,
+            Dictionary<string, List<string>>? userFacts = null,
+            string? soulPrompt = null)
+        {
+            try
+            {
+                var balanceContext = balance switch
+                {
+                    0 => "exactly zero — broke, busted, and disgusted",
+                    < 0 => $"{balance:F4} tokens (somehow negative — impressive in the worst way)",
+                    < 0.01m => $"{balance:F6} tokens (a microscopic, almost insulting amount)",
+                    < 0.1m => $"{balance:F4} tokens (barely enough to buy a dream)",
+                    < 1m => $"{balance:F4} tokens (sub-one, haunting)",
+                    < 10m => $"{balance:F4} tokens (single digits — humble beginnings)",
+                    < 100m => $"{balance:F4} tokens (double digits club, respect)",
+                    _ => $"{balance:F4} tokens (actually stacking — respect the grind)"
+                };
+
+                var prompt =
+                    $"You are a wildly entertaining crypto hype commentator in a fitness accountability group chat. " +
+                    $"A member just checked their FitWifFrens token balance. React in 2-3 short punchy sentences. " +
+                    $"Be dramatic, funny, and entertaining — like a stock ticker announcer crossed with a trash-talking coach. " +
+                    $"Reference their actual balance naturally. " +
+                    $"If the balance is zero or near-zero, gently mock them but keep it playful. " +
+                    $"If it's a healthy amount, hype them up like they just hit a grand slam. " +
+                    $"If there are known facts about the person, weave those in to make it spicy. " +
+                    $"Keep each sentence under 15 words. Be creative and varied — no generic lines.\n\n" +
+                    $"User: {name}\n" +
+                    $"Balance: {balanceContext}\n" +
+                    FormatFactsForPrompt(userFacts) +
+                    $"Output only the commentary, nothing else.";
+
+                return await CallClaude(prompt, cancellationToken, soulPrompt);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "AI balance message generation failed. Error: {Message}", ex.Message);
+                return null;
+            }
+        }
+
         private static string FormatMonthChange(double? monthChange)
         {
             if (!monthChange.HasValue)
