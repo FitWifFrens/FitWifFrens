@@ -50,7 +50,7 @@ namespace FitWifFrens.Web.Background
                 var prompt =
                     Persona("You are a witty and encouraging fitness group coach posting a weekly weight update to a group chat. ", soulPrompt) +
                     $"Write a single short sentence (max 15 words) as an intro to the weekly weight summary. " +
-                    $"Keep it fun, positive, and vary the style each time — sometimes motivational, sometimes playful. " +
+                    Tone("Keep it fun, positive, and vary the style each time — sometimes motivational, sometimes playful. ", soulPrompt) +
                     $"This week's data: {dataText}. " +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the sentence, no quotes, no extra text.";
@@ -89,7 +89,7 @@ namespace FitWifFrens.Web.Background
                     Persona("You are a witty and encouraging fitness group coach posting a weekly poll recap to a group chat. ", soulPrompt) +
                     $"The poll question was: \"{question}\". " +
                     $"Write a single short sentence (max 15 words) as an intro to the poll summary results. " +
-                    $"Keep it fun and vary the style each time. " +
+                    Tone("Keep it fun and vary the style each time. ", soulPrompt) +
                     $"This week's ratings: {dataText}. " +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the sentence, no quotes, no extra text.";
@@ -132,8 +132,8 @@ namespace FitWifFrens.Web.Background
 
                 var prompt =
                     Persona("You are a witty fitness group coach writing brief comments for a weekly group stats message. ", soulPrompt) +
-                    $"For each person below, write one short witty sentence (max 12 words) commenting on how their diet rating compared to their actual weight change. " +
-                    $"Be funny, varied in style, and mildly sarcastic where appropriate — but always keep it friendly. " +
+                    $"For each person below, write one short sentence (max 12 words) commenting on how their diet rating compared to their actual weight change. " +
+                    Tone("Be funny, varied in style, and mildly sarcastic where appropriate — but always keep it friendly. ", soulPrompt) +
                     $"If you know fun facts about a person, occasionally weave them in. " +
                     $"Return exactly one line per person in this format: NAME: comment\n\n" +
                     $"{dataText}\n\n" +
@@ -191,7 +191,7 @@ namespace FitWifFrens.Web.Background
                     Persona("You are a witty fitness group coach posting a real-time weigh-in update to a group chat. ", soulPrompt) +
                     $"{name} just weighed in at {weight} kg ({changeText}). " +
                     $"Write a single short message (max 20 words) reacting to this weigh-in. " +
-                    $"Be fun, encouraging if they lost weight, playfully teasing if they gained. Keep it friendly. " +
+                    Tone("Be fun, encouraging if they lost weight, playfully teasing if they gained. Keep it friendly. ", soulPrompt) +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
 
@@ -227,7 +227,7 @@ namespace FitWifFrens.Web.Background
                     Persona("You are a witty fitness group coach posting a real-time workout update to a group chat. ", soulPrompt) +
                     $"{name} just logged a {activityType} for {minutes:F0} minutes. " +
                     $"Write a single short message (max 20 words) reacting to this workout. " +
-                    $"Be fun and encouraging. Vary the style each time. Keep it friendly. " +
+                    Tone("Be fun and encouraging. Vary the style each time. Keep it friendly. ", soulPrompt) +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
 
@@ -266,7 +266,7 @@ namespace FitWifFrens.Web.Background
                     Persona("You are a witty fitness group coach posting a weigh-in reminder to a group chat. ", soulPrompt) +
                     $"{name} hasn't weighed in for {timeText}. " +
                     $"Write a single short message (max 20 words) reminding them to step on the scale. " +
-                    $"Be fun, playful, and slightly teasing but always friendly and encouraging. Vary the style each time. " +
+                    Tone("Be fun, playful, and slightly teasing but always friendly and encouraging. Vary the style each time. ", soulPrompt) +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
 
@@ -305,7 +305,7 @@ namespace FitWifFrens.Web.Background
                     Persona("You are a witty fitness group coach posting a real-time poll response update to a group chat. ", soulPrompt) +
                     $"{name} just answered the daily poll \"{question}\" with \"{chosenOption}\". " +
                     $"Write a single short message (max 20 words) reacting to their answer. " +
-                    $"Be fun, playful, and vary the style each time. If their answer is positive, be encouraging. If negative, be supportive. Keep it friendly. " +
+                    Tone("Be fun, playful, and vary the style each time. If their answer is positive, be encouraging. If negative, be supportive. Keep it friendly. ", soulPrompt) +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
 
@@ -390,7 +390,7 @@ namespace FitWifFrens.Web.Background
                 var prompt =
                     Persona("You are a savage but funny roast comedian in a fitness group chat. ", soulPrompt) +
                     $"Someone asked to be roasted based on their fitness data. They asked for this — hold nothing back. " +
-                    $"Be absolutely ruthless, savage, and hilarious. Go for the jugular. " +
+                    Tone("Be absolutely ruthless, savage, and hilarious. Go for the jugular. ", soulPrompt) +
                     $"Focus on where they're slacking — low exercise, weight gain, bad diet ratings, missing weigh-ins, etc. " +
                     $"If they have known facts, use those to make the roast even more personal and devastating. " +
                     $"Write 3-5 short punchy lines. Keep each line under 15 words. Be creative and varied. Do not number the lines.\n\n" +
@@ -431,9 +431,9 @@ namespace FitWifFrens.Web.Background
                     Persona("You are an encouraging and warm fitness group coach who writes short poems. ", soulPrompt) +
                     $"Write a short rhyming poem (4-6 lines) celebrating this person's fitness journey. " +
                     $"Highlight what they're doing well — any progress, consistency, or effort. " +
-                    $"If they're struggling, be gentle and motivating. Find the silver lining. " +
+                    Tone("If they're struggling, be gentle and motivating. Find the silver lining. ", soulPrompt) +
                     $"If they have known facts, weave those in to make it personal. " +
-                    $"Keep it light, fun, and uplifting.\n\n" +
+                    Tone("Keep it light, fun, and uplifting. ", soulPrompt) + "\n\n" +
                     $"{dataText}\n" +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the poem, nothing else.";
@@ -474,11 +474,9 @@ namespace FitWifFrens.Web.Background
                 var prompt =
                     Persona("You are a wildly entertaining crypto hype commentator in a fitness accountability group chat. ", soulPrompt) +
                     $"A member just checked their FitWifFrens token balance. React in 2-3 short punchy sentences. " +
-                    $"Be dramatic, funny, and entertaining — like a stock ticker announcer crossed with a trash-talking coach. " +
+                    Tone("Be dramatic, funny, and entertaining — like a stock ticker announcer crossed with a trash-talking coach. ", soulPrompt) +
                     $"Reference their actual balance naturally. " +
-                    $"If the balance is zero or near-zero, gently mock them but keep it playful. " +
-                    $"If it's a healthy amount, hype them up like they just hit a grand slam. " +
-                    $"If there are known facts about the person, weave those in to make it spicy. " +
+                    $"If there are known facts about the person, weave those in. " +
                     $"Keep each sentence under 15 words. Be creative and varied — no generic lines.\n\n" +
                     $"User: {name}\n" +
                     $"Balance: {balanceContext}\n" +
@@ -541,6 +539,9 @@ namespace FitWifFrens.Web.Background
 
         private static string Persona(string defaultPersona, string? soulPrompt)
             => soulPrompt != null ? "You are posting to a fitness group chat. " : defaultPersona;
+
+        private static string Tone(string defaultTone, string? soulPrompt)
+            => soulPrompt != null ? "" : defaultTone;
 
         private static string FormatFactsForPrompt(Dictionary<string, List<string>>? factsByName)
         {
