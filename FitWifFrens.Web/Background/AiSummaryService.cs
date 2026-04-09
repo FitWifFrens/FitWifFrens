@@ -191,7 +191,8 @@ namespace FitWifFrens.Web.Background
                     Persona("You are a witty fitness group coach posting a real-time weigh-in update to a group chat. ", soulPrompt) +
                     $"{name} just weighed in at {weight} kg ({changeText}). " +
                     $"Write a single short message (max 20 words) reacting to this weigh-in. " +
-                    $"Be fun, encouraging if they lost weight, playfully teasing if they gained. Keep it friendly. " +
+                    $"Always include your own name and fact about yourself. " +
+                    // $"Be fun, encouraging if they lost weight, playfully teasing if they gained. Keep it friendly. " +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
 
