@@ -4,6 +4,7 @@ using Microsoft.ApplicationInsights;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 
 namespace FitWifFrens.Web.Telegram
@@ -632,6 +633,12 @@ namespace FitWifFrens.Web.Telegram
                 return true;
             }
 
+            if (IsBotMentioned(message, _notificationServiceConfiguration.BotUsername))
+            {
+                await HandleBotMentionAsync(telegramUserId, displayName, text, chatId, messageId, cancellationToken);
+                return true;
+            }
+
             return false;
         }
 
@@ -689,6 +696,145 @@ namespace FitWifFrens.Web.Telegram
             return await dataContext.Users
                 .AsNoTracking()
                 .SingleOrDefaultAsync(u => u.TelegramUserId == senderTelegramUserId, cancellationToken);
+        }
+
+        private static bool IsBotMentioned(JsonElement message, string? botUsername)
+        {
+            if (string.IsNullOrWhiteSpace(botUsername))
+            {
+                return false;
+            }
+
+            if (!message.TryGetProperty("entities", out var entities) ||
+                !message.TryGetProperty("text", out var textJson))
+            {
+                return false;
+            }
+
+            var text = textJson.GetString();
+            if (text == null)
+            {
+                return false;
+            }
+
+            var normalizedBotUsername = botUsername.TrimStart('@').ToLowerInvariant();
+
+            foreach (var entity in entities.EnumerateArray())
+            {
+                var type = entity.TryGetProperty("type", out var typeJson) ? typeJson.GetString() : null;
+                if (type != "mention")
+                {
+                    continue;
+                }
+
+                var offset = entity.GetProperty("offset").GetInt32();
+                var length = entity.GetProperty("length").GetInt32();
+                if (offset + length > text.Length)
+                {
+                    continue;
+                }
+
+                var mentionText = text.Substring(offset, length).TrimStart('@').ToLowerInvariant();
+                if (mentionText == normalizedBotUsername)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private async Task HandleBotMentionAsync(long telegramUserId, string senderDisplayName, string messageText, string chatId, int replyToMessageId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await using var scope = _serviceScopeFactory.CreateAsyncScope();
+                var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+                var aiSummaryService = scope.ServiceProvider.GetRequiredService<AiSummaryService>();
+
+                // Fetch the last 50 messages from this chat for context
+                var recentMessages = await dataContext.ChatMessages
+                    .AsNoTracking()
+                    .Where(m => m.ChatId == chatId)
+                    .OrderByDescending(m => m.Timestamp)
+                    .Take(50)
+                    .OrderBy(m => m.Timestamp)
+                    .Select(m => new { m.DisplayName, m.Text, m.Timestamp })
+                    .ToListAsync(cancellationToken);
+
+                // Gather fitness data for all Telegram-linked users
+                var allUsers = await dataContext.Users
+                    .AsNoTracking()
+                    .Where(u => u.TelegramUserId != null)
+                    .ToListAsync(cancellationToken);
+
+                var groupFitnessSb = new StringBuilder();
+                var allUserFacts = new Dictionary<string, List<string>>();
+
+                foreach (var user in allUsers)
+                {
+                    var data = await GatherFitnessDataAsync(dataContext, user, cancellationToken);
+
+                    groupFitnessSb.AppendLine($"{data.Name}:");
+
+                    if (data.WeightChange.HasValue)
+                    {
+                        var changeText = data.WeightChange.Value < 0
+                            ? $"{Math.Abs(data.WeightChange.Value):F1} kg lost"
+                            : data.WeightChange.Value > 0
+                                ? $"{data.WeightChange.Value:F1} kg gained"
+                                : "no change";
+                        groupFitnessSb.AppendLine($"  Weight: {changeText} ({data.WeighInCount} weigh-ins)");
+                    }
+                    else
+                    {
+                        groupFitnessSb.AppendLine("  Weight: no weigh-ins");
+                    }
+
+                    if (data.PollResponseCount > 0)
+                    {
+                        groupFitnessSb.AppendLine($"  Diet rating: avg {data.AvgDietRating:F1}/5 ({data.PollResponseCount} responses)");
+                    }
+                    else
+                    {
+                        groupFitnessSb.AppendLine("  Diet: no poll responses");
+                    }
+
+                    groupFitnessSb.AppendLine($"  Exercise: {data.ExerciseMinutes:F0} min | Running: {data.RunningMinutes:F0} min | Workouts: {data.WorkoutMinutes:F0} min");
+
+                    if (data.UserFacts != null)
+                    {
+                        foreach (var (name, facts) in data.UserFacts)
+                        {
+                            allUserFacts[name] = facts;
+                        }
+                    }
+                }
+
+                var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(dataContext, chatId, cancellationToken);
+
+                var reply = await aiSummaryService.GenerateBotMentionReply(
+                    senderDisplayName,
+                    messageText,
+                    recentMessages.Select(m => (m.DisplayName, m.Text, m.Timestamp)),
+                    groupFitnessSb.ToString(),
+                    cancellationToken,
+                    allUserFacts.Count > 0 ? allUserFacts : null,
+                    soulPrompt);
+
+                if (string.IsNullOrWhiteSpace(reply))
+                {
+                    await SendReplyAsync(chatId, replyToMessageId, "I heard you, but I'm drawing a blank right now. Try again!", cancellationToken);
+                    return;
+                }
+
+                await SendReplyAsync(chatId, replyToMessageId, reply, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to handle bot mention. TelegramUserId={TelegramUserId}", telegramUserId);
+                await SendReplyAsync(chatId, replyToMessageId, "Something went wrong, try again later.", cancellationToken);
+            }
         }
 
         private async Task UpdateTelegramUsernameAsync(long telegramUserId, string telegramUsername, CancellationToken cancellationToken)

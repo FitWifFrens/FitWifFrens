@@ -368,6 +368,49 @@ namespace FitWifFrens.Web.Background
         }
 
         /// <summary>
+        /// Generates a conversational reply when the bot is @mentioned in a group chat.
+        /// Takes the user's message, recent chat history, and a summary of all members' fitness data.
+        /// </summary>
+        public async Task<string?> GenerateBotMentionReply(
+            string senderName,
+            string userMessage,
+            IEnumerable<(string DisplayName, string Text, DateTime Timestamp)> recentMessages,
+            string groupFitnessSummary,
+            CancellationToken cancellationToken,
+            Dictionary<string, List<string>>? allUserFacts = null,
+            string? soulPrompt = null)
+        {
+            try
+            {
+                var messageLines = recentMessages
+                    .Select(m => $"[{m.Timestamp:HH:mm}] {m.DisplayName}: {m.Text}")
+                    .ToList();
+
+                var chatContext = messageLines.Count > 0
+                    ? "Recent chat messages:\n" + string.Join("\n", messageLines) + "\n\n"
+                    : string.Empty;
+
+                var prompt =
+                    Persona("You are a witty, knowledgeable fitness group chat assistant called FitWifFrensBot. ", soulPrompt) +
+                    $"A group member named {senderName} just mentioned you with this message: \"{userMessage}\"\n\n" +
+                    $"Respond directly and conversationally. Be helpful, funny, and aware of the group's fitness progress. " +
+                    Tone("Keep it punchy and entertaining — you know everyone's stats and aren't afraid to call people out gently. ", soulPrompt) +
+                    $"Keep your reply under 150 words.\n\n" +
+                    chatContext +
+                    $"Current group fitness summary:\n{groupFitnessSummary}\n" +
+                    FormatFactsForPrompt(allUserFacts) +
+                    $"Output only your reply, nothing else.";
+
+                return await CallClaude(prompt, cancellationToken, soulPrompt, maxTokens: 512);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "AI bot mention reply generation failed. Error: {Message}", ex.Message);
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Generates a roast for a user based on their recent fitness data.
         /// </summary>
         public async Task<string?> GenerateRoast(
@@ -614,7 +657,7 @@ namespace FitWifFrens.Web.Background
             return sb.ToString();
         }
 
-        private async Task<string?> CallClaude(string prompt, CancellationToken cancellationToken, string? soulPrompt = null)
+        private async Task<string?> CallClaude(string prompt, CancellationToken cancellationToken, string? soulPrompt = null, int maxTokens = 512)
         {
             if (_client == null) return null;
 
@@ -623,7 +666,7 @@ namespace FitWifFrens.Web.Background
             var parameters = new MessageParameters
             {
                 Messages = [new Message(RoleType.User, prompt)],
-                MaxTokens = 512,
+                MaxTokens = maxTokens,
                 Model = "claude-haiku-4-5-20251001",
                 Stream = false,
                 Temperature = 1m,
