@@ -1347,6 +1347,34 @@ namespace FitWifFrens.Web.Telegram
                     reply_to_message_id = replyToMessageId
                 },
                 cancellationToken);
+
+            _ = SaveBotMessageAsync(chatId, text, cancellationToken);
+        }
+
+        private async Task SaveBotMessageAsync(string chatId, string text, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await using var scope = _serviceScopeFactory.CreateAsyncScope();
+                var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+
+                await EnsureChatExistsAsync(dataContext, chatId, null, cancellationToken);
+
+                dataContext.ChatMessages.Add(new ChatMessage
+                {
+                    ChatId = chatId,
+                    TelegramUserId = 0,
+                    DisplayName = "Bot",
+                    Text = text.Length > 4096 ? text[..4096] : text,
+                    Timestamp = DateTime.UtcNow
+                });
+
+                await dataContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save bot message. ChatId={ChatId}", chatId);
+            }
         }
 
         private static async Task UpdateTelegramPollGoalsAsync(
