@@ -161,6 +161,7 @@ namespace FitWifFrens.Web
                 Token = builder.Configuration.GetValue<string>("Services:Telegram:Token")!,
                 ChatId = builder.Configuration.GetValue<string>("Services:Telegram:ChatId")!,
                 WebhookSecretToken = builder.Configuration.GetValue<string>("Services:Telegram:WebhookSecretToken"),
+                BotUsername = builder.Configuration.GetValue<string>("Services:Telegram:BotUsername"),
             });
             builder.Services.AddScoped<NotificationService>();
             builder.Services.AddSingleton<TelegramPollResponseStore>();
