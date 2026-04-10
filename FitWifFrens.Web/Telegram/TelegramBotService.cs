@@ -512,7 +512,7 @@ namespace FitWifFrens.Web.Telegram
                 _ = UpdateTelegramUsernameAsync(telegramUserId, telegramUsername, cancellationToken);
             }
 
-            _ = SaveChatMessageAsync(chatId, chatTitle, telegramUserId, displayName, text, cancellationToken);
+            await SaveChatMessageAsync(chatId, chatTitle, telegramUserId, displayName, text, cancellationToken);
 
             if (text.StartsWith("/remember ", StringComparison.OrdinalIgnoreCase) ||
                 text.StartsWith("/remember@", StringComparison.OrdinalIgnoreCase))
@@ -764,21 +764,15 @@ namespace FitWifFrens.Web.Telegram
                 var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
                 var aiSummaryService = scope.ServiceProvider.GetRequiredService<AiSummaryService>();
 
-                // Fetch the last 49 messages from the DB — the triggering message is saved
-                // fire-and-forget so it may not have committed yet. We append it explicitly below.
-                var savedMessages = await dataContext.ChatMessages
+                // Fetch the last 50 messages from this chat for context
+                var recentMessages = await dataContext.ChatMessages
                     .AsNoTracking()
                     .Where(m => m.ChatId == chatId)
                     .OrderByDescending(m => m.Timestamp)
-                    .Take(49)
+                    .Take(50)
                     .OrderBy(m => m.Timestamp)
-                    .Select(m => new { m.DisplayName, m.Text, m.Timestamp })
-                    .ToListAsync(cancellationToken);
-
-                var recentMessages = savedMessages
                     .Select(m => (m.DisplayName, m.Text, m.Timestamp))
-                    .Append((senderDisplayName, messageText, DateTime.UtcNow))
-                    .ToList();
+                    .ToListAsync(cancellationToken);
 
                 // Gather fitness data for all Telegram-linked users
                 var allUsers = await dataContext.Users
