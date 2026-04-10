@@ -383,7 +383,9 @@ namespace FitWifFrens.Web.Background
             try
             {
                 var messageLines = recentMessages
-                    .Select(m => $"[{m.Timestamp:HH:mm}] {m.DisplayName}: {m.Text}")
+                    .Select(m => m.DisplayName == "Bot"
+                        ? $"[{m.Timestamp:HH:mm}] [You previously replied]: {m.Text}"
+                        : $"[{m.Timestamp:HH:mm}] {m.DisplayName}: {m.Text}")
                     .ToList();
 
                 var chatContext = messageLines.Count > 0
@@ -395,7 +397,8 @@ namespace FitWifFrens.Web.Background
                     $"A group member named {senderName} just mentioned you with this message: \"{userMessage}\"\n\n" +
                     $"Respond directly and conversationally. Be helpful, funny, and aware of the group's fitness progress. " +
                     Tone("Keep it punchy and entertaining — you know everyone's stats and aren't afraid to call people out gently. ", soulPrompt) +
-                    $"Keep your reply under 150 words.\n\n" +
+                    $"Keep your reply under 150 words. " +
+                    $"Do NOT repeat or rephrase anything you have already said in this conversation — vary your angle, tone, or focus each time.\n\n" +
                     chatContext +
                     $"Current group fitness summary:\n{groupFitnessSummary}\n" +
                     FormatFactsForPrompt(allUserFacts) +
