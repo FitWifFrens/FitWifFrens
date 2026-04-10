@@ -7,15 +7,15 @@ namespace FitWifFrens.Web.Background
     public class NotificationService
     {
         private readonly NotificationServiceConfiguration _notificationServiceConfiguration;
-        private readonly DataContext _dataContext;
+        private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly HttpClient _httpClient;
         private readonly TelemetryClient _telemetryClient;
         private readonly ILogger<NotificationService> _logger;
 
-        public NotificationService(NotificationServiceConfiguration notificationServiceConfiguration, DataContext dataContext, IHttpClientFactory httpClientFactory, TelemetryClient telemetryClient, ILogger<NotificationService> logger)
+        public NotificationService(NotificationServiceConfiguration notificationServiceConfiguration, IServiceScopeFactory serviceScopeFactory, IHttpClientFactory httpClientFactory, TelemetryClient telemetryClient, ILogger<NotificationService> logger)
         {
             _notificationServiceConfiguration = notificationServiceConfiguration;
-            _dataContext = dataContext;
+            _serviceScopeFactory = serviceScopeFactory;
             _httpClient = httpClientFactory.CreateClient();
             _telemetryClient = telemetryClient;
             _logger = logger;
@@ -38,18 +38,21 @@ namespace FitWifFrens.Web.Background
         {
             try
             {
-                var chat = await _dataContext.Chats.FindAsync(chatId);
+                await using var scope = _serviceScopeFactory.CreateAsyncScope();
+                var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+
+                var chat = await dataContext.Chats.FindAsync(chatId);
                 if (chat == null)
                 {
-                    _dataContext.Chats.Add(new Chat
+                    dataContext.Chats.Add(new Chat
                     {
                         ChatId = chatId,
                         CreatedTime = DateTime.UtcNow
                     });
-                    await _dataContext.SaveChangesAsync();
+                    await dataContext.SaveChangesAsync();
                 }
 
-                _dataContext.ChatMessages.Add(new ChatMessage
+                dataContext.ChatMessages.Add(new ChatMessage
                 {
                     ChatId = chatId,
                     TelegramUserId = 0,
@@ -58,7 +61,7 @@ namespace FitWifFrens.Web.Background
                     Timestamp = DateTime.UtcNow
                 });
 
-                await _dataContext.SaveChangesAsync();
+                await dataContext.SaveChangesAsync();
             }
             catch (Exception ex)
             {
