@@ -485,6 +485,18 @@ namespace FitWifFrens.Web.Telegram
                 return false;
             }
 
+            // Skip messages older than 5 minutes — Telegram replays unacknowledged updates
+            // after server restarts, which would otherwise cause the bot to reply to old messages.
+            if (message.TryGetProperty("date", out var dateJson))
+            {
+                var messageAge = DateTimeOffset.UtcNow - DateTimeOffset.FromUnixTimeSeconds(dateJson.GetInt64());
+                if (messageAge > TimeSpan.FromMinutes(5))
+                {
+                    _logger.LogInformation("Skipping stale message (age: {Age}s)", (int)messageAge.TotalSeconds);
+                    return false;
+                }
+            }
+
             var fromUser = message.GetProperty("from");
             var telegramUserId = fromUser.GetProperty("id").GetInt64();
             var telegramUsername = fromUser.TryGetProperty("username", out var usernameJson) ? usernameJson.GetString() : null;
