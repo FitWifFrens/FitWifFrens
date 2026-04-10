@@ -9,6 +9,7 @@ namespace FitWifFrens.Data
 
         public int MessageId { get; set; }
         public string ChatId { get; set; }
+        public Chat? Chat { get; set; }
         public DateTime SentTime { get; set; }
 
         public ICollection<UserTelegramPollResponse> Responses { get; set; }

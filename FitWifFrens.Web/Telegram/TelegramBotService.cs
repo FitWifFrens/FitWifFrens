@@ -487,13 +487,19 @@ namespace FitWifFrens.Web.Telegram
             var fromUser = message.GetProperty("from");
             var telegramUserId = fromUser.GetProperty("id").GetInt64();
             var telegramUsername = fromUser.TryGetProperty("username", out var usernameJson) ? usernameJson.GetString() : null;
+            var firstName = fromUser.TryGetProperty("first_name", out var fnJson) ? fnJson.GetString() : null;
+            var lastName = fromUser.TryGetProperty("last_name", out var lnJson) ? lnJson.GetString() : null;
+            var displayName = string.Join(' ', new[] { firstName, lastName }.Where(n => !string.IsNullOrWhiteSpace(n))).Trim();
             var chatId = message.GetProperty("chat").GetProperty("id").ToString();
+            var chatTitle = message.GetProperty("chat").TryGetProperty("title", out var titleJson) ? titleJson.GetString() : null;
             var messageId = message.GetProperty("message_id").GetInt32();
 
             if (!string.IsNullOrWhiteSpace(telegramUsername))
             {
                 _ = UpdateTelegramUsernameAsync(telegramUserId, telegramUsername, cancellationToken);
             }
+
+            _ = SaveChatMessageAsync(chatId, chatTitle, telegramUserId, displayName, text, cancellationToken);
 
             if (text.StartsWith("/remember ", StringComparison.OrdinalIgnoreCase) ||
                 text.StartsWith("/remember@", StringComparison.OrdinalIgnoreCase))
@@ -1079,6 +1085,134 @@ namespace FitWifFrens.Web.Telegram
             {
                 _logger.LogError(ex, "Failed to handle /balance command. TelegramUserId={TelegramUserId}", telegramUserId);
                 await SendReplyAsync(chatId, replyToMessageId, "Something went wrong, try again later.", cancellationToken);
+            }
+        }
+
+        private async Task SaveChatMessageAsync(string chatId, string? chatTitle, long telegramUserId, string displayName, string text, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await using var scope = _serviceScopeFactory.CreateAsyncScope();
+                var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+
+                await EnsureChatExistsAsync(dataContext, chatId, chatTitle, cancellationToken);
+
+                dataContext.ChatMessages.Add(new ChatMessage
+                {
+                    ChatId = chatId,
+                    TelegramUserId = telegramUserId,
+                    DisplayName = displayName.Length > 256 ? displayName[..256] : displayName,
+                    Text = text.Length > 4096 ? text[..4096] : text,
+                    Timestamp = DateTime.UtcNow
+                });
+
+                await dataContext.SaveChangesAsync(cancellationToken);
+
+                var messageCount = await dataContext.ChatMessages
+                    .Where(m => m.ChatId == chatId)
+                    .CountAsync(cancellationToken);
+
+                if (_backgroundConfiguration.EnableMemoryExtraction && messageCount % 100 == 0)
+                {
+                    _ = ExtractMemoriesAsync(chatId, cancellationToken);
+                }
+
+                // Prune old messages beyond 200
+                if (messageCount > 200)
+                {
+                    var oldMessages = await dataContext.ChatMessages
+                        .Where(m => m.ChatId == chatId)
+                        .OrderBy(m => m.Timestamp)
+                        .Take(messageCount - 200)
+                        .ToListAsync(cancellationToken);
+
+                    dataContext.ChatMessages.RemoveRange(oldMessages);
+                    await dataContext.SaveChangesAsync(cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save chat message. ChatId={ChatId}", chatId);
+            }
+        }
+
+        private static async Task EnsureChatExistsAsync(DataContext dataContext, string chatId, string? chatTitle, CancellationToken cancellationToken)
+        {
+            var chat = await dataContext.Chats.FindAsync(new object[] { chatId }, cancellationToken);
+            if (chat == null)
+            {
+                dataContext.Chats.Add(new Chat
+                {
+                    ChatId = chatId,
+                    Title = chatTitle,
+                    CreatedTime = DateTime.UtcNow
+                });
+                await dataContext.SaveChangesAsync(cancellationToken);
+            }
+            else if (chatTitle != null && chat.Title != chatTitle)
+            {
+                chat.Title = chatTitle;
+                await dataContext.SaveChangesAsync(cancellationToken);
+            }
+        }
+
+        private async Task ExtractMemoriesAsync(string chatId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await using var scope = _serviceScopeFactory.CreateAsyncScope();
+                var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+                var aiSummaryService = scope.ServiceProvider.GetRequiredService<AiSummaryService>();
+
+                var recentMessages = await dataContext.ChatMessages
+                    .AsNoTracking()
+                    .Where(m => m.ChatId == chatId)
+                    .OrderByDescending(m => m.Timestamp)
+                    .Take(200)
+                    .OrderBy(m => m.Timestamp)
+                    .ToListAsync(cancellationToken);
+
+                var existingMemory = await dataContext.BotMemories
+                    .SingleOrDefaultAsync(m => m.ChatId == chatId, cancellationToken);
+
+                var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(dataContext, chatId, cancellationToken);
+
+                var updatedSummary = await aiSummaryService.ExtractMemories(
+                    recentMessages.Select(m => (m.DisplayName, m.Text, m.Timestamp)),
+                    existingMemory?.Summary,
+                    cancellationToken,
+                    soulPrompt);
+
+                if (string.IsNullOrWhiteSpace(updatedSummary))
+                {
+                    return;
+                }
+
+                var summary = updatedSummary.Length > 16384 ? updatedSummary[..16384] : updatedSummary;
+
+                if (existingMemory == null)
+                {
+                    dataContext.BotMemories.Add(new BotMemory
+                    {
+                        ChatId = chatId,
+                        Summary = summary,
+                        CreatedTime = DateTime.UtcNow,
+                        UpdatedTime = DateTime.UtcNow
+                    });
+                }
+                else
+                {
+                    existingMemory.Summary = summary;
+                    existingMemory.UpdatedTime = DateTime.UtcNow;
+                }
+
+                await dataContext.SaveChangesAsync(cancellationToken);
+
+                _logger.LogInformation("Updated memory summary for ChatId={ChatId}", chatId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to extract memories. ChatId={ChatId}", chatId);
             }
         }
 
