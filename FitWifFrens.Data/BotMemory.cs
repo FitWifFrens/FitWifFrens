@@ -1,14 +1,14 @@
 namespace FitWifFrens.Data
 {
-    public class BotSoul
+    public class BotMemory
     {
-        public long Id { get; set; }
-
         public string ChatId { get; set; } = string.Empty;
         public Chat Chat { get; set; } = null!;
 
-        public string Trait { get; set; } = string.Empty;
+        public string Summary { get; set; } = string.Empty;
 
         public DateTime CreatedTime { get; set; }
+
+        public DateTime UpdatedTime { get; set; }
     }
 }

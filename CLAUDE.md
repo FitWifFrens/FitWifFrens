@@ -92,6 +92,10 @@ CallbackUrl
 
 The default timezone is `"AUS Eastern Standard Time"` (Australia), set via `Constants.LocalTimeZoneId`.
 
+## Database Migrations
+
+**Do NOT create EF Core migrations.** When adding or modifying entities, only create/update the entity classes and `DataContext` configuration. The developer will create the migration manually after reviewing the changes.
+
 ## Deployment
 
 CI/CD via GitHub Actions (`.github/workflows/master_fitwiffrens.yml`) deploys to Azure Web Apps on push to `master`.

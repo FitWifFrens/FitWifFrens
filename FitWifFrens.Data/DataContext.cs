@@ -26,6 +26,9 @@ namespace FitWifFrens.Data
         public DbSet<UserDisplay> UserDisplays { get; set; }
         public DbSet<UserFact> UserFacts { get; set; }
         public DbSet<BotSoul> BotSouls { get; set; }
+        public DbSet<Chat> Chats { get; set; }
+        public DbSet<ChatMessage> ChatMessages { get; set; }
+        public DbSet<BotMemory> BotMemories { get; set; }
 
         public DataContext(DbContextOptions<DataContext> options)
             : base(options)
@@ -298,6 +301,10 @@ namespace FitWifFrens.Data
                 b.Property(m => m.ChatId)
                     .HasMaxLength(256);
 
+                b.HasOne(m => m.Chat)
+                    .WithMany(m => m.Polls)
+                    .HasForeignKey(m => m.ChatId);
+
                 b.HasMany(m => m.Responses)
                     .WithOne(m => m.CommitmentPoll)
                     .HasForeignKey(m => m.PollId);
@@ -333,6 +340,57 @@ namespace FitWifFrens.Data
             });
 
 
+            builder.Entity<Chat>(b =>
+            {
+                b.HasKey(m => m.ChatId);
+
+                b.Property(m => m.ChatId)
+                    .HasMaxLength(256);
+
+                b.Property(m => m.Title)
+                    .HasMaxLength(512);
+            });
+
+
+            builder.Entity<ChatMessage>(b =>
+            {
+                b.HasKey(m => m.Id);
+
+                b.Property(m => m.ChatId)
+                    .HasMaxLength(256);
+
+                b.Property(m => m.DisplayName)
+                    .HasMaxLength(256);
+
+                b.Property(m => m.Text)
+                    .HasMaxLength(4096);
+
+                b.HasOne(m => m.Chat)
+                    .WithMany(m => m.Messages)
+                    .HasForeignKey(m => m.ChatId);
+
+                b.HasIndex(m => m.ChatId);
+
+                b.HasIndex(m => m.Timestamp);
+            });
+
+
+            builder.Entity<BotMemory>(b =>
+            {
+                b.HasKey(m => m.ChatId);
+
+                b.Property(m => m.ChatId)
+                    .HasMaxLength(256);
+
+                b.Property(m => m.Summary)
+                    .HasMaxLength(16384);
+
+                b.HasOne(m => m.Chat)
+                    .WithOne(m => m.Memory)
+                    .HasForeignKey<BotMemory>(m => m.ChatId);
+            });
+
+
             builder.Entity<BotSoul>(b =>
             {
                 b.HasKey(m => m.Id);
@@ -342,6 +400,10 @@ namespace FitWifFrens.Data
 
                 b.Property(m => m.Trait)
                     .HasMaxLength(2048);
+
+                b.HasOne(m => m.Chat)
+                    .WithMany(m => m.SoulTraits)
+                    .HasForeignKey(m => m.ChatId);
 
                 b.HasIndex(m => m.ChatId);
             });

@@ -492,6 +492,57 @@ namespace FitWifFrens.Web.Background
             }
         }
 
+        /// <summary>
+        /// Analyzes recent chat messages and the existing memory summary to produce an updated summary document.
+        /// </summary>
+        public async Task<string?> ExtractMemories(
+            IEnumerable<(string DisplayName, string Text, DateTime Timestamp)> recentMessages,
+            string? existingSummary,
+            CancellationToken cancellationToken,
+            string? soulPrompt = null)
+        {
+            try
+            {
+                var messageLines = recentMessages
+                    .Select(m => $"[{m.Timestamp:yyyy-MM-dd HH:mm}] {m.DisplayName}: {m.Text}")
+                    .ToList();
+
+                if (messageLines.Count == 0)
+                {
+                    return null;
+                }
+
+                var existingSection = !string.IsNullOrWhiteSpace(existingSummary)
+                    ? $"Current summary:\n{existingSummary}\n\n"
+                    : "No existing summary yet.\n\n";
+
+                var prompt =
+                    "You are maintaining a living knowledge base for a fitness group chat. " +
+                    "Review the recent messages and the existing summary below, then produce an updated summary.\n\n" +
+                    "Structure the summary with markdown headings:\n" +
+                    "## People — a profile for each person: personality, fitness habits, goals, achievements, struggles, preferences, relationships with others\n" +
+                    "## Group Dynamics — how the group interacts, rivalries, inside jokes, recurring topics, who encourages who\n" +
+                    "## Current Events — ongoing challenges, recent milestones, active bets or competitions\n\n" +
+                    "Guidelines:\n" +
+                    "- Be detailed about each person — the more you remember about someone, the better future conversations will be\n" +
+                    "- Update information that has changed rather than keeping outdated facts\n" +
+                    "- Remove things that are no longer relevant\n" +
+                    "- Add new information learned from the recent messages\n" +
+                    "- Keep it factual and concise but comprehensive\n" +
+                    "- Do NOT include trivial things (greetings, one-word reactions)\n\n" +
+                    existingSection +
+                    "Recent messages:\n" + string.Join("\n", messageLines) + "\n\n" +
+                    "Output only the updated summary, nothing else.";
+
+                return await CallClaude(prompt, cancellationToken, soulPrompt);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Memory extraction failed. Error: {Message}", ex.Message);
+                return null;
+            }
+        }
+
         private static string FormatMonthChange(double? monthChange)
         {
             if (!monthChange.HasValue)

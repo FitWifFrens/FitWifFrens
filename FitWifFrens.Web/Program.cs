@@ -152,7 +152,8 @@ namespace FitWifFrens.Web
 
             builder.Services.AddSingleton<BackgroundConfiguration>(new BackgroundConfiguration
             {
-                CallbackUrl = builder.Configuration.GetValue<string>("CallbackUrl")
+                CallbackUrl = builder.Configuration.GetValue<string>("CallbackUrl"),
+                EnableMemoryExtraction = builder.Configuration.GetValue<bool>("EnableMemoryExtraction", false)
             });
 
             builder.Services.AddSingleton<NotificationServiceConfiguration>(new NotificationServiceConfiguration
