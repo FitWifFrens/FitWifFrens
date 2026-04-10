@@ -764,15 +764,21 @@ namespace FitWifFrens.Web.Telegram
                 var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
                 var aiSummaryService = scope.ServiceProvider.GetRequiredService<AiSummaryService>();
 
-                // Fetch the last 50 messages from this chat for context
-                var recentMessages = await dataContext.ChatMessages
+                // Fetch the last 49 messages from the DB — the triggering message is saved
+                // fire-and-forget so it may not have committed yet. We append it explicitly below.
+                var savedMessages = await dataContext.ChatMessages
                     .AsNoTracking()
                     .Where(m => m.ChatId == chatId)
                     .OrderByDescending(m => m.Timestamp)
-                    .Take(50)
+                    .Take(49)
                     .OrderBy(m => m.Timestamp)
                     .Select(m => new { m.DisplayName, m.Text, m.Timestamp })
                     .ToListAsync(cancellationToken);
+
+                var recentMessages = savedMessages
+                    .Select(m => (m.DisplayName, m.Text, m.Timestamp))
+                    .Append((senderDisplayName, messageText, DateTime.UtcNow))
+                    .ToList();
 
                 // Gather fitness data for all Telegram-linked users
                 var allUsers = await dataContext.Users
@@ -828,7 +834,7 @@ namespace FitWifFrens.Web.Telegram
                 var reply = await aiSummaryService.GenerateBotMentionReply(
                     senderDisplayName,
                     messageText,
-                    recentMessages.Select(m => (m.DisplayName, m.Text, m.Timestamp)),
+                    recentMessages,
                     groupFitnessSb.ToString(),
                     cancellationToken,
                     allUserFacts.Count > 0 ? allUserFacts : null,
