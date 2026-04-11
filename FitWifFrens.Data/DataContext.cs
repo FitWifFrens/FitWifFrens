@@ -383,7 +383,7 @@ namespace FitWifFrens.Data
                     .HasMaxLength(256);
 
                 b.Property(m => m.Summary)
-                    .HasMaxLength(16384);
+                    .HasMaxLength(65536);
 
                 b.HasOne(m => m.Chat)
                     .WithOne(m => m.Memory)

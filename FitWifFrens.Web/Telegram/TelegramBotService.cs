@@ -1355,7 +1355,7 @@ namespace FitWifFrens.Web.Telegram
                     return;
                 }
 
-                var summary = updatedSummary.Length > 16384 ? updatedSummary[..16384] : updatedSummary;
+                var summary = updatedSummary.Length > 65536 ? updatedSummary[..65536] : updatedSummary;
 
                 if (existingMemory == null)
                 {
