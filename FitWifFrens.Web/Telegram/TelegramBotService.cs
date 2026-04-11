@@ -1506,7 +1506,7 @@ namespace FitWifFrens.Web.Telegram
                 },
                 cancellationToken);
 
-            _ = SaveBotMessageAsync(chatId, text, cancellationToken);
+            await SaveBotMessageAsync(chatId, text, cancellationToken);
         }
 
         private async Task SaveBotMessageAsync(string chatId, string text, CancellationToken cancellationToken)
