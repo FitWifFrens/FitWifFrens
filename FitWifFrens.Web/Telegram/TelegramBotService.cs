@@ -1320,6 +1320,9 @@ namespace FitWifFrens.Web.Telegram
             }
         }
 
+        public Task ExtractDefaultChatMemoriesAsync(CancellationToken cancellationToken)
+            => ExtractMemoriesAsync(_notificationServiceConfiguration.ChatId, cancellationToken);
+
         public async Task ExtractMemoriesAsync(string chatId, CancellationToken cancellationToken)
         {
             try
