@@ -765,14 +765,16 @@ namespace FitWifFrens.Web.Telegram
                 var aiSummaryService = scope.ServiceProvider.GetRequiredService<AiSummaryService>();
 
                 // Fetch the last 50 messages from this chat for context
-                var recentMessages = await dataContext.ChatMessages
+                var recentMessages = (await dataContext.ChatMessages
                     .AsNoTracking()
                     .Where(m => m.ChatId == chatId)
                     .OrderByDescending(m => m.Timestamp)
                     .Take(50)
                     .OrderBy(m => m.Timestamp)
+                    .Select(m => new { m.DisplayName, m.Text, m.Timestamp })
+                    .ToListAsync(cancellationToken))
                     .Select(m => (m.DisplayName, m.Text, m.Timestamp))
-                    .ToListAsync(cancellationToken);
+                    .ToList();
 
                 // Gather fitness data for all Telegram-linked users
                 var allUsers = await dataContext.Users
