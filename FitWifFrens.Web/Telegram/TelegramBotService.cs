@@ -485,6 +485,18 @@ namespace FitWifFrens.Web.Telegram
                 return false;
             }
 
+            // Skip messages older than 5 minutes — Telegram replays unacknowledged updates
+            // after server restarts, which would otherwise cause the bot to reply to old messages.
+            if (message.TryGetProperty("date", out var dateJson))
+            {
+                var messageAge = DateTimeOffset.UtcNow - DateTimeOffset.FromUnixTimeSeconds(dateJson.GetInt64());
+                if (messageAge > TimeSpan.FromMinutes(5))
+                {
+                    _logger.LogInformation("Skipping stale message (age: {Age}s)", (int)messageAge.TotalSeconds);
+                    return false;
+                }
+            }
+
             var fromUser = message.GetProperty("from");
             var telegramUserId = fromUser.GetProperty("id").GetInt64();
             var telegramUsername = fromUser.TryGetProperty("username", out var usernameJson) ? usernameJson.GetString() : null;
@@ -500,7 +512,7 @@ namespace FitWifFrens.Web.Telegram
                 _ = UpdateTelegramUsernameAsync(telegramUserId, telegramUsername, cancellationToken);
             }
 
-            _ = SaveChatMessageAsync(chatId, chatTitle, telegramUserId, displayName, text, cancellationToken);
+            await SaveChatMessageAsync(chatId, chatTitle, telegramUserId, displayName, text, cancellationToken);
 
             if (text.StartsWith("/remember ", StringComparison.OrdinalIgnoreCase) ||
                 text.StartsWith("/remember@", StringComparison.OrdinalIgnoreCase))
@@ -759,7 +771,7 @@ namespace FitWifFrens.Web.Telegram
                     .OrderByDescending(m => m.Timestamp)
                     .Take(50)
                     .OrderBy(m => m.Timestamp)
-                    .Select(m => new { m.DisplayName, m.Text, m.Timestamp })
+                    .Select(m => (m.DisplayName, m.Text, m.Timestamp))
                     .ToListAsync(cancellationToken);
 
                 // Gather fitness data for all Telegram-linked users
@@ -816,7 +828,7 @@ namespace FitWifFrens.Web.Telegram
                 var reply = await aiSummaryService.GenerateBotMentionReply(
                     senderDisplayName,
                     messageText,
-                    recentMessages.Select(m => (m.DisplayName, m.Text, m.Timestamp)),
+                    recentMessages,
                     groupFitnessSb.ToString(),
                     cancellationToken,
                     allUserFacts.Count > 0 ? allUserFacts : null,
@@ -1494,7 +1506,7 @@ namespace FitWifFrens.Web.Telegram
                 },
                 cancellationToken);
 
-            _ = SaveBotMessageAsync(chatId, text, cancellationToken);
+            await SaveBotMessageAsync(chatId, text, cancellationToken);
         }
 
         private async Task SaveBotMessageAsync(string chatId, string text, CancellationToken cancellationToken)

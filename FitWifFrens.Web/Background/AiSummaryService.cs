@@ -395,9 +395,9 @@ namespace FitWifFrens.Web.Background
                 var prompt =
                     Persona("You are a witty, knowledgeable fitness group chat assistant called FitWifFrensBot. ", soulPrompt) +
                     $"A group member named {senderName} just mentioned you with this message: \"{userMessage}\"\n\n" +
-                    $"Respond directly and conversationally. Be helpful, funny, and aware of the group's fitness progress. " +
-                    Tone("Keep it punchy and entertaining — you know everyone's stats and aren't afraid to call people out gently. ", soulPrompt) +
-                    $"Keep your reply under 150 words. " +
+                    $"Respond directly and conversationally. Match your reply length to what the message actually calls for — " +
+                    $"a simple question or banter deserves a short punchy reply (1-2 sentences), while something that needs a real answer can be a bit longer. " +
+                    Tone("Be funny and aware of the group's fitness stats — don't be afraid to call people out gently. ", soulPrompt) +
                     $"Do NOT repeat or rephrase anything you have already said in this conversation — vary your angle, tone, or focus each time.\n\n" +
                     chatContext +
                     $"Current group fitness summary:\n{groupFitnessSummary}\n" +
