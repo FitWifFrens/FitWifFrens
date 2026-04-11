@@ -1,5 +1,6 @@
 using FitWifFrens.Data;
 using FitWifFrens.Web.Background;
+using Hangfire;
 using Microsoft.ApplicationInsights;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
@@ -22,6 +23,7 @@ namespace FitWifFrens.Web.Telegram
         private readonly NotificationServiceConfiguration _notificationServiceConfiguration;
         private readonly TelegramPollResponseStore _responseStore;
         private readonly IServiceScopeFactory _serviceScopeFactory;
+        private readonly IBackgroundJobClient _backgroundJobClient;
         private readonly HttpClient _httpClient;
         private readonly TelemetryClient _telemetryClient;
         private readonly ILogger<TelegramBotService> _logger;
@@ -33,6 +35,7 @@ namespace FitWifFrens.Web.Telegram
             NotificationServiceConfiguration notificationServiceConfiguration,
             TelegramPollResponseStore responseStore,
             IServiceScopeFactory serviceScopeFactory,
+            IBackgroundJobClient backgroundJobClient,
             IHttpClientFactory httpClientFactory,
             TelemetryClient telemetryClient,
             ILogger<TelegramBotService> logger)
@@ -41,6 +44,7 @@ namespace FitWifFrens.Web.Telegram
             _notificationServiceConfiguration = notificationServiceConfiguration;
             _responseStore = responseStore;
             _serviceScopeFactory = serviceScopeFactory;
+            _backgroundJobClient = backgroundJobClient;
             _httpClient = httpClientFactory.CreateClient();
             _telemetryClient = telemetryClient;
             _logger = logger;
@@ -1274,7 +1278,7 @@ namespace FitWifFrens.Web.Telegram
 
                 if (_backgroundConfiguration.EnableMemoryExtraction && messageCount % 100 == 0)
                 {
-                    _ = ExtractMemoriesAsync(chatId, cancellationToken);
+                    _backgroundJobClient.Enqueue<TelegramBotService>(s => s.ExtractMemoriesAsync(chatId, CancellationToken.None));
                 }
 
                 // Prune old messages beyond 200
@@ -1316,7 +1320,7 @@ namespace FitWifFrens.Web.Telegram
             }
         }
 
-        private async Task ExtractMemoriesAsync(string chatId, CancellationToken cancellationToken)
+        public async Task ExtractMemoriesAsync(string chatId, CancellationToken cancellationToken)
         {
             try
             {
