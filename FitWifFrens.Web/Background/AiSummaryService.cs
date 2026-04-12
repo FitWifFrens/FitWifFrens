@@ -580,7 +580,7 @@ namespace FitWifFrens.Web.Background
                     "Recent messages:\n" + string.Join("\n", messageLines) + "\n\n" +
                     "Output only the updated summary, nothing else.";
 
-                return await CallClaude(prompt, cancellationToken, soulPrompt);
+                return await CallClaude(prompt, cancellationToken, soulPrompt, maxTokens: 4096);
             }
             catch (Exception ex)
             {
