@@ -46,7 +46,10 @@ namespace FitWifFrens.Web.Background
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriodUserGoals), s => s.UpdateCommitmentPeriodUserGoals(cancellationToken), Cron.Hourly(10));
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriods), s => s.UpdateCommitmentPeriods(cancellationToken), Cron.Hourly(15));
             
-            _recurringJobManager.AddOrUpdate<TelegramBotService>(nameof(TelegramBotService) + nameof(TelegramBotService.ExtractAllChatMemoriesAsync), s => s.ExtractAllChatMemoriesAsync(cancellationToken), Cron.Daily(18));
+            _recurringJobManager.AddOrUpdate<TelegramBotService>(nameof(TelegramBotService) + nameof(TelegramBotService.ExtractAllChatMemoriesAsync), s => s.ExtractAllChatMemoriesAsync(cancellationToken), Cron.Daily(18), new RecurringJobOptions
+            {
+                TimeZone = TimeZoneInfo.Utc
+            });
 #endif
             
             _recurringJobManager.AddOrUpdate<TelegramPollJobService>(
