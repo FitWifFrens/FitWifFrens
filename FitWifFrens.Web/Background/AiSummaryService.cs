@@ -31,7 +31,8 @@ namespace FitWifFrens.Web.Background
             IEnumerable<(string Name, double WeightChange)> weekly,
             CancellationToken cancellationToken,
             Dictionary<string, List<string>>? userFacts = null,
-            string? soulPrompt = null)
+            string? soulPrompt = null,
+            string? memorySummary = null)
         {
             try
             {
@@ -52,6 +53,7 @@ namespace FitWifFrens.Web.Background
                     $"Write a single short sentence (max 15 words) as an intro to the weekly weight summary. " +
                     Tone("Keep it fun, positive, and vary the style each time — sometimes motivational, sometimes playful. ", soulPrompt) +
                     $"This week's data: {dataText}. " +
+                    FormatMemoryForPrompt(memorySummary) +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the sentence, no quotes, no extra text.";
 
@@ -73,7 +75,8 @@ namespace FitWifFrens.Web.Background
             IEnumerable<(string Name, double AverageRating)> weekly,
             CancellationToken cancellationToken,
             Dictionary<string, List<string>>? userFacts = null,
-            string? soulPrompt = null)
+            string? soulPrompt = null,
+            string? memorySummary = null)
         {
             try
             {
@@ -91,6 +94,7 @@ namespace FitWifFrens.Web.Background
                     $"Write a single short sentence (max 15 words) as an intro to the poll summary results. " +
                     Tone("Keep it fun and vary the style each time. ", soulPrompt) +
                     $"This week's ratings: {dataText}. " +
+                    FormatMemoryForPrompt(memorySummary) +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the sentence, no quotes, no extra text.";
 
@@ -111,7 +115,8 @@ namespace FitWifFrens.Web.Background
             IEnumerable<(string Name, double AvgDietRating, double WeightChange, string DefaultCommentary)> correlations,
             CancellationToken cancellationToken,
             Dictionary<string, List<string>>? userFacts = null,
-            string? soulPrompt = null)
+            string? soulPrompt = null,
+            string? memorySummary = null)
         {
             var correlationList = correlations.ToList();
             var result = correlationList.ToDictionary(c => c.Name, c => c.DefaultCommentary);
@@ -137,6 +142,7 @@ namespace FitWifFrens.Web.Background
                     $"If you know fun facts about a person, occasionally weave them in. " +
                     $"Return exactly one line per person in this format: NAME: comment\n\n" +
                     $"{dataText}\n\n" +
+                    FormatMemoryForPrompt(memorySummary) +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the NAME: comment lines, nothing else.";
 
@@ -175,7 +181,8 @@ namespace FitWifFrens.Web.Background
             double? monthChange,
             CancellationToken cancellationToken,
             Dictionary<string, List<string>>? userFacts = null,
-            string? soulPrompt = null)
+            string? soulPrompt = null,
+            string? memorySummary = null)
         {
             try
             {
@@ -192,6 +199,7 @@ namespace FitWifFrens.Web.Background
                     $"{name} just weighed in at {weight} kg ({changeText}). " +
                     $"Write a single short message (max 20 words) reacting to this weigh-in. " +
                     Tone("Be fun, encouraging if they lost weight, playfully teasing if they gained. Keep it friendly. ", soulPrompt) +
+                    FormatMemoryForPrompt(memorySummary) +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
 
@@ -219,7 +227,8 @@ namespace FitWifFrens.Web.Background
             double minutes,
             CancellationToken cancellationToken,
             Dictionary<string, List<string>>? userFacts = null,
-            string? soulPrompt = null)
+            string? soulPrompt = null,
+            string? memorySummary = null)
         {
             try
             {
@@ -228,6 +237,7 @@ namespace FitWifFrens.Web.Background
                     $"{name} just logged a {activityType} for {minutes:F0} minutes. " +
                     $"Write a single short message (max 20 words) reacting to this workout. " +
                     Tone("Be fun and encouraging. Vary the style each time. Keep it friendly. ", soulPrompt) +
+                    FormatMemoryForPrompt(memorySummary) +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
 
@@ -254,7 +264,8 @@ namespace FitWifFrens.Web.Background
             int? daysSinceLastWeighIn,
             CancellationToken cancellationToken,
             Dictionary<string, List<string>>? userFacts = null,
-            string? soulPrompt = null)
+            string? soulPrompt = null,
+            string? memorySummary = null)
         {
             try
             {
@@ -267,6 +278,7 @@ namespace FitWifFrens.Web.Background
                     $"{name} hasn't weighed in for {timeText}. " +
                     $"Write a single short message (max 20 words) reminding them to step on the scale. " +
                     Tone("Be fun, playful, and slightly teasing but always friendly and encouraging. Vary the style each time. ", soulPrompt) +
+                    FormatMemoryForPrompt(memorySummary) +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
 
@@ -297,7 +309,8 @@ namespace FitWifFrens.Web.Background
             string chosenOption,
             CancellationToken cancellationToken,
             Dictionary<string, List<string>>? userFacts = null,
-            string? soulPrompt = null)
+            string? soulPrompt = null,
+            string? memorySummary = null)
         {
             try
             {
@@ -306,6 +319,7 @@ namespace FitWifFrens.Web.Background
                     $"{name} just answered the daily poll \"{question}\" with \"{chosenOption}\". " +
                     $"Write a single short message (max 20 words) reacting to their answer. " +
                     Tone("Be fun, playful, and vary the style each time. If their answer is positive, be encouraging. If negative, be supportive. Keep it friendly. ", soulPrompt) +
+                    FormatMemoryForPrompt(memorySummary) +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
 
@@ -378,7 +392,8 @@ namespace FitWifFrens.Web.Background
             string groupFitnessSummary,
             CancellationToken cancellationToken,
             Dictionary<string, List<string>>? allUserFacts = null,
-            string? soulPrompt = null)
+            string? soulPrompt = null,
+            string? memorySummary = null)
         {
             try
             {
@@ -400,6 +415,7 @@ namespace FitWifFrens.Web.Background
                     Tone("Be funny and aware of the group's fitness stats — don't be afraid to call people out gently. ", soulPrompt) +
                     $"Do NOT repeat or rephrase anything you have already said in this conversation — vary your angle, tone, or focus each time.\n\n" +
                     chatContext +
+                    FormatMemoryForPrompt(memorySummary) +
                     $"Current group fitness summary:\n{groupFitnessSummary}\n" +
                     FormatFactsForPrompt(allUserFacts) +
                     $"Output only your reply, nothing else.";
@@ -427,7 +443,8 @@ namespace FitWifFrens.Web.Background
             double workoutMinutes,
             CancellationToken cancellationToken,
             Dictionary<string, List<string>>? userFacts = null,
-            string? soulPrompt = null)
+            string? soulPrompt = null,
+            string? memorySummary = null)
         {
             try
             {
@@ -441,6 +458,7 @@ namespace FitWifFrens.Web.Background
                     $"If they have known facts, use those to make the roast even more personal and devastating. " +
                     $"Write 3-5 short punchy lines. Keep each line under 15 words. Be creative and varied. Do not number the lines.\n\n" +
                     $"{dataText}\n" +
+                    FormatMemoryForPrompt(memorySummary) +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the roast lines, nothing else.";
 
@@ -467,7 +485,8 @@ namespace FitWifFrens.Web.Background
             double workoutMinutes,
             CancellationToken cancellationToken,
             Dictionary<string, List<string>>? userFacts = null,
-            string? soulPrompt = null)
+            string? soulPrompt = null,
+            string? memorySummary = null)
         {
             try
             {
@@ -481,6 +500,7 @@ namespace FitWifFrens.Web.Background
                     $"If they have known facts, weave those in to make it personal. " +
                     Tone("Keep it light, fun, and uplifting. ", soulPrompt) + "\n\n" +
                     $"{dataText}\n" +
+                    FormatMemoryForPrompt(memorySummary) +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the poem, nothing else.";
 
@@ -501,7 +521,8 @@ namespace FitWifFrens.Web.Background
             decimal balance,
             CancellationToken cancellationToken,
             Dictionary<string, List<string>>? userFacts = null,
-            string? soulPrompt = null)
+            string? soulPrompt = null,
+            string? memorySummary = null)
         {
             try
             {
@@ -526,6 +547,7 @@ namespace FitWifFrens.Web.Background
                     $"Keep each sentence under 15 words. Be creative and varied — no generic lines.\n\n" +
                     $"User: {name}\n" +
                     $"Balance: {balanceContext}\n" +
+                    FormatMemoryForPrompt(memorySummary) +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the commentary, nothing else.";
 
@@ -603,6 +625,27 @@ namespace FitWifFrens.Web.Background
                     ? $"{change:F1} kg gained"
                     : "no change";
             return $" ({changeText} past 4 weeks)";
+        }
+
+        public static async Task<string?> LoadMemorySummaryAsync(DataContext dataContext, string chatId, CancellationToken cancellationToken)
+        {
+            var memory = await dataContext.BotMemories
+                .AsNoTracking()
+                .Where(m => m.ChatId == chatId)
+                .Select(m => m.Summary)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return string.IsNullOrWhiteSpace(memory) ? null : memory;
+        }
+
+        private static string FormatMemoryForPrompt(string? memorySummary)
+        {
+            if (string.IsNullOrWhiteSpace(memorySummary))
+            {
+                return string.Empty;
+            }
+
+            return $"You have the following long-term memory about this group and its members. Use this to personalize your responses:\n{memorySummary}\n\n";
         }
 
         public static async Task<string?> LoadSoulPromptAsync(DataContext dataContext, string chatId, CancellationToken cancellationToken)

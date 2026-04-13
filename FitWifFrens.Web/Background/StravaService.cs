@@ -245,8 +245,9 @@ namespace FitWifFrens.Web.Background
                                     : null;
 
                                 var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(_dataContext, _notificationService.ChatId, cancellationToken);
+                                var memorySummary = await AiSummaryService.LoadMemorySummaryAsync(_dataContext, _notificationService.ChatId, cancellationToken);
                                 var message = await _aiSummaryService.GenerateWorkoutMessage(
-                                    user.Nickname!, activityType!, activityMinutes, cancellationToken, userFacts, soulPrompt);
+                                    user.Nickname!, activityType!, activityMinutes, cancellationToken, userFacts, soulPrompt, memorySummary);
 
                                 _ = _notificationService.Notify(message);
                             }

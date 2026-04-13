@@ -417,9 +417,10 @@ namespace FitWifFrens.Web.Telegram
 
                     var pollChatId = pollContext?.ChatId ?? _notificationServiceConfiguration.ChatId;
                     var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(dataContext, pollChatId, cancellationToken);
+                    var memorySummary = await AiSummaryService.LoadMemorySummaryAsync(dataContext, pollChatId, cancellationToken);
 
                     var message = await aiSummaryService.GeneratePollResponseMessage(
-                        user.Nickname!, question, chosenOption, cancellationToken, userFacts, soulPrompt);
+                        user.Nickname!, question, chosenOption, cancellationToken, userFacts, soulPrompt, memorySummary);
 
                     _ = notificationService.Notify(message);
                 }
@@ -830,6 +831,7 @@ namespace FitWifFrens.Web.Telegram
                 }
 
                 var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(dataContext, chatId, cancellationToken);
+                var memorySummary = await AiSummaryService.LoadMemorySummaryAsync(dataContext, chatId, cancellationToken);
 
                 var reply = await aiSummaryService.GenerateBotMentionReply(
                     senderDisplayName,
@@ -838,7 +840,8 @@ namespace FitWifFrens.Web.Telegram
                     groupFitnessSb.ToString(),
                     cancellationToken,
                     allUserFacts.Count > 0 ? allUserFacts : null,
-                    soulPrompt);
+                    soulPrompt,
+                    memorySummary);
 
                 if (string.IsNullOrWhiteSpace(reply))
                 {
@@ -1141,10 +1144,11 @@ namespace FitWifFrens.Web.Telegram
 
                 var data = await GatherFitnessDataAsync(dataContext, targetUser, cancellationToken);
                 var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(dataContext, chatId, cancellationToken);
+                var memorySummary = await AiSummaryService.LoadMemorySummaryAsync(dataContext, chatId, cancellationToken);
 
                 var roast = await aiSummaryService.GenerateRoast(
                     data.Name, data.WeightChange, data.AvgDietRating, data.WeighInCount, data.PollResponseCount,
-                    data.ExerciseMinutes, data.RunningMinutes, data.WorkoutMinutes, cancellationToken, data.UserFacts, soulPrompt);
+                    data.ExerciseMinutes, data.RunningMinutes, data.WorkoutMinutes, cancellationToken, data.UserFacts, soulPrompt, memorySummary);
 
                 if (string.IsNullOrWhiteSpace(roast))
                 {
@@ -1179,10 +1183,11 @@ namespace FitWifFrens.Web.Telegram
 
                 var data = await GatherFitnessDataAsync(dataContext, targetUser, cancellationToken);
                 var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(dataContext, chatId, cancellationToken);
+                var memorySummary = await AiSummaryService.LoadMemorySummaryAsync(dataContext, chatId, cancellationToken);
 
                 var poem = await aiSummaryService.GeneratePoem(
                     data.Name, data.WeightChange, data.AvgDietRating, data.WeighInCount, data.PollResponseCount,
-                    data.ExerciseMinutes, data.RunningMinutes, data.WorkoutMinutes, cancellationToken, data.UserFacts, soulPrompt);
+                    data.ExerciseMinutes, data.RunningMinutes, data.WorkoutMinutes, cancellationToken, data.UserFacts, soulPrompt, memorySummary);
 
                 if (string.IsNullOrWhiteSpace(poem))
                 {
@@ -1231,8 +1236,9 @@ namespace FitWifFrens.Web.Telegram
                     : null;
 
                 var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(dataContext, chatId, cancellationToken);
+                var memorySummary = await AiSummaryService.LoadMemorySummaryAsync(dataContext, chatId, cancellationToken);
 
-                var aiMessage = await aiSummaryService.GenerateBalanceMessage(name, balance, cancellationToken, userFacts, soulPrompt);
+                var aiMessage = await aiSummaryService.GenerateBalanceMessage(name, balance, cancellationToken, userFacts, soulPrompt, memorySummary);
 
                 var balanceText = $"💰 {name}'s balance: {balance:F4} tokens";
 
