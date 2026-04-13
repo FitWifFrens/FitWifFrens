@@ -30,6 +30,8 @@ namespace FitWifFrens.Web.Background
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.CreateCommitmentPeriods), s => s.CreateCommitmentPeriods(cancellationToken), Cron.Never);
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriodUserGoals), s => s.UpdateCommitmentPeriodUserGoals(cancellationToken), Cron.Never);
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriods), s => s.UpdateCommitmentPeriods(cancellationToken), Cron.Never);
+            
+            _recurringJobManager.AddOrUpdate<TelegramBotService>(nameof(TelegramBotService) + nameof(TelegramBotService.ExtractAllChatMemoriesAsync), s => s.ExtractAllChatMemoriesAsync(cancellationToken), Cron.Never);
 #else
             _recurringJobManager.AddOrUpdate<StravaService>(nameof(StravaService) + nameof(StravaService.UpdateWebhook), s => s.UpdateWebhook(cancellationToken), Cron.Never);
             _recurringJobManager.AddOrUpdate<WithingsService>(nameof(WithingsService) + nameof(WithingsService.UpdateWebhooks), s => s.UpdateWebhooks(cancellationToken), Cron.Never);
@@ -43,6 +45,8 @@ namespace FitWifFrens.Web.Background
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.CreateCommitmentPeriods), s => s.CreateCommitmentPeriods(cancellationToken), Cron.Hourly(5));
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriodUserGoals), s => s.UpdateCommitmentPeriodUserGoals(cancellationToken), Cron.Hourly(10));
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriods), s => s.UpdateCommitmentPeriods(cancellationToken), Cron.Hourly(15));
+            
+            _recurringJobManager.AddOrUpdate<TelegramBotService>(nameof(TelegramBotService) + nameof(TelegramBotService.ExtractAllChatMemoriesAsync), s => s.ExtractAllChatMemoriesAsync(cancellationToken), Cron.Daily(18));
 #endif
             
             _recurringJobManager.AddOrUpdate<TelegramPollJobService>(
@@ -89,9 +93,7 @@ namespace FitWifFrens.Web.Background
                 {
                     TimeZone = TimeZoneInfo.Utc
                 });
-
-            _recurringJobManager.AddOrUpdate<TelegramBotService>(nameof(TelegramBotService) + nameof(TelegramBotService.ExtractDefaultChatMemoriesAsync), s => s.ExtractDefaultChatMemoriesAsync(CancellationToken.None), Cron.Never);
-
+            
             _backgroundJobClient.Enqueue<TelegramBotService>(s => s.RegisterBotCommandsAsync(CancellationToken.None));
 
             return Task.CompletedTask;

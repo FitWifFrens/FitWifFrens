@@ -769,12 +769,12 @@ namespace FitWifFrens.Web.Telegram
                 var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
                 var aiSummaryService = scope.ServiceProvider.GetRequiredService<AiSummaryService>();
 
-                // Fetch the last 50 messages from this chat for context
+                // Fetch recent messages from this chat for context
                 var recentMessages = (await dataContext.ChatMessages
                     .AsNoTracking()
                     .Where(m => m.ChatId == chatId)
                     .OrderByDescending(m => m.Timestamp)
-                    .Take(50)
+                    .Take(Constants.Memory.MentionContextMessageCount)
                     .OrderBy(m => m.Timestamp)
                     .Select(m => new { m.DisplayName, m.Text, m.Timestamp })
                     .ToListAsync(cancellationToken))
@@ -1278,24 +1278,14 @@ namespace FitWifFrens.Web.Telegram
 
                 await dataContext.SaveChangesAsync(cancellationToken);
 
-                var messageCount = await dataContext.ChatMessages
-                    .Where(m => m.ChatId == chatId)
-                    .CountAsync(cancellationToken);
+                // Prune messages older than retention period
+                var cutoff = DateTime.UtcNow.AddDays(-Constants.Memory.MessageRetentionDays);
+                var oldMessages = await dataContext.ChatMessages
+                    .Where(m => m.ChatId == chatId && m.Timestamp < cutoff)
+                    .ToListAsync(cancellationToken);
 
-                if (_backgroundConfiguration.EnableMemoryExtraction && messageCount % 100 == 0)
+                if (oldMessages.Count > 0)
                 {
-                    _backgroundJobClient.Enqueue<TelegramBotService>(s => s.ExtractMemoriesAsync(chatId, CancellationToken.None));
-                }
-
-                // Prune old messages beyond 200
-                if (messageCount > 200)
-                {
-                    var oldMessages = await dataContext.ChatMessages
-                        .Where(m => m.ChatId == chatId)
-                        .OrderBy(m => m.Timestamp)
-                        .Take(messageCount - 200)
-                        .ToListAsync(cancellationToken);
-
                     dataContext.ChatMessages.RemoveRange(oldMessages);
                     await dataContext.SaveChangesAsync(cancellationToken);
                 }
@@ -1326,8 +1316,39 @@ namespace FitWifFrens.Web.Telegram
             }
         }
 
-        public Task ExtractDefaultChatMemoriesAsync(CancellationToken cancellationToken)
-            => ExtractMemoriesAsync(_notificationServiceConfiguration.ChatId, cancellationToken);
+        public async Task ExtractAllChatMemoriesAsync(CancellationToken cancellationToken)
+        {
+            if (!_backgroundConfiguration.EnableMemoryExtraction)
+            {
+                _logger.LogInformation("Memory extraction is disabled, skipping");
+                return;
+            }
+
+            try
+            {
+                await using var scope = _serviceScopeFactory.CreateAsyncScope();
+                var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+
+                var since = DateTime.UtcNow.AddHours(-Constants.Memory.ExtractionWindowHours);
+                var chatIds = await dataContext.ChatMessages
+                    .AsNoTracking()
+                    .Where(m => m.Timestamp >= since)
+                    .Select(m => m.ChatId)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
+
+                _logger.LogInformation("Extracting memories for {Count} chat(s)", chatIds.Count);
+
+                foreach (var chatId in chatIds)
+                {
+                    await ExtractMemoriesAsync(chatId, cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to extract memories for all chats");
+            }
+        }
 
         public async Task ExtractMemoriesAsync(string chatId, CancellationToken cancellationToken)
         {
@@ -1337,13 +1358,18 @@ namespace FitWifFrens.Web.Telegram
                 var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
                 var aiSummaryService = scope.ServiceProvider.GetRequiredService<AiSummaryService>();
 
+                var since = DateTime.UtcNow.AddHours(-Constants.Memory.ExtractionWindowHours);
                 var recentMessages = await dataContext.ChatMessages
                     .AsNoTracking()
-                    .Where(m => m.ChatId == chatId)
-                    .OrderByDescending(m => m.Timestamp)
-                    .Take(200)
+                    .Where(m => m.ChatId == chatId && m.Timestamp >= since)
                     .OrderBy(m => m.Timestamp)
                     .ToListAsync(cancellationToken);
+
+                if (recentMessages.Count == 0)
+                {
+                    _logger.LogInformation("No recent messages for memory extraction. ChatId={ChatId}", chatId);
+                    return;
+                }
 
                 var existingMemory = await dataContext.BotMemories
                     .SingleOrDefaultAsync(m => m.ChatId == chatId, cancellationToken);
@@ -1361,7 +1387,7 @@ namespace FitWifFrens.Web.Telegram
                     return;
                 }
 
-                var summary = updatedSummary.Length > 65536 ? updatedSummary[..65536] : updatedSummary;
+                var summary = updatedSummary.Length > Constants.Memory.MaxSummaryLength ? updatedSummary[..Constants.Memory.MaxSummaryLength] : updatedSummary;
 
                 if (existingMemory == null)
                 {
