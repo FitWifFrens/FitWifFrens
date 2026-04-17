@@ -713,7 +713,7 @@ namespace FitWifFrens.Web.Background
             {
                 Messages = [new Message(RoleType.User, prompt)],
                 MaxTokens = maxTokens,
-                Model = "claude-haiku-4-5-20251001",
+                Model = "claude-sonnet-4-6",
                 Stream = false,
                 Temperature = 1m,
                 SystemMessage = soulPrompt,
