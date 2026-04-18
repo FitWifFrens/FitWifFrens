@@ -223,7 +223,32 @@ namespace FitWifFrens.Web.Background
                     }
                     else if (activityType == "Ride" || activityType == "VirtualRide")
                     {
+                        var userMetricProviderValue = await _dataContext.UserMetricProviderValues
+                            .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Cycling" && umpv.ProviderName == "Strava" &&
+                                                          umpv.MetricType == MetricType.Minutes && umpv.Time == activityTime, cancellationToken: cancellationToken);
 
+                        if (userMetricProviderValue == null)
+                        {
+                            _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
+                            {
+                                UserId = user.Id,
+                                MetricName = "Cycling",
+                                ProviderName = "Strava",
+                                MetricType = MetricType.Minutes,
+                                Time = activityTime,
+                                Value = activityMinutes
+                            });
+
+                            await _dataContext.SaveChangesAsync(cancellationToken);
+                        }
+                        else if (userMetricProviderValue.Value != activityMinutes)
+                        {
+                            userMetricProviderValue.Value = activityMinutes;
+
+                            _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
+
+                            await _dataContext.SaveChangesAsync(cancellationToken);
+                        }
                     }
                     else if (activityType == "Workout" || activityType == "WeightTraining" || activityType == "Yoga")
                     {

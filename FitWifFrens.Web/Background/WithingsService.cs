@@ -395,6 +395,36 @@ namespace FitWifFrens.Web.Background
 
                         // https://github.com/zono-dev/withings-go/blob/514b8ec90158faa88e36508f778fbf7c2b03e209/withings/enum.go#L125
                         // https://help.validic.com/space/VCS/1681326286/Withings+API+Integration+for+Developers
+                        if (activityCategory == 6 || activityCategory == 308)
+                        {
+                            var userMetricProviderValue = await _dataContext.UserMetricProviderValues
+                                .SingleOrDefaultAsync(umpv => umpv.UserId == user.Id && umpv.MetricName == "Cycling" && umpv.ProviderName == "Withings" &&
+                                                              umpv.MetricType == MetricType.Minutes && umpv.Time == activityStartTime, cancellationToken: cancellationToken);
+
+                            if (userMetricProviderValue == null)
+                            {
+                                _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
+                                {
+                                    UserId = user.Id,
+                                    MetricName = "Cycling",
+                                    ProviderName = "Withings",
+                                    MetricType = MetricType.Minutes,
+                                    Time = activityStartTime,
+                                    Value = activityMinutes
+                                });
+
+                                await _dataContext.SaveChangesAsync(cancellationToken);
+                            }
+                            else if (userMetricProviderValue.Value != activityMinutes)
+                            {
+                                userMetricProviderValue.Value = activityMinutes;
+
+                                _dataContext.Entry(userMetricProviderValue).State = EntityState.Modified;
+
+                                await _dataContext.SaveChangesAsync(cancellationToken);
+                            }
+                        }
+
                         if (activityCategory == 16 || activityCategory == 17 || activityCategory == 28)
                         {
                             var userMetricProviderValue = await _dataContext.UserMetricProviderValues
