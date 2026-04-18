@@ -1,4 +1,4 @@
-﻿using FitWifFrens.Data;
+using FitWifFrens.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitWifFrens.Playground
@@ -16,23 +16,40 @@ namespace FitWifFrens.Playground
         {
             await _dataContext.Database.MigrateAsync(cancellationToken);
 
-            // var users = await _dataContext.Users.Where(u => u.Balance <= 0).ToListAsync(cancellationToken);
-            //
-            // foreach (var user in users)
-            // {
-            //     user.Balance += 100;
-            //
-            //     _dataContext.Entry(user).State = EntityState.Modified;
-            //
-            //     _dataContext.Deposits.Add(new Deposit
-            //     {
-            //         Transaction = "0x" + Guid.NewGuid().ToString().Replace("-", string.Empty),
-            //         UserId = user.Id,
-            //         Amount = 100,
-            //         Time = DateTime.UtcNow
-            //     });
-            // }
-            
+            // await UpdateBalances(cancellationToken);
+            // await UpdateTelegram(cancellationToken);
+            await UpdateCycling(cancellationToken);
+
+            await _dataContext.SaveChangesAsync(cancellationToken);
+        }
+
+        public Task StopAsync(CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        private async Task UpdateBalances(CancellationToken cancellationToken)
+        {
+            var users = await _dataContext.Users.Where(u => u.Balance <= 0).ToListAsync(cancellationToken);
+
+            foreach (var user in users)
+            {
+                user.Balance += 100;
+
+                _dataContext.Entry(user).State = EntityState.Modified;
+
+                _dataContext.Deposits.Add(new Deposit
+                {
+                    Transaction = "0x" + Guid.NewGuid().ToString().Replace("-", string.Empty),
+                    UserId = user.Id,
+                    Amount = 100,
+                    Time = DateTime.UtcNow
+                });
+            }
+        }
+
+        private Task UpdateTelegram(CancellationToken cancellationToken)
+        {
             _dataContext.Providers.AddRange(new List<Provider>
             {
                 new Provider
@@ -47,10 +64,6 @@ namespace FitWifFrens.Playground
                 {
                     Name = "Telegram Poll"
                 },
-                new Metric
-                {
-                    Name = "Cycling"
-                },
             });
 
             _dataContext.MetricProviders.AddRange(new List<MetricProvider>
@@ -59,16 +72,6 @@ namespace FitWifFrens.Playground
                 {
                     ProviderName = "Telegram",
                     MetricName = "Telegram Poll",
-                },
-                new MetricProvider
-                {
-                    ProviderName = "Strava",
-                    MetricName = "Cycling",
-                },
-                new MetricProvider
-                {
-                    ProviderName = "Withings",
-                    MetricName = "Cycling",
                 },
             });
 
@@ -84,18 +87,8 @@ namespace FitWifFrens.Playground
                     MetricName = "Telegram Poll",
                     Type = MetricType.Value
                 },
-                new MetricValue
-                {
-                    MetricName = "Cycling",
-                    Type = MetricType.Count
-                },
-                new MetricValue
-                {
-                    MetricName = "Cycling",
-                    Type = MetricType.Minutes
-                },
             });
-            
+
             _dataContext.Commitments.Add(new Commitment
             {
                 Id = Guid.Parse("07c4559b-e5b5-4f77-a3c3-d9c0654298b8"),
@@ -165,6 +158,47 @@ namespace FitWifFrens.Playground
                 Periods = new List<CommitmentPeriod>()
             });
 
+            return Task.CompletedTask;
+        }
+
+        private Task UpdateCycling(CancellationToken cancellationToken)
+        {
+            _dataContext.Metrics.AddRange(new List<Metric>
+            {
+                new Metric
+                {
+                    Name = "Cycling"
+                },
+            });
+
+            _dataContext.MetricProviders.AddRange(new List<MetricProvider>
+            {
+                new MetricProvider
+                {
+                    ProviderName = "Strava",
+                    MetricName = "Cycling",
+                },
+                new MetricProvider
+                {
+                    ProviderName = "Withings",
+                    MetricName = "Cycling",
+                },
+            });
+
+            _dataContext.MetricValues.AddRange(new List<MetricValue>
+            {
+                new MetricValue
+                {
+                    MetricName = "Cycling",
+                    Type = MetricType.Count
+                },
+                new MetricValue
+                {
+                    MetricName = "Cycling",
+                    Type = MetricType.Minutes
+                },
+            });
+
             _dataContext.Commitments.Add(new Commitment
             {
                 Id = Guid.Parse("b8f3a1d2-2e44-4b7c-9d5a-3c1e7f8a9b42"),
@@ -194,11 +228,6 @@ namespace FitWifFrens.Playground
                 Periods = new List<CommitmentPeriod>()
             });
 
-            await _dataContext.SaveChangesAsync(cancellationToken);
-        }
-
-        public Task StopAsync(CancellationToken cancellationToken)
-        {
             return Task.CompletedTask;
         }
     }
