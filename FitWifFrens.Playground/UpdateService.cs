@@ -40,15 +40,19 @@ namespace FitWifFrens.Playground
                     Name = "Telegram"
                 },
             });
-            
+
             _dataContext.Metrics.AddRange(new List<Metric>
             {
                 new Metric
                 {
                     Name = "Telegram Poll"
                 },
+                new Metric
+                {
+                    Name = "Cycling"
+                },
             });
-            
+
             _dataContext.MetricProviders.AddRange(new List<MetricProvider>
             {
                 new MetricProvider
@@ -56,8 +60,18 @@ namespace FitWifFrens.Playground
                     ProviderName = "Telegram",
                     MetricName = "Telegram Poll",
                 },
+                new MetricProvider
+                {
+                    ProviderName = "Strava",
+                    MetricName = "Cycling",
+                },
+                new MetricProvider
+                {
+                    ProviderName = "Withings",
+                    MetricName = "Cycling",
+                },
             });
-            
+
             _dataContext.MetricValues.AddRange(new List<MetricValue>
             {
                 new MetricValue
@@ -69,6 +83,16 @@ namespace FitWifFrens.Playground
                 {
                     MetricName = "Telegram Poll",
                     Type = MetricType.Value
+                },
+                new MetricValue
+                {
+                    MetricName = "Cycling",
+                    Type = MetricType.Count
+                },
+                new MetricValue
+                {
+                    MetricName = "Cycling",
+                    Type = MetricType.Minutes
                 },
             });
             
@@ -140,7 +164,36 @@ namespace FitWifFrens.Playground
                 },
                 Periods = new List<CommitmentPeriod>()
             });
-            
+
+            _dataContext.Commitments.Add(new Commitment
+            {
+                Id = Guid.Parse("b8f3a1d2-2e44-4b7c-9d5a-3c1e7f8a9b42"),
+                Title = "120 minutes",
+                Description = "Record 3 rides with a total time of 120 minutes",
+                Image = "images/runner0.png",
+                StartDate = new DateOnly(2026, 03, 23),
+                Days = 7,
+                ContractAddress = "0x1a2b3c4d5e6f7890aBcDeF1234567890AbCdEf12",
+                Goals = new List<Goal>
+                {
+                    new Goal
+                    {
+                        MetricName = "Cycling",
+                        MetricType = MetricType.Minutes,
+                        Rule = GoalRule.GreaterThanOrEqualTo,
+                        Value = 120
+                    },
+                    new Goal
+                    {
+                        MetricName = "Cycling",
+                        MetricType = MetricType.Count,
+                        Rule = GoalRule.GreaterThanOrEqualTo,
+                        Value = 3
+                    }
+                },
+                Periods = new List<CommitmentPeriod>()
+            });
+
             await _dataContext.SaveChangesAsync(cancellationToken);
         }
 
