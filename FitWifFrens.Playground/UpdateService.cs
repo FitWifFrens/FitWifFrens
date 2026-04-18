@@ -161,7 +161,7 @@ namespace FitWifFrens.Playground
             return Task.CompletedTask;
         }
 
-        private Task UpdateCycling(CancellationToken cancellationToken)
+        private async Task UpdateCycling(CancellationToken cancellationToken)
         {
             _dataContext.Metrics.AddRange(new List<Metric>
             {
@@ -199,6 +199,25 @@ namespace FitWifFrens.Playground
                 },
             });
 
+            foreach (var providerName in new[] { "Strava", "Withings" })
+            {
+                var userIds = await _dataContext.Users
+                    .Where(u => u.Logins.Any(l => l.LoginProvider == providerName))
+                    .Where(u => !u.MetricProviders.Any(ump => ump.MetricName == "Cycling" && ump.ProviderName == providerName))
+                    .Select(u => u.Id)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var userId in userIds)
+                {
+                    _dataContext.UserMetricProviders.Add(new UserMetricProvider
+                    {
+                        UserId = userId,
+                        MetricName = "Cycling",
+                        ProviderName = providerName,
+                    });
+                }
+            }
+
             _dataContext.Commitments.Add(new Commitment
             {
                 Id = Guid.Parse("9f528253-67ee-443e-99fb-0b776faaa66f"),
@@ -227,8 +246,6 @@ namespace FitWifFrens.Playground
                 },
                 Periods = new List<CommitmentPeriod>()
             });
-
-            return Task.CompletedTask;
         }
     }
 }
