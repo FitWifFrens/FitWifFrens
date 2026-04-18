@@ -59,6 +59,10 @@ namespace FitWifFrens.Playground
                 },
                 new Metric
                 {
+                    Name = "Cycling"
+                },
+                new Metric
+                {
                     Name = "Workout"
                 },
                 new Metric
@@ -95,6 +99,11 @@ namespace FitWifFrens.Playground
                 new MetricProvider
                 {
                     ProviderName = "Strava",
+                    MetricName = "Cycling",
+                },
+                new MetricProvider
+                {
+                    ProviderName = "Strava",
                     MetricName = "Workout",
                 },
 
@@ -112,6 +121,11 @@ namespace FitWifFrens.Playground
                 {
                     ProviderName = "Withings",
                     MetricName = "Running",
+                },
+                new MetricProvider
+                {
+                    ProviderName = "Withings",
+                    MetricName = "Cycling",
                 },
                 new MetricProvider
                 {
@@ -161,6 +175,16 @@ namespace FitWifFrens.Playground
                 new MetricValue
                 {
                     MetricName = "Running",
+                    Type = MetricType.Minutes
+                },
+                new MetricValue
+                {
+                    MetricName = "Cycling",
+                    Type = MetricType.Count
+                },
+                new MetricValue
+                {
+                    MetricName = "Cycling",
                     Type = MetricType.Minutes
                 },
                 new MetricValue
