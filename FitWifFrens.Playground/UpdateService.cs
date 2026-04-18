@@ -201,13 +201,13 @@ namespace FitWifFrens.Playground
 
             _dataContext.Commitments.Add(new Commitment
             {
-                Id = Guid.Parse("b8f3a1d2-2e44-4b7c-9d5a-3c1e7f8a9b42"),
-                Title = "120 minutes",
-                Description = "Record 3 rides with a total time of 120 minutes",
+                Id = Guid.Parse("9f528253-67ee-443e-99fb-0b776faaa66f"),
+                Title = "90 minutes",
+                Description = "Record 2 rides with a total time of 90 minutes",
                 Image = "images/cycling0.png",
-                StartDate = new DateOnly(2026, 03, 23),
+                StartDate = new DateOnly(2026, 04, 13),
                 Days = 7,
-                ContractAddress = "0x1a2b3c4d5e6f7890aBcDeF1234567890AbCdEf12",
+                ContractAddress = "0x142384ef21BB443416383A7FFeF3f1C3543c19eD",
                 Goals = new List<Goal>
                 {
                     new Goal
@@ -215,14 +215,14 @@ namespace FitWifFrens.Playground
                         MetricName = "Cycling",
                         MetricType = MetricType.Minutes,
                         Rule = GoalRule.GreaterThanOrEqualTo,
-                        Value = 120
+                        Value = 90
                     },
                     new Goal
                     {
                         MetricName = "Cycling",
                         MetricType = MetricType.Count,
                         Rule = GoalRule.GreaterThanOrEqualTo,
-                        Value = 3
+                        Value = 2
                     }
                 },
                 Periods = new List<CommitmentPeriod>()
