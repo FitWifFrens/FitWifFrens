@@ -170,7 +170,7 @@ namespace FitWifFrens.Playground
                 Id = Guid.Parse("b8f3a1d2-2e44-4b7c-9d5a-3c1e7f8a9b42"),
                 Title = "120 minutes",
                 Description = "Record 3 rides with a total time of 120 minutes",
-                Image = "images/runner0.png",
+                Image = "images/cycling0.png",
                 StartDate = new DateOnly(2026, 03, 23),
                 Days = 7,
                 ContractAddress = "0x1a2b3c4d5e6f7890aBcDeF1234567890AbCdEf12",
