@@ -1,4 +1,5 @@
-﻿using FitWifFrens.Data;
+﻿using System.Text;
+using FitWifFrens.Data;
 using MathNet.Numerics;
 using Microsoft.ApplicationInsights;
 using Microsoft.EntityFrameworkCore;
@@ -8,13 +9,17 @@ namespace FitWifFrens.Web.Background
     public class CommitmentPeriodService
     {
         private readonly DataContext _dataContext;
+        private readonly NotificationService _notificationService;
+        private readonly AiSummaryService _aiSummaryService;
         private readonly TimeProvider _timeProvider;
         private readonly TelemetryClient _telemetryClient;
         private readonly ILogger<CommitmentPeriodService> _logger;
 
-        public CommitmentPeriodService(DataContext dataContext, TimeProvider timeProvider, TelemetryClient telemetryClient, ILogger<CommitmentPeriodService> logger)
+        public CommitmentPeriodService(DataContext dataContext, NotificationService notificationService, AiSummaryService aiSummaryService, TimeProvider timeProvider, TelemetryClient telemetryClient, ILogger<CommitmentPeriodService> logger)
         {
             _dataContext = dataContext;
+            _notificationService = notificationService;
+            _aiSummaryService = aiSummaryService;
             _timeProvider = timeProvider;
             _telemetryClient = telemetryClient;
             _logger = logger;
@@ -306,9 +311,12 @@ namespace FitWifFrens.Web.Background
                 var commitmentPeriods = await _dataContext.CommitmentPeriods
                     .Include(cp => cp.Commitment).ThenInclude(c => c.Users)
                     .Include(cp => cp.Commitment).ThenInclude(c => c.Goals)
+                    .Include(cp => cp.Users).ThenInclude(cpu => cpu.User)
                     .Include(cp => cp.Users).ThenInclude(cpu => cpu.Goals).ThenInclude(cpug => cpug.Goal)
                     .Where(cp => cp.EndDate <= date && cp.Status == CommitmentPeriodStatus.Completing)
                     .ToListAsync(cancellationToken);
+
+                var pendingSummaries = new List<PendingPeriodSummary>();
 
                 foreach (var commitmentPeriod in commitmentPeriods)
                 {
@@ -341,23 +349,29 @@ namespace FitWifFrens.Web.Background
                         commitmentPeriodUsersByResult[true] = new List<CommitmentPeriodUser>();
                     }
 
-                    if (commitmentPeriodUsersByResult[false].Any() || commitmentPeriodUsersByResult[true].Any())
+                    var winners = commitmentPeriodUsersByResult[true];
+                    var losers = commitmentPeriodUsersByResult[false];
+                    var rolloverFromCommitment = commitmentPeriod.Commitment.Balance;
+                    var rewardPerWinner = 0m;
+                    var rolledIntoCommitment = 0m;
+
+                    if (losers.Any() || winners.Any())
                     {
-                        var failedStake = commitmentPeriodUsersByResult[false].Sum(cpu => cpu.Stake);
+                        var failedStake = losers.Sum(cpu => cpu.Stake);
 
-                        if (commitmentPeriodUsersByResult[true].Any())
+                        if (winners.Any())
                         {
-                            var rewardPerUser = (failedStake + commitmentPeriod.Commitment.Balance) / commitmentPeriodUsersByResult[true].Count;
+                            rewardPerWinner = (failedStake + commitmentPeriod.Commitment.Balance) / winners.Count;
 
-                            foreach (var commitmentPeriodUser in commitmentPeriodUsersByResult[true])
+                            foreach (var commitmentPeriodUser in winners)
                             {
-                                commitmentPeriodUser.Reward = rewardPerUser + commitmentPeriodUser.Stake;
+                                commitmentPeriodUser.Reward = rewardPerWinner + commitmentPeriodUser.Stake;
 
                                 _dataContext.Entry(commitmentPeriodUser).State = EntityState.Modified;
 
                                 var user = await _dataContext.Users.SingleAsync(u => u.Id == commitmentPeriodUser.UserId, cancellationToken);
 
-                                user.Balance += rewardPerUser + commitmentPeriodUser.Stake;
+                                user.Balance += rewardPerWinner + commitmentPeriodUser.Stake;
 
                                 _dataContext.Entry(user).State = EntityState.Modified;
                             }
@@ -371,7 +385,8 @@ namespace FitWifFrens.Web.Background
                         }
                         else if (failedStake > 0)
                         {
-                            commitmentPeriod.Commitment.Balance += commitmentPeriodUsersByResult[false].Sum(cpu => cpu.Stake);
+                            rolledIntoCommitment = failedStake;
+                            commitmentPeriod.Commitment.Balance += failedStake;
 
                             _dataContext.Entry(commitmentPeriod.Commitment).State = EntityState.Modified;
                         }
@@ -380,9 +395,45 @@ namespace FitWifFrens.Web.Background
                     commitmentPeriod.Status = CommitmentPeriodStatus.Complete;
 
                     _dataContext.Entry(commitmentPeriod).State = EntityState.Modified;
+
+                    if (winners.Any() || losers.Any())
+                    {
+                        pendingSummaries.Add(new PendingPeriodSummary(
+                            commitmentPeriod,
+                            winners.Select(w => (User: w.User, Stake: w.Stake, Reward: w.Reward)).ToList(),
+                            losers.Select(l => (User: l.User, Stake: l.Stake)).ToList(),
+                            rewardPerWinner,
+                            rolloverFromCommitment,
+                            rolledIntoCommitment));
+                    }
                 }
 
                 await _dataContext.SaveChangesAsync(cancellationToken);
+
+                if (pendingSummaries.Count > 0)
+                {
+                    var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(_dataContext, _notificationService.ChatId, cancellationToken);
+                    var memorySummary = await AiSummaryService.LoadMemorySummaryAsync(_dataContext, _notificationService.ChatId, cancellationToken);
+
+                    foreach (var pending in pendingSummaries)
+                    {
+                        var userFacts = await LoadUserFactsAsync(
+                            pending.Winners.Select(w => w.User).Concat(pending.Losers.Select(l => l.User)),
+                            cancellationToken);
+
+                        var aiSummary = await _aiSummaryService.GenerateCommitmentPeriodSummary(
+                            pending.CommitmentPeriod.Commitment.Title,
+                            pending.Winners.Select(w => (ResolveName(w.User), w.Stake, w.Reward)),
+                            pending.Losers.Select(l => (ResolveName(l.User), l.Stake)),
+                            cancellationToken,
+                            userFacts,
+                            soulPrompt,
+                            memorySummary);
+
+                        var message = BuildPeriodSummary(pending, aiSummary);
+                        await _notificationService.Notify(message);
+                    }
+                }
             }
             catch (Exception exception)
             {
@@ -390,5 +441,105 @@ namespace FitWifFrens.Web.Background
                 throw;
             }
         }
+
+        private sealed record PendingPeriodSummary(
+            CommitmentPeriod CommitmentPeriod,
+            IReadOnlyList<(User User, decimal Stake, decimal Reward)> Winners,
+            IReadOnlyList<(User User, decimal Stake)> Losers,
+            decimal RewardPerWinner,
+            decimal RolloverFromCommitment,
+            decimal RolledIntoCommitment);
+
+        private static string BuildPeriodSummary(PendingPeriodSummary pending, AiSummaryService.CommitmentPeriodAiSummary aiSummary)
+        {
+            var builder = new StringBuilder();
+            var commitmentPeriod = pending.CommitmentPeriod;
+            var winners = pending.Winners;
+            var losers = pending.Losers;
+
+            builder.AppendLine($"🏁 {commitmentPeriod.Commitment.Title} — period {commitmentPeriod.StartDate:yyyy-MM-dd} to {commitmentPeriod.EndDate:yyyy-MM-dd} complete");
+
+            if (!string.IsNullOrWhiteSpace(aiSummary.Intro))
+            {
+                builder.AppendLine(aiSummary.Intro);
+            }
+
+            builder.AppendLine();
+
+            var failedStake = losers.Sum(l => l.Stake);
+
+            if (winners.Any())
+            {
+                builder.AppendLine($"✅ Winners ({winners.Count}):");
+                foreach (var winner in winners.OrderByDescending(w => w.Reward))
+                {
+                    var name = ResolveName(winner.User);
+                    builder.AppendLine($"• {name} — stake {FormatAmount(winner.Stake)} back + {FormatAmount(pending.RewardPerWinner)} reward = {FormatAmount(winner.Reward)}");
+                    if (aiSummary.Commentaries.TryGetValue(name, out var quip))
+                    {
+                        builder.AppendLine($"   💬 {quip}");
+                    }
+                }
+                builder.AppendLine();
+            }
+
+            if (losers.Any())
+            {
+                builder.AppendLine($"❌ Losers ({losers.Count}):");
+                foreach (var loser in losers.OrderByDescending(l => l.Stake))
+                {
+                    var name = ResolveName(loser.User);
+                    builder.AppendLine($"• {name} — forfeited {FormatAmount(loser.Stake)}");
+                    if (aiSummary.Commentaries.TryGetValue(name, out var quip))
+                    {
+                        builder.AppendLine($"   💬 {quip}");
+                    }
+                }
+                builder.AppendLine();
+            }
+
+            if (winners.Any())
+            {
+                var potParts = new List<string>();
+                if (failedStake > 0) potParts.Add($"{FormatAmount(failedStake)} forfeited");
+                if (pending.RolloverFromCommitment > 0) potParts.Add($"{FormatAmount(pending.RolloverFromCommitment)} rolled over");
+
+                if (potParts.Any())
+                {
+                    builder.AppendLine($"💰 Pot: {string.Join(" + ", potParts)} split across {winners.Count} winner(s)");
+                }
+            }
+            else if (pending.RolledIntoCommitment > 0)
+            {
+                builder.AppendLine($"💰 No winners — {FormatAmount(pending.RolledIntoCommitment)} rolled into the next period's pot");
+            }
+
+            var message = builder.ToString().TrimEnd();
+            return message.Length <= 4000 ? message : message[..4000];
+        }
+
+        private async Task<Dictionary<string, List<string>>> LoadUserFactsAsync(IEnumerable<User> users, CancellationToken cancellationToken)
+        {
+            var userIds = users.Where(u => u != null).Select(u => u.Id).Distinct().ToList();
+            if (userIds.Count == 0)
+            {
+                return new Dictionary<string, List<string>>();
+            }
+
+            var factsRaw = await _dataContext.UserFacts
+                .AsNoTracking()
+                .Where(f => f.UserId != null && userIds.Contains(f.UserId))
+                .Select(f => new { Name = f.User!.Nickname ?? f.User.UserName ?? f.UserId!, f.Fact })
+                .ToListAsync(cancellationToken);
+
+            return factsRaw
+                .GroupBy(f => f.Name)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.Fact).ToList());
+        }
+
+        private static string ResolveName(User user) =>
+            user?.Nickname ?? user?.UserName ?? user?.Id ?? "Unknown";
+
+        private static string FormatAmount(decimal amount) => amount.ToString("0.####");
     }
 }

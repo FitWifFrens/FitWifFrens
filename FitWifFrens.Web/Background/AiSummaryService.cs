@@ -560,6 +560,87 @@ namespace FitWifFrens.Web.Background
             }
         }
 
+        public sealed record CommitmentPeriodAiSummary(string? Intro, Dictionary<string, string> Commentaries);
+
+        /// <summary>
+        /// Generates a fun intro line plus a personalised one-liner for each winner/loser of a completed commitment period.
+        /// </summary>
+        public async Task<CommitmentPeriodAiSummary> GenerateCommitmentPeriodSummary(
+            string commitmentTitle,
+            IEnumerable<(string Name, decimal Stake, decimal Reward)> winners,
+            IEnumerable<(string Name, decimal Stake)> losers,
+            CancellationToken cancellationToken,
+            Dictionary<string, List<string>>? userFacts = null,
+            string? soulPrompt = null,
+            string? memorySummary = null)
+        {
+            var winnerList = winners.ToList();
+            var loserList = losers.ToList();
+            var empty = new CommitmentPeriodAiSummary(null, new Dictionary<string, string>());
+
+            try
+            {
+                if (!winnerList.Any() && !loserList.Any())
+                {
+                    return empty;
+                }
+
+                var winnerLines = winnerList.Count > 0
+                    ? string.Join("\n", winnerList.Select(w => $"WINNER {w.Name}: staked {w.Stake:0.####}, won {w.Reward:0.####}"))
+                    : "(none)";
+
+                var loserLines = loserList.Count > 0
+                    ? string.Join("\n", loserList.Select(l => $"LOSER {l.Name}: forfeited {l.Stake:0.####}"))
+                    : "(none)";
+
+                var prompt =
+                    Persona("You are a witty fitness group coach announcing the results of a completed commitment period in a group chat. ", soulPrompt) +
+                    $"The commitment was: \"{commitmentTitle}\". " +
+                    $"Write an announcement in this exact format, one item per line:\n" +
+                    $"INTRO: <one short sentence (max 18 words) hyping the results — celebrate winners, playfully roast losers>\n" +
+                    $"NAME: <one short sentence (max 14 words) addressed to that person — encouraging for winners, teasing-but-friendly for losers>\n" +
+                    $"Include one NAME line for every person below. Use their name exactly as given.\n" +
+                    Tone("Vary the style each time. Be funny, be personal where facts allow, never mean-spirited. ", soulPrompt) +
+                    $"\nResults:\n{winnerLines}\n{loserLines}\n\n" +
+                    FormatMemoryForPrompt(memorySummary) +
+                    FormatFactsForPrompt(userFacts) +
+                    $"Output only the INTRO and NAME lines, nothing else.";
+
+                var response = await CallClaude(prompt, cancellationToken, soulPrompt);
+                if (response == null) return empty;
+
+                string? intro = null;
+                var commentaries = new Dictionary<string, string>();
+                var validNames = winnerList.Select(w => w.Name).Concat(loserList.Select(l => l.Name)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var line in response.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    var colonIndex = line.IndexOf(':');
+                    if (colonIndex <= 0) continue;
+
+                    var key = line[..colonIndex].Trim();
+                    var value = line[(colonIndex + 1)..].Trim();
+                    if (string.IsNullOrWhiteSpace(value)) continue;
+
+                    if (string.Equals(key, "INTRO", StringComparison.OrdinalIgnoreCase))
+                    {
+                        intro = value;
+                    }
+                    else if (validNames.Contains(key))
+                    {
+                        commentaries[key] = value;
+                    }
+                }
+
+                return new CommitmentPeriodAiSummary(intro, commentaries);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "AI commitment period summary generation failed. Error: {Message}", ex.Message);
+                return empty;
+            }
+        }
+
         /// <summary>
         /// Analyzes recent chat messages and the existing memory summary to produce an updated summary document.
         /// </summary>
