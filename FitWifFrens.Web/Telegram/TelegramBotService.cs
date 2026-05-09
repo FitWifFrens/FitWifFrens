@@ -658,9 +658,18 @@ namespace FitWifFrens.Web.Telegram
 
             if (IsBotMentioned(message, _notificationServiceConfiguration.BotUsername))
             {
-                var images = hasPhoto
-                    ? await DownloadPhotoAttachmentsAsync(message, cancellationToken)
-                    : Array.Empty<(byte[] Data, string MediaType)>();
+                // Use the current message's photo if any, otherwise fall back to the photo of
+                // the message being replied to. This lets users tag the bot in a normal text
+                // reply (where bot autocomplete works) instead of a photo caption.
+                IReadOnlyList<(byte[] Data, string MediaType)> images = Array.Empty<(byte[] Data, string MediaType)>();
+                if (hasPhoto)
+                {
+                    images = await DownloadPhotoAttachmentsAsync(message, cancellationToken);
+                }
+                else if (message.TryGetProperty("reply_to_message", out var repliedTo))
+                {
+                    images = await DownloadPhotoAttachmentsAsync(repliedTo, cancellationToken);
+                }
 
                 await HandleBotMentionAsync(telegramUserId, displayName, text, chatId, messageId, images, cancellationToken);
                 return true;
