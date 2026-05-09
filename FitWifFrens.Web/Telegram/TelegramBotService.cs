@@ -479,12 +479,16 @@ namespace FitWifFrens.Web.Telegram
 
         private async Task<bool> TryProcessMessageCommandAsync(JsonElement message, CancellationToken cancellationToken)
         {
-            if (!message.TryGetProperty("text", out var textJson))
-            {
-                return false;
-            }
+            // Photo messages put the user's text in `caption` instead of `text`. Treat them the
+            // same so commands and bot mentions work whether or not an image is attached.
+            var text = message.TryGetProperty("text", out var textJson) ? textJson.GetString() : null;
+            var caption = message.TryGetProperty("caption", out var captionJson) ? captionJson.GetString() : null;
+            var hasPhoto = message.TryGetProperty("photo", out var photoJson)
+                && photoJson.ValueKind == JsonValueKind.Array
+                && photoJson.GetArrayLength() > 0;
 
-            var text = textJson.GetString();
+            text ??= caption;
+
             if (string.IsNullOrWhiteSpace(text))
             {
                 return false;
@@ -517,7 +521,9 @@ namespace FitWifFrens.Web.Telegram
                 _ = UpdateTelegramUsernameAsync(telegramUserId, telegramUsername, cancellationToken);
             }
 
-            await SaveChatMessageAsync(chatId, chatTitle, telegramUserId, displayName, text, cancellationToken);
+            // Prefix the saved message so memory/context reflects that an image was shared.
+            var savedText = hasPhoto ? $"[shared an image] {text}".Trim() : text;
+            await SaveChatMessageAsync(chatId, chatTitle, telegramUserId, displayName, savedText, cancellationToken);
 
             if (text.StartsWith("/remember ", StringComparison.OrdinalIgnoreCase) ||
                 text.StartsWith("/remember@", StringComparison.OrdinalIgnoreCase))
@@ -652,7 +658,11 @@ namespace FitWifFrens.Web.Telegram
 
             if (IsBotMentioned(message, _notificationServiceConfiguration.BotUsername))
             {
-                await HandleBotMentionAsync(telegramUserId, displayName, text, chatId, messageId, cancellationToken);
+                var images = hasPhoto
+                    ? await DownloadPhotoAttachmentsAsync(message, cancellationToken)
+                    : Array.Empty<(byte[] Data, string MediaType)>();
+
+                await HandleBotMentionAsync(telegramUserId, displayName, text, chatId, messageId, images, cancellationToken);
                 return true;
             }
 
@@ -722,13 +732,25 @@ namespace FitWifFrens.Web.Telegram
                 return false;
             }
 
-            if (!message.TryGetProperty("entities", out var entities) ||
-                !message.TryGetProperty("text", out var textJson))
+            // Telegram puts mentions in `entities` for text messages and `caption_entities`
+            // for photo/document messages, so check both.
+            string? text;
+            JsonElement entities;
+            if (message.TryGetProperty("text", out var textJson) && message.TryGetProperty("entities", out var textEntities))
+            {
+                text = textJson.GetString();
+                entities = textEntities;
+            }
+            else if (message.TryGetProperty("caption", out var captionJson) && message.TryGetProperty("caption_entities", out var captionEntities))
+            {
+                text = captionJson.GetString();
+                entities = captionEntities;
+            }
+            else
             {
                 return false;
             }
 
-            var text = textJson.GetString();
             if (text == null)
             {
                 return false;
@@ -761,7 +783,7 @@ namespace FitWifFrens.Web.Telegram
             return false;
         }
 
-        private async Task HandleBotMentionAsync(long telegramUserId, string senderDisplayName, string messageText, string chatId, int replyToMessageId, CancellationToken cancellationToken)
+        private async Task HandleBotMentionAsync(long telegramUserId, string senderDisplayName, string messageText, string chatId, int replyToMessageId, IReadOnlyList<(byte[] Data, string MediaType)> images, CancellationToken cancellationToken)
         {
             try
             {
@@ -841,7 +863,8 @@ namespace FitWifFrens.Web.Telegram
                     cancellationToken,
                     allUserFacts.Count > 0 ? allUserFacts : null,
                     soulPrompt,
-                    memorySummary);
+                    memorySummary,
+                    images);
 
                 if (string.IsNullOrWhiteSpace(reply))
                 {
@@ -1532,6 +1555,76 @@ namespace FitWifFrens.Web.Telegram
             {
                 _logger.LogError(ex, "Failed to handle /personality command.");
                 await SendReplyAsync(chatId, replyToMessageId, "Something went wrong, try again later.", cancellationToken);
+            }
+        }
+
+        private async Task<IReadOnlyList<(byte[] Data, string MediaType)>> DownloadPhotoAttachmentsAsync(JsonElement message, CancellationToken cancellationToken)
+        {
+            if (!message.TryGetProperty("photo", out var photos) || photos.ValueKind != JsonValueKind.Array)
+            {
+                return Array.Empty<(byte[], string)>();
+            }
+
+            // Telegram returns the same image at multiple resolutions; pick the largest by file_size.
+            JsonElement? largest = null;
+            long largestSize = -1;
+            foreach (var photo in photos.EnumerateArray())
+            {
+                var size = photo.TryGetProperty("file_size", out var fs) && fs.TryGetInt64(out var s) ? s : 0;
+                if (size > largestSize)
+                {
+                    largest = photo;
+                    largestSize = size;
+                }
+            }
+
+            if (largest == null || !largest.Value.TryGetProperty("file_id", out var fileIdJson))
+            {
+                return Array.Empty<(byte[], string)>();
+            }
+
+            var fileId = fileIdJson.GetString();
+            if (string.IsNullOrWhiteSpace(fileId))
+            {
+                return Array.Empty<(byte[], string)>();
+            }
+
+            try
+            {
+                var token = _notificationServiceConfiguration.Token;
+                using var fileInfoResponse = await _httpClient.GetAsync(
+                    $"https://api.telegram.org/bot{token}/getFile?file_id={Uri.EscapeDataString(fileId)}",
+                    cancellationToken);
+                fileInfoResponse.EnsureSuccessStatusCode();
+
+                using var infoDoc = JsonDocument.Parse(await fileInfoResponse.Content.ReadAsStringAsync(cancellationToken));
+                if (!infoDoc.RootElement.TryGetProperty("result", out var result))
+                {
+                    return Array.Empty<(byte[], string)>();
+                }
+
+                var filePath = result.TryGetProperty("file_path", out var fp) ? fp.GetString() : null;
+                if (string.IsNullOrWhiteSpace(filePath))
+                {
+                    return Array.Empty<(byte[], string)>();
+                }
+
+                var fileBytes = await _httpClient.GetByteArrayAsync(
+                    $"https://api.telegram.org/file/bot{token}/{filePath}",
+                    cancellationToken);
+
+                var lower = filePath.ToLowerInvariant();
+                var mediaType = lower.EndsWith(".png") ? "image/png"
+                    : lower.EndsWith(".webp") ? "image/webp"
+                    : lower.EndsWith(".gif") ? "image/gif"
+                    : "image/jpeg";
+
+                return new[] { (fileBytes, mediaType) };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to download Telegram photo. FileId={FileId}", fileId);
+                return Array.Empty<(byte[], string)>();
             }
         }
 

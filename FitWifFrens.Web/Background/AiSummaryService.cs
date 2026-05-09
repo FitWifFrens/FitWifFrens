@@ -393,7 +393,8 @@ namespace FitWifFrens.Web.Background
             CancellationToken cancellationToken,
             Dictionary<string, List<string>>? allUserFacts = null,
             string? soulPrompt = null,
-            string? memorySummary = null)
+            string? memorySummary = null,
+            IReadOnlyList<(byte[] Data, string MediaType)>? images = null)
         {
             try
             {
@@ -407,9 +408,15 @@ namespace FitWifFrens.Web.Background
                     ? "Recent chat messages:\n" + string.Join("\n", messageLines) + "\n\n"
                     : string.Empty;
 
+                var hasImages = images != null && images.Count > 0;
+                var imageNote = hasImages
+                    ? $"{senderName} also shared an image — examine it and weave your observations into the reply when relevant.\n\n"
+                    : string.Empty;
+
                 var prompt =
                     Persona("You are a witty, knowledgeable fitness group chat assistant called FitWifFrensBot. ", soulPrompt) +
                     $"A group member named {senderName} just mentioned you with this message: \"{userMessage}\"\n\n" +
+                    imageNote +
                     $"Respond directly and conversationally. Match your reply length to what the message actually calls for — " +
                     $"a simple question or banter deserves a short punchy reply (1-2 sentences), while something that needs a real answer can be a bit longer. " +
                     Tone("Be funny and aware of the group's fitness stats — don't be afraid to call people out gently. ", soulPrompt) +
@@ -420,7 +427,7 @@ namespace FitWifFrens.Web.Background
                     FormatFactsForPrompt(allUserFacts) +
                     $"Output only your reply, nothing else.";
 
-                return await CallClaude(prompt, cancellationToken, soulPrompt, maxTokens: 512);
+                return await CallClaude(prompt, cancellationToken, soulPrompt, maxTokens: 512, images: images);
             }
             catch (Exception ex)
             {
@@ -784,15 +791,38 @@ namespace FitWifFrens.Web.Background
             return sb.ToString();
         }
 
-        private async Task<string?> CallClaude(string prompt, CancellationToken cancellationToken, string? soulPrompt = null, int maxTokens = 512)
+        private async Task<string?> CallClaude(string prompt, CancellationToken cancellationToken, string? soulPrompt = null, int maxTokens = 512, IReadOnlyList<(byte[] Data, string MediaType)>? images = null)
         {
             if (_client == null) return null;
 
-            _logger.LogInformation("AiSummaryService: calling Claude API.");
+            _logger.LogInformation("AiSummaryService: calling Claude API. Images={ImageCount}", images?.Count ?? 0);
+
+            Message userMessage;
+            if (images != null && images.Count > 0)
+            {
+                var content = new List<ContentBase>(images.Count + 1);
+                foreach (var (data, mediaType) in images)
+                {
+                    content.Add(new ImageContent
+                    {
+                        Source = new ImageSource
+                        {
+                            MediaType = mediaType,
+                            Data = Convert.ToBase64String(data),
+                        }
+                    });
+                }
+                content.Add(new TextContent { Text = prompt });
+                userMessage = new Message { Role = RoleType.User, Content = content };
+            }
+            else
+            {
+                userMessage = new Message(RoleType.User, prompt);
+            }
 
             var parameters = new MessageParameters
             {
-                Messages = [new Message(RoleType.User, prompt)],
+                Messages = [userMessage],
                 MaxTokens = maxTokens,
                 Model = "claude-sonnet-4-6",
                 Stream = false,
