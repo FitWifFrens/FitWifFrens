@@ -649,6 +649,59 @@ namespace FitWifFrens.Web.Background
         }
 
         /// <summary>
+        /// Given a structured snapshot of the group's current state, lets the model decide whether
+        /// there is anything worth saying right now. Returns null if the model elects to stay silent
+        /// (or if the AI client is not configured).
+        /// </summary>
+        public async Task<string?> GenerateAmbientMessage(
+            string contextSnapshot,
+            CancellationToken cancellationToken,
+            Dictionary<string, List<string>>? userFacts = null,
+            string? soulPrompt = null,
+            string? memorySummary = null)
+        {
+            try
+            {
+                var prompt =
+                    Persona("You are a witty fitness group coach hanging out in a Telegram group chat. ", soulPrompt) +
+                    "You have just been woken up and handed a snapshot of the group's current state. " +
+                    "Your job: decide whether there is something genuinely worth posting to the chat right now — " +
+                    "a milestone hit, a streak broken, a missed weigh-in worth nudging, a quiet day worth stirring up, " +
+                    "something the recent chat hinted at, or just good timing for a check-in. " +
+                    "If nothing meaningful jumps out, stay silent — do NOT manufacture a reason to post.\n\n" +
+                    "Output rules:\n" +
+                    "- If you decide to post: output ONLY the message text (max ~50 words, 1-3 short sentences). " +
+                    "No quotes, no preamble, no \"Here's a message:\". Just the message.\n" +
+                    "- If you decide not to post: output the single word SKIP and nothing else.\n" +
+                    Tone("Vary tone — sometimes hyped, sometimes teasing, sometimes warm. Never generic. ", soulPrompt) +
+                    "Reference specific people, numbers, or recent events from the snapshot to ground the message. " +
+                    "Avoid repeating something you've already said in the recent chat history.\n\n" +
+                    FormatMemoryForPrompt(memorySummary) +
+                    FormatFactsForPrompt(userFacts) +
+                    "Current snapshot:\n" + contextSnapshot;
+
+                var response = await CallClaude(prompt, cancellationToken, soulPrompt, maxTokens: 512);
+                if (string.IsNullOrWhiteSpace(response))
+                {
+                    return null;
+                }
+
+                var trimmed = response.Trim().TrimEnd('.', '!', '?').Trim();
+                if (string.Equals(trimmed, "SKIP", StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
+
+                return response.Trim();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ambient message generation failed. Error: {Message}", ex.Message);
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Analyzes recent chat messages and the existing memory summary to produce an updated summary document.
         /// </summary>
         public async Task<string?> ExtractMemories(
