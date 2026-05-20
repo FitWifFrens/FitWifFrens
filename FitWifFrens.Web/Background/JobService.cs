@@ -96,7 +96,12 @@ namespace FitWifFrens.Web.Background
                 {
                     TimeZone = TimeZoneInfo.Utc
                 });
-            
+
+            _recurringJobManager.AddOrUpdate<AmbientChatService>(
+                nameof(AmbientChatService) + nameof(AmbientChatService.SendAmbientMessage),
+                s => s.SendAmbientMessage(cancellationToken),
+                Cron.Never);
+
             _backgroundJobClient.Enqueue<TelegramBotService>(s => s.RegisterBotCommandsAsync(CancellationToken.None));
 
             return Task.CompletedTask;

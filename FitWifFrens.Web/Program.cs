@@ -181,6 +181,7 @@ namespace FitWifFrens.Web
             builder.Services.AddScoped<TelegramCorrelationSummaryService>();
             builder.Services.AddScoped<WeighInReminderService>();
             builder.Services.AddScoped<CommitmentPeriodService>();
+            builder.Services.AddScoped<AmbientChatService>();
 
             builder.Services.AddScoped<IMetamaskInterop, MetamaskBlazorInterop>();
             builder.Services.AddScoped<MetamaskHostProvider>();
