@@ -32,6 +32,8 @@ namespace FitWifFrens.Web.Background
             _recurringJobManager.AddOrUpdate<CommitmentPeriodService>(nameof(CommitmentPeriodService) + nameof(CommitmentPeriodService.UpdateCommitmentPeriods), s => s.UpdateCommitmentPeriods(cancellationToken), Cron.Never);
             
             _recurringJobManager.AddOrUpdate<TelegramBotService>(nameof(TelegramBotService) + nameof(TelegramBotService.ExtractAllChatMemoriesAsync), s => s.ExtractAllChatMemoriesAsync(cancellationToken), Cron.Never);
+
+            _recurringJobManager.AddOrUpdate<AmbientChatService>(nameof(AmbientChatService) + nameof(AmbientChatService.SendAmbientMessage), s => s.SendAmbientMessage(cancellationToken), Cron.Never);
 #else
             _recurringJobManager.AddOrUpdate<StravaService>(nameof(StravaService) + nameof(StravaService.UpdateWebhook), s => s.UpdateWebhook(cancellationToken), Cron.Never);
             _recurringJobManager.AddOrUpdate<WithingsService>(nameof(WithingsService) + nameof(WithingsService.UpdateWebhooks), s => s.UpdateWebhooks(cancellationToken), Cron.Never);
@@ -50,6 +52,8 @@ namespace FitWifFrens.Web.Background
             {
                 TimeZone = TimeZoneInfo.Utc
             });
+
+            _recurringJobManager.AddOrUpdate<AmbientChatService>(nameof(AmbientChatService) + nameof(AmbientChatService.SendAmbientMessage), s => s.SendAmbientMessage(cancellationToken), Cron.HourInterval(3));
 #endif
             
             _recurringJobManager.AddOrUpdate<TelegramPollJobService>(
@@ -96,11 +100,6 @@ namespace FitWifFrens.Web.Background
                 {
                     TimeZone = TimeZoneInfo.Utc
                 });
-
-            _recurringJobManager.AddOrUpdate<AmbientChatService>(
-                nameof(AmbientChatService) + nameof(AmbientChatService.SendAmbientMessage),
-                s => s.SendAmbientMessage(cancellationToken),
-                Cron.Never);
 
             _backgroundJobClient.Enqueue<TelegramBotService>(s => s.RegisterBotCommandsAsync(CancellationToken.None));
 
