@@ -876,7 +876,7 @@ namespace FitWifFrens.Web.Background
             {
                 Messages = [userMessage],
                 MaxTokens = maxTokens,
-                Model = "claude-opus-4-7",
+                Model = "claude-sonnet-4-6",
                 Stream = false,
                 Temperature = 1m,
                 SystemMessage = soulPrompt,
