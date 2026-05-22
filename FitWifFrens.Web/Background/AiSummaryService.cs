@@ -1,5 +1,4 @@
 using Anthropic.SDK;
-using Anthropic.SDK.Constants;
 using Anthropic.SDK.Messaging;
 using FitWifFrens.Data;
 using Microsoft.EntityFrameworkCore;
@@ -877,7 +876,7 @@ namespace FitWifFrens.Web.Background
             {
                 Messages = [userMessage],
                 MaxTokens = maxTokens,
-                Model = "claude-sonnet-4-6",
+                Model = "claude-opus-4-7",
                 Stream = false,
                 Temperature = 1m,
                 SystemMessage = soulPrompt,
