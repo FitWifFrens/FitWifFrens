@@ -109,7 +109,7 @@ namespace FitWifFrens.Playground
             var lastMessageDay = DateOnly.FromDateTime(messages[^1].Timestamp);
 
             // Reuse the live extraction logic (same prompt, token limit and self-capping behaviour).
-            var aiSummaryService = new AiSummaryService(new AnthropicClient(apiKey), _loggerFactory.CreateLogger<AiSummaryService>());
+            var aiSummaryService = new AiSummaryService(new AnthropicClient(apiKey, new HttpClient { Timeout = TimeSpan.FromSeconds(600) }), _loggerFactory.CreateLogger<AiSummaryService>());
 
             _logger.LogInformation("Rebuilding memory from {Start} to {End} ({Count} messages). Output: {Output}",
                 startDate, lastMessageDay, messages.Count, Path.GetFullPath(outputMemoryFilePath));
