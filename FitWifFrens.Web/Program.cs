@@ -169,7 +169,7 @@ namespace FitWifFrens.Web
 
             var anthropicApiKey = builder.Configuration.GetValue<string>("Services:Anthropic:ApiKey");
             builder.Services.AddSingleton<AnthropicClient?>(_ =>
-                string.IsNullOrWhiteSpace(anthropicApiKey) ? null : new AnthropicClient(anthropicApiKey));
+                string.IsNullOrWhiteSpace(anthropicApiKey) ? null : new AnthropicClient(anthropicApiKey, new HttpClient { Timeout = TimeSpan.FromSeconds(600) }));
             builder.Services.AddScoped<AiSummaryService>();
 
             builder.Services.AddScoped<MicrosoftService>();

@@ -738,14 +738,14 @@ namespace FitWifFrens.Web.Background
                     "- Add new information learned from the recent messages\n" +
                     "- Keep it factual and concise but comprehensive\n" +
                     "- Do NOT include trivial things (greetings, one-word reactions)\n" +
-                    "- IMPORTANT: the whole summary must fit within a strict size budget — keep it under roughly 4000 words. " +
+                    "- IMPORTANT: the whole summary must fit within a strict size budget — keep it under roughly 10000 words. " +
                     "If adding new information would push it over, condense the wording and drop the least important or oldest details " +
                     "(prioritise keeping recent and recurring information) so the complete summary always fits within the budget\n\n" +
                     existingSection +
                     "Recent messages:\n" + string.Join("\n", messageLines) + "\n\n" +
                     "Output only the updated summary, nothing else.";
 
-                return await CallClaude(prompt, cancellationToken, soulPrompt, maxTokens: 8192);
+                return await CallClaude(prompt, cancellationToken, soulPrompt, maxTokens: 16_384);
             }
             catch (Exception ex)
             {
