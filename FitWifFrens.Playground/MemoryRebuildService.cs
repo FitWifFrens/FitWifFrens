@@ -3,108 +3,164 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Anthropic.SDK;
-using FitWifFrens.Data;
 using FitWifFrens.Web; // Constants
 using FitWifFrens.Web.Background; // AiSummaryService
-using Microsoft.EntityFrameworkCore;
 
 namespace FitWifFrens.Playground
 {
     /// <summary>
-    /// One-off recovery utility. Imports a Telegram chat-history export into the ChatMessages
-    /// table, then rebuilds the bot's long-term memory day by day from a known good point.
+    /// One-off, file-based memory rebuild utility. Reads a starting memory summary from a local file
+    /// and a Telegram chat-history export, then rebuilds the memory day by day from a given start date,
+    /// writing the result to a local output file. It never touches the database — review the output and
+    /// paste it into BotMemory.Summary yourself.
     ///
-    /// Usage:
-    /// 1. Manually seed the BotMemory row for the chat with the last good Summary and set its
-    ///    UpdatedTime to the day you want to rebuild forward from.
-    /// 2. Export the chat history from Telegram Desktop (Export chat history -> JSON -> result.json).
-    /// 3. Point MemoryRebuild:ExportFilePath (config) or DefaultExportFilePath (below) at result.json.
-    /// 4. Enable this service in Program.cs (and disable RecreateService) and run the Playground.
+    /// Configuration (user secrets / appsettings / command line):
+    ///   Services:Anthropic:ApiKey          - Anthropic API key (already used by the web app)
+    ///   MemoryRebuild:ExportFilePath       - Telegram Desktop export (result.json) with the chat history
+    ///   MemoryRebuild:StartDate            - date to start rebuilding from, e.g. 2026-05-01 (UTC, inclusive)
+    ///   MemoryRebuild:InputMemoryFilePath  - optional file with the last good memory to start from
+    ///   MemoryRebuild:OutputMemoryFilePath - where to write the rebuilt memory (default: memory-rebuilt.md)
+    ///   MemoryRebuild:SoulFilePath         - optional file whose contents are used as the bot "soul" system prompt
     ///
-    /// The rebuild loads BotMemory.UpdatedTime as the starting point and walks one day at a time up
-    /// to now, feeding each day's messages plus the running summary into AiSummaryService.ExtractMemories
-    /// and saving the result back to the database after every day (with UpdatedTime advanced to that
-    /// day's boundary, so a re-run resumes where it left off).
+    /// The rebuilt memory is written to the output file after every day, so you can watch it grow and
+    /// keep progress if the run is interrupted.
     /// </summary>
     public class MemoryRebuildService : IHostedService
     {
-        // ===== Edit these before running =====
+        private const string DefaultOutputMemoryFilePath = "memory-rebuilt.md";
 
-        /// <summary>Import the Telegram export JSON into ChatMessages before rebuilding.</summary>
-        private const bool DoImport = true;
-
-        /// <summary>Rebuild the memory summary day by day.</summary>
-        private const bool DoRebuild = true;
-
-        /// <summary>
-        /// Path to the Telegram Desktop export (result.json). Overridable via the config key
-        /// "MemoryRebuild:ExportFilePath".
-        /// </summary>
-        private const string DefaultExportFilePath = "result.json";
-
-        // =====================================
-
-        private readonly IServiceScopeFactory _scopeFactory;
         private readonly IConfiguration _configuration;
+        private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger<MemoryRebuildService> _logger;
 
-        public MemoryRebuildService(IServiceScopeFactory scopeFactory, IConfiguration configuration, ILogger<MemoryRebuildService> logger)
+        public MemoryRebuildService(IConfiguration configuration, ILoggerFactory loggerFactory, ILogger<MemoryRebuildService> logger)
         {
-            _scopeFactory = scopeFactory;
             _configuration = configuration;
+            _loggerFactory = loggerFactory;
             _logger = logger;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            // The chat to rebuild — defaults to the bot's configured chat so imported messages and the
-            // seeded BotMemory line up with how the live bot stores data.
-            var chatId = _configuration.GetValue<string>("Services:Telegram:ChatId");
-            if (string.IsNullOrWhiteSpace(chatId))
+            var apiKey = _configuration.GetValue<string>("Services:Anthropic:ApiKey");
+            if (string.IsNullOrWhiteSpace(apiKey))
             {
-                throw new InvalidOperationException("Services:Telegram:ChatId is not configured. Set it (user secrets / appsettings) before running the memory rebuild.");
+                throw new InvalidOperationException("Services:Anthropic:ApiKey is not configured.");
             }
 
-            if (DoImport)
+            var exportFilePath = _configuration.GetValue<string>("MemoryRebuild:ExportFilePath");
+            if (string.IsNullOrWhiteSpace(exportFilePath))
             {
-                var exportFilePath = _configuration.GetValue<string>("MemoryRebuild:ExportFilePath") ?? DefaultExportFilePath;
-                await ImportTelegramExportAsync(chatId, exportFilePath, cancellationToken);
+                throw new InvalidOperationException("MemoryRebuild:ExportFilePath is not configured (path to the Telegram export result.json).");
+            }
+            if (!File.Exists(exportFilePath))
+            {
+                throw new FileNotFoundException($"Telegram export not found at '{Path.GetFullPath(exportFilePath)}'.", exportFilePath);
             }
 
-            if (DoRebuild)
+            var startDateText = _configuration.GetValue<string>("MemoryRebuild:StartDate");
+            if (string.IsNullOrWhiteSpace(startDateText) ||
+                !DateOnly.TryParse(startDateText, CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDate))
             {
-                await RebuildMemoryAsync(chatId, cancellationToken);
+                throw new InvalidOperationException("MemoryRebuild:StartDate is not configured or invalid (expected a date like 2026-05-01, interpreted as UTC).");
             }
 
-            _logger.LogInformation("MemoryRebuildService finished.");
+            var inputMemoryFilePath = _configuration.GetValue<string>("MemoryRebuild:InputMemoryFilePath");
+            var outputMemoryFilePath = _configuration.GetValue<string>("MemoryRebuild:OutputMemoryFilePath") ?? DefaultOutputMemoryFilePath;
+            var soulFilePath = _configuration.GetValue<string>("MemoryRebuild:SoulFilePath");
+
+            var outputDirectory = Path.GetDirectoryName(Path.GetFullPath(outputMemoryFilePath));
+            if (!string.IsNullOrEmpty(outputDirectory))
+            {
+                Directory.CreateDirectory(outputDirectory);
+            }
+
+            // Starting memory (optional — omit to rebuild from scratch).
+            var summary = string.Empty;
+            if (!string.IsNullOrWhiteSpace(inputMemoryFilePath))
+            {
+                if (!File.Exists(inputMemoryFilePath))
+                {
+                    throw new FileNotFoundException($"Input memory file not found at '{Path.GetFullPath(inputMemoryFilePath)}'.", inputMemoryFilePath);
+                }
+                summary = await File.ReadAllTextAsync(inputMemoryFilePath, cancellationToken);
+                _logger.LogInformation("Loaded starting memory ({Length} chars) from {Path}.", summary.Length, inputMemoryFilePath);
+            }
+            else
+            {
+                _logger.LogInformation("No input memory file configured — starting from an empty summary.");
+            }
+
+            // Optional bot personality, used as the extraction system message (matches the live bot).
+            string? soulPrompt = null;
+            if (!string.IsNullOrWhiteSpace(soulFilePath) && File.Exists(soulFilePath))
+            {
+                soulPrompt = await File.ReadAllTextAsync(soulFilePath, cancellationToken);
+            }
+
+            var messages = await LoadExportMessagesAsync(exportFilePath, cancellationToken);
+            if (messages.Count == 0)
+            {
+                _logger.LogWarning("No usable messages found in the export, nothing to rebuild.");
+                return;
+            }
+
+            var byDay = messages.ToLookup(m => DateOnly.FromDateTime(m.Timestamp));
+            var lastMessageDay = DateOnly.FromDateTime(messages[^1].Timestamp);
+
+            // Reuse the live extraction logic (same prompt, token limit and self-capping behaviour).
+            var aiSummaryService = new AiSummaryService(new AnthropicClient(apiKey), _loggerFactory.CreateLogger<AiSummaryService>());
+
+            _logger.LogInformation("Rebuilding memory from {Start} to {End} ({Count} messages). Output: {Output}",
+                startDate, lastMessageDay, messages.Count, Path.GetFullPath(outputMemoryFilePath));
+
+            for (var day = startDate; day <= lastMessageDay; day = day.AddDays(1))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var dayMessages = byDay[day].ToList();
+                if (dayMessages.Count == 0)
+                {
+                    _logger.LogInformation("{Date}: no messages.", day);
+                    continue;
+                }
+
+                var updated = await aiSummaryService.ExtractMemories(
+                    dayMessages.Select(m => (m.DisplayName, m.Text, m.Timestamp)),
+                    string.IsNullOrWhiteSpace(summary) ? null : summary,
+                    cancellationToken,
+                    soulPrompt);
+
+                if (!string.IsNullOrWhiteSpace(updated))
+                {
+                    summary = updated.Length > Constants.Memory.MaxSummaryLength ? updated[..Constants.Memory.MaxSummaryLength] : updated;
+                    // Persist after every day so progress is kept if the run is interrupted.
+                    await File.WriteAllTextAsync(outputMemoryFilePath, summary, cancellationToken);
+                }
+
+                _logger.LogInformation("{Date}: processed {Count} messages, summary now {Length} chars.", day, dayMessages.Count, summary.Length);
+            }
+
+            await File.WriteAllTextAsync(outputMemoryFilePath, summary, cancellationToken);
+            _logger.LogInformation("Memory rebuild complete. Final memory written to {Path} ({Length} chars).", Path.GetFullPath(outputMemoryFilePath), summary.Length);
         }
 
         public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-        private async Task ImportTelegramExportAsync(string chatId, string exportFilePath, CancellationToken cancellationToken)
+        private static async Task<List<ExportMessage>> LoadExportMessagesAsync(string exportFilePath, CancellationToken cancellationToken)
         {
-            if (!File.Exists(exportFilePath))
-            {
-                throw new FileNotFoundException(
-                    $"Telegram export not found at '{Path.GetFullPath(exportFilePath)}'. Set MemoryRebuild:ExportFilePath or place result.json in the working directory.",
-                    exportFilePath);
-            }
-
-            _logger.LogInformation("Importing Telegram export from {Path} into ChatId={ChatId}", exportFilePath, chatId);
-
             TelegramExport? export;
             await using (var stream = File.OpenRead(exportFilePath))
             {
                 export = await JsonSerializer.DeserializeAsync<TelegramExport>(stream, cancellationToken: cancellationToken);
             }
 
-            if (export?.Messages == null || export.Messages.Count == 0)
+            var result = new List<ExportMessage>();
+            if (export?.Messages == null)
             {
-                _logger.LogWarning("Export contained no messages, skipping import.");
-                return;
+                return result;
             }
 
-            var toInsert = new List<ChatMessage>();
             foreach (var m in export.Messages)
             {
                 if (!string.Equals(m.Type, "message", StringComparison.OrdinalIgnoreCase)) continue; // skip service messages (joins, pins, etc.)
@@ -116,143 +172,11 @@ namespace FitWifFrens.Playground
                 var timestamp = ParseTimestamp(m);
                 if (timestamp == null) continue;
 
-                toInsert.Add(new ChatMessage
-                {
-                    ChatId = chatId,
-                    TelegramUserId = ParseUserId(m.FromId),
-                    DisplayName = m.From!.Length > 256 ? m.From![..256] : m.From!,
-                    Text = text.Length > 4096 ? text[..4096] : text,
-                    Timestamp = timestamp.Value
-                });
+                result.Add(new ExportMessage(timestamp.Value, m.From!, text));
             }
 
-            if (toInsert.Count == 0)
-            {
-                _logger.LogWarning("No importable messages found in export, skipping.");
-                return;
-            }
-
-            var minTs = toInsert.Min(x => x.Timestamp);
-            var maxTs = toInsert.Max(x => x.Timestamp);
-
-            await using var scope = _scopeFactory.CreateAsyncScope();
-            var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
-
-            await EnsureChatExistsAsync(dataContext, chatId, export.Name, cancellationToken);
-
-            // Make the import idempotent: clear any existing messages for this chat that fall within the
-            // export's date range before inserting, so re-running doesn't create duplicates.
-            var existing = await dataContext.ChatMessages
-                .Where(x => x.ChatId == chatId && x.Timestamp >= minTs && x.Timestamp <= maxTs)
-                .ToListAsync(cancellationToken);
-            if (existing.Count > 0)
-            {
-                _logger.LogInformation("Removing {Count} existing messages in the import range before re-import.", existing.Count);
-                dataContext.ChatMessages.RemoveRange(existing);
-                await dataContext.SaveChangesAsync(cancellationToken);
-            }
-
-            dataContext.ChatMessages.AddRange(toInsert);
-            await dataContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Imported {Count} messages spanning {Min:yyyy-MM-dd} to {Max:yyyy-MM-dd}.", toInsert.Count, minTs, maxTs);
-        }
-
-        private async Task RebuildMemoryAsync(string chatId, CancellationToken cancellationToken)
-        {
-            await using var scope = _scopeFactory.CreateAsyncScope();
-            var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
-            var aiSummaryService = scope.ServiceProvider.GetRequiredService<AiSummaryService>();
-
-            // Fail loudly rather than silently advancing UpdatedTime with no summary changes.
-            if (scope.ServiceProvider.GetService<AnthropicClient>() == null)
-            {
-                throw new InvalidOperationException("Services:Anthropic:ApiKey is not configured — cannot rebuild memory without the Anthropic client.");
-            }
-
-            var memory = await dataContext.BotMemories.SingleOrDefaultAsync(m => m.ChatId == chatId, cancellationToken);
-            if (memory == null)
-            {
-                throw new InvalidOperationException(
-                    $"No BotMemory row for ChatId={chatId}. Seed it first with the last good Summary and set UpdatedTime to the point you want to rebuild from.");
-            }
-
-            var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(dataContext, chatId, cancellationToken);
-
-            var now = DateTime.UtcNow;
-            var startPoint = DateTime.SpecifyKind(memory.UpdatedTime, DateTimeKind.Utc);
-            var summary = memory.Summary;
-
-            _logger.LogInformation("Rebuilding memory for ChatId={ChatId} from {Start:yyyy-MM-dd HH:mm} to now.", chatId, startPoint);
-
-            // Walk one calendar day (UTC) at a time, starting from the known good point.
-            var day = new DateTime(startPoint.Year, startPoint.Month, startPoint.Day, 0, 0, 0, DateTimeKind.Utc);
-            while (day < now)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var windowStart = day < startPoint ? startPoint : day; // don't reprocess before the known point on the first day
-                var nextDay = day.AddDays(1);
-                var windowEnd = nextDay < now ? nextDay : now;         // last (partial) day ends at now
-
-                var messages = await dataContext.ChatMessages
-                    .AsNoTracking()
-                    .Where(m => m.ChatId == chatId && m.Timestamp >= windowStart && m.Timestamp < windowEnd)
-                    .OrderBy(m => m.Timestamp)
-                    .ToListAsync(cancellationToken);
-
-                if (messages.Count > 0)
-                {
-                    var updated = await aiSummaryService.ExtractMemories(
-                        messages.Select(m => (m.DisplayName, m.Text, m.Timestamp)),
-                        summary,
-                        cancellationToken,
-                        soulPrompt);
-
-                    if (!string.IsNullOrWhiteSpace(updated))
-                    {
-                        summary = updated.Length > Constants.Memory.MaxSummaryLength ? updated[..Constants.Memory.MaxSummaryLength] : updated;
-                        memory.Summary = summary;
-                    }
-
-                    _logger.LogInformation("Processed {Date:yyyy-MM-dd}: {Count} messages.", day, messages.Count);
-                }
-                else
-                {
-                    _logger.LogInformation("Processed {Date:yyyy-MM-dd}: no messages.", day);
-                }
-
-                // Persist progress after every day so the run is resumable.
-                memory.UpdatedTime = windowEnd;
-                await dataContext.SaveChangesAsync(cancellationToken);
-
-                day = nextDay;
-            }
-
-            _logger.LogInformation("Memory rebuild complete for ChatId={ChatId}. Final summary length={Length} chars.", chatId, summary.Length);
-        }
-
-        private static async Task EnsureChatExistsAsync(DataContext dataContext, string chatId, string? title, CancellationToken cancellationToken)
-        {
-            var chat = await dataContext.Chats.FindAsync(new object[] { chatId }, cancellationToken);
-            if (chat == null)
-            {
-                dataContext.Chats.Add(new Chat
-                {
-                    ChatId = chatId,
-                    Title = title,
-                    CreatedTime = DateTime.UtcNow
-                });
-                await dataContext.SaveChangesAsync(cancellationToken);
-            }
-        }
-
-        private static long ParseUserId(string? fromId)
-        {
-            // Telegram from_id looks like "user123456789" or "channel123456789"; keep just the digits.
-            if (string.IsNullOrEmpty(fromId)) return 0;
-            var digits = new string(fromId.Where(char.IsDigit).ToArray());
-            return long.TryParse(digits, out var id) ? id : 0;
+            result.Sort((a, b) => a.Timestamp.CompareTo(b.Timestamp));
+            return result;
         }
 
         private static DateTime? ParseTimestamp(TelegramExportMessage m)
@@ -302,6 +226,8 @@ namespace FitWifFrens.Playground
             }
         }
 
+        private sealed record ExportMessage(DateTime Timestamp, string DisplayName, string Text);
+
         private sealed class TelegramExport
         {
             [JsonPropertyName("name")] public string? Name { get; set; }
@@ -314,7 +240,6 @@ namespace FitWifFrens.Playground
             [JsonPropertyName("date")] public string? Date { get; set; }
             [JsonPropertyName("date_unixtime")] public string? DateUnixtime { get; set; }
             [JsonPropertyName("from")] public string? From { get; set; }
-            [JsonPropertyName("from_id")] public string? FromId { get; set; }
             [JsonPropertyName("text")] public JsonElement Text { get; set; }
         }
     }
