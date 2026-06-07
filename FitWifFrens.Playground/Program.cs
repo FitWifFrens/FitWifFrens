@@ -1,4 +1,6 @@
-﻿using FitWifFrens.Data;
+﻿using Anthropic.SDK;
+using FitWifFrens.Data;
+using FitWifFrens.Web.Background;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,9 +29,18 @@ namespace FitWifFrens.Playground
                 .AddSignInManager()
                 .AddDefaultTokenProviders();
 
-            builder.Services.AddHostedService<RecreateService>();
+            // AI services reused from the web app, needed by MemoryRebuildService.
+            var anthropicApiKey = builder.Configuration.GetValue<string>("Services:Anthropic:ApiKey");
+            builder.Services.AddSingleton<AnthropicClient?>(_ =>
+                string.IsNullOrWhiteSpace(anthropicApiKey) ? null : new AnthropicClient(anthropicApiKey));
+            builder.Services.AddScoped<AiSummaryService>();
+
+            // Enable ONE hosted service at a time.
+            // WARNING: RecreateService DELETES and reseeds the database — never run it against production.
+            //builder.Services.AddHostedService<RecreateService>();
             //builder.Services.AddHostedService<UpdateService>();
             //builder.Services.AddHostedService<MigrateService>();
+            builder.Services.AddHostedService<MemoryRebuildService>();
 
             var app = builder.Build();
 
