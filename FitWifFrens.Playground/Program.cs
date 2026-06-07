@@ -27,9 +27,12 @@ namespace FitWifFrens.Playground
                 .AddSignInManager()
                 .AddDefaultTokenProviders();
 
-            builder.Services.AddHostedService<RecreateService>();
+            // Enable ONE hosted service at a time.
+            // WARNING: RecreateService DELETES and reseeds the database — never run it against production.
+            //builder.Services.AddHostedService<RecreateService>();
             //builder.Services.AddHostedService<UpdateService>();
             //builder.Services.AddHostedService<MigrateService>();
+            builder.Services.AddHostedService<MemoryRebuildService>();
 
             var app = builder.Build();
 

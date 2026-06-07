@@ -14,6 +14,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FitWifFrens.Data\FitWifFrens.Data.csproj" />
+    <!-- Referenced so the memory rebuild utility can reuse AiSummaryService (and the Anthropic client). -->
+    <ProjectReference Include="..\FitWifFrens.Web\FitWifFrens.Web.csproj" />
   </ItemGroup>
 
 </Project>
