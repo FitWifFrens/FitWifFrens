@@ -136,6 +136,7 @@ namespace FitWifFrens.Playground
                     summary = updated.Length > Constants.Memory.MaxSummaryLength ? updated[..Constants.Memory.MaxSummaryLength] : updated;
                     // Persist after every day so progress is kept if the run is interrupted.
                     await File.WriteAllTextAsync(outputMemoryFilePath, summary, cancellationToken);
+                    await File.WriteAllTextAsync(outputMemoryFilePath.Replace(".md", "-" + day.ToString("yyyy-MM-dd") + ".md"), summary, cancellationToken);
                 }
 
                 _logger.LogInformation("{Date}: processed {Count} messages, summary now {Length} chars.", day, dayMessages.Count, summary.Length);
