@@ -882,16 +882,16 @@ namespace FitWifFrens.Web.Background
                 Model = "claude-sonnet-4-6",
                 Stream = false,
                 Temperature = 1m,
-                SystemMessage = soulPrompt,
+                System = soulPrompt != null ? [new SystemMessage(soulPrompt)] : new List<SystemMessage>(),
             };
 
             if (enableWebSearch)
             {
                 // Offer the web search tool — Claude decides per-message whether to use it.
                 // Legacy version keeps it to plain web search (no code-execution sandbox).
-                parameters.Tools = new List<Common.Tool>
+                parameters.Tools = new List<Anthropic.SDK.Common.Tool>
                 {
-                    Common.ServerTools.GetWebSearchTool(maxUses: 3, toolVersion: Common.ServerTools.WebSearchVersionLegacy)
+                    Anthropic.SDK.Messaging.ServerTools.GetWebSearchTool(maxUses: 3, toolVersion: Anthropic.SDK.Messaging.ServerTools.WebSearchVersionLegacy)
                 };
             }
 
