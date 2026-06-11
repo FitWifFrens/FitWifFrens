@@ -393,6 +393,10 @@ namespace FitWifFrens.Web.Background
 
                         var activityCategory = activityJson.GetProperty("category").GetInt32();
 
+                        // Tracks whether this activity has already been announced to the chat (e.g. via the
+                        // workout path) so the generic "Exercise" catch-all below doesn't double-post it.
+                        var sentToChat = false;
+
                         // https://github.com/zono-dev/withings-go/blob/514b8ec90158faa88e36508f778fbf7c2b03e209/withings/enum.go#L125
                         // https://help.validic.com/space/VCS/1681326286/Withings+API+Integration+for+Developers
                         if (activityCategory == 6 || activityCategory == 308)
@@ -449,6 +453,8 @@ namespace FitWifFrens.Web.Background
                                         user.Nickname!, "Workout", activityMinutes, cancellationToken, userFacts, soulPrompt);
 
                                     _ = _notificationService.Notify(message);
+
+                                    sentToChat = true;
                                 }
 
                                 _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
@@ -480,6 +486,28 @@ namespace FitWifFrens.Web.Background
 
                             if (userMetricProviderValue == null)
                             {
+                                // Anything not already announced (walks, runs, swims, ...) gets pushed to
+                                // the chat as a generic exercise log.
+                                if (!sentToChat && !string.IsNullOrWhiteSpace(user.Nickname))
+                                {
+                                    var factsRaw = await _dataContext.UserFacts
+                                        .AsNoTracking()
+                                        .Where(f => f.UserId == user.Id)
+                                        .Select(f => f.Fact)
+                                        .ToListAsync(cancellationToken);
+                                    var userFacts = factsRaw.Count > 0
+                                        ? new Dictionary<string, List<string>> { { user.Nickname!, factsRaw } }
+                                        : null;
+
+                                    var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(_dataContext, _notificationService.ChatId, cancellationToken);
+                                    var message = await _aiSummaryService.GenerateExerciseMessage(
+                                        user.Nickname!, null, activityMinutes, cancellationToken, userFacts, soulPrompt);
+
+                                    _ = _notificationService.Notify(message);
+
+                                    sentToChat = true;
+                                }
+
                                 _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
                                 {
                                     UserId = user.Id,
