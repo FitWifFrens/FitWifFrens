@@ -108,6 +108,7 @@ namespace FitWifFrens.Web.Background
             }
         }
 
+        [DisableConcurrentExecution(300)]
         public async Task UpdateProviderMetricValues(string stravaId, CancellationToken cancellationToken)
         {
             try
@@ -262,6 +263,21 @@ namespace FitWifFrens.Web.Background
 
                         if (userMetricProviderValue == null)
                         {
+                            _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
+                            {
+                                UserId = user.Id,
+                                MetricName = "Workout",
+                                ProviderName = "Strava",
+                                MetricType = MetricType.Minutes,
+                                Time = activityTime,
+                                Value = activityMinutes
+                            });
+
+                            await _dataContext.SaveChangesAsync(cancellationToken);
+
+                            // Only announce once the row is persisted: if a concurrent re-scan of the same
+                            // activity already inserted it, this SaveChanges throws on the composite key and
+                            // we never reach the notify, so exactly one run posts the message.
                             if (!string.IsNullOrWhiteSpace(user.Nickname))
                             {
                                 var factsRaw = await _dataContext.UserFacts
@@ -282,18 +298,6 @@ namespace FitWifFrens.Web.Background
 
                                 sentToChat = true;
                             }
-
-                            _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
-                            {
-                                UserId = user.Id,
-                                MetricName = "Workout",
-                                ProviderName = "Strava",
-                                MetricType = MetricType.Minutes,
-                                Time = activityTime,
-                                Value = activityMinutes
-                            });
-
-                            await _dataContext.SaveChangesAsync(cancellationToken);
                         }
                         else if (userMetricProviderValue.Value != activityMinutes)
                         {
@@ -312,8 +316,21 @@ namespace FitWifFrens.Web.Background
 
                         if (userMetricProviderValue == null)
                         {
+                            _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
+                            {
+                                UserId = user.Id,
+                                MetricName = "Exercise",
+                                ProviderName = "Strava",
+                                MetricType = MetricType.Minutes,
+                                Time = activityTime,
+                                Value = activityMinutes
+                            });
+
+                            await _dataContext.SaveChangesAsync(cancellationToken);
+
                             // Anything not already announced (runs, rides, swims, walks, hikes, ...) gets
-                            // pushed to the chat as a generic exercise log.
+                            // pushed to the chat as a generic exercise log — but only after the row is
+                            // persisted, so concurrent re-scans of the same activity can't each post.
                             if (!sentToChat && !string.IsNullOrWhiteSpace(user.Nickname))
                             {
                                 var factsRaw = await _dataContext.UserFacts
@@ -334,18 +351,6 @@ namespace FitWifFrens.Web.Background
 
                                 sentToChat = true;
                             }
-
-                            _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
-                            {
-                                UserId = user.Id,
-                                MetricName = "Exercise",
-                                ProviderName = "Strava",
-                                MetricType = MetricType.Minutes,
-                                Time = activityTime,
-                                Value = activityMinutes
-                            });
-
-                            await _dataContext.SaveChangesAsync(cancellationToken);
                         }
                         else if (userMetricProviderValue.Value != activityMinutes)
                         {

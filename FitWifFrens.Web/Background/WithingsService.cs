@@ -161,6 +161,7 @@ namespace FitWifFrens.Web.Background
             }
         }
 
+        [DisableConcurrentExecution(300)]
         public async Task UpdateProviderMetricValues(string withingsId, CancellationToken cancellationToken)
         {
             try
@@ -267,6 +268,21 @@ namespace FitWifFrens.Web.Background
 
                                 if (userMetricProviderValue == null)
                                 {
+                                    _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
+                                    {
+                                        UserId = user.Id,
+                                        MetricName = "Weight",
+                                        ProviderName = "Withings",
+                                        MetricType = MetricType.Value,
+                                        Time = measureGroupTime,
+                                        Value = measureValue
+                                    });
+
+                                    await _dataContext.SaveChangesAsync(cancellationToken);
+
+                                    // Only announce once the row is persisted: a concurrent re-scan of the
+                                    // same weigh-in fails this insert on the composite key, so exactly one
+                                    // run posts the message.
                                     if (!string.IsNullOrWhiteSpace(user.Nickname))
                                     {
                                         var monthStartTime = measureGroupTime.AddDays(-28);
@@ -298,18 +314,6 @@ namespace FitWifFrens.Web.Background
 
                                         _ = _notificationService.Notify(message);
                                     }
-
-                                    _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
-                                    {
-                                        UserId = user.Id,
-                                        MetricName = "Weight",
-                                        ProviderName = "Withings",
-                                        MetricType = MetricType.Value,
-                                        Time = measureGroupTime,
-                                        Value = measureValue
-                                    });
-
-                                    await _dataContext.SaveChangesAsync(cancellationToken);
                                 }
                                 else if (userMetricProviderValue.Value != measureValue)
                                 {
@@ -330,11 +334,6 @@ namespace FitWifFrens.Web.Background
 
                                 if (userMetricProviderValue == null)
                                 {
-                                    if (!string.IsNullOrWhiteSpace(user.Nickname))
-                                    {
-                                        _ = _notificationService.Notify($"{user.Nickname} just measured their blood pressure");
-                                    }
-
                                     _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
                                     {
                                         UserId = user.Id,
@@ -346,6 +345,12 @@ namespace FitWifFrens.Web.Background
                                     });
 
                                     await _dataContext.SaveChangesAsync(cancellationToken);
+
+                                    // Announce only after the insert wins, so duplicate re-scans don't repeat it.
+                                    if (!string.IsNullOrWhiteSpace(user.Nickname))
+                                    {
+                                        _ = _notificationService.Notify($"{user.Nickname} just measured their blood pressure");
+                                    }
                                 }
                                 else if (userMetricProviderValue.Value != measureValue)
                                 {
@@ -437,6 +442,20 @@ namespace FitWifFrens.Web.Background
 
                             if (userMetricProviderValue == null)
                             {
+                                _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
+                                {
+                                    UserId = user.Id,
+                                    MetricName = "Workout",
+                                    ProviderName = "Withings",
+                                    MetricType = MetricType.Minutes,
+                                    Time = activityStartTime,
+                                    Value = activityMinutes
+                                });
+
+                                await _dataContext.SaveChangesAsync(cancellationToken);
+
+                                // Announce only after the row is persisted so concurrent re-scans of the
+                                // same activity can't each post (the composite key lets one insert win).
                                 if (!string.IsNullOrWhiteSpace(user.Nickname))
                                 {
                                     var factsRaw = await _dataContext.UserFacts
@@ -456,18 +475,6 @@ namespace FitWifFrens.Web.Background
 
                                     sentToChat = true;
                                 }
-
-                                _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
-                                {
-                                    UserId = user.Id,
-                                    MetricName = "Workout",
-                                    ProviderName = "Withings",
-                                    MetricType = MetricType.Minutes,
-                                    Time = activityStartTime,
-                                    Value = activityMinutes
-                                });
-
-                                await _dataContext.SaveChangesAsync(cancellationToken);
                             }
                             else if (userMetricProviderValue.Value != activityMinutes)
                             {
@@ -486,8 +493,21 @@ namespace FitWifFrens.Web.Background
 
                             if (userMetricProviderValue == null)
                             {
-                                // Anything not already announced (walks, runs, swims, ...) gets pushed to
-                                // the chat as a generic exercise log.
+                                _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
+                                {
+                                    UserId = user.Id,
+                                    MetricName = "Exercise",
+                                    ProviderName = "Withings",
+                                    MetricType = MetricType.Minutes,
+                                    Time = activityStartTime,
+                                    Value = activityMinutes
+                                });
+
+                                await _dataContext.SaveChangesAsync(cancellationToken);
+
+                                // Anything not already announced (walks, runs, swims, ...) gets pushed to the
+                                // chat as a generic exercise log — but only after the row is persisted, so
+                                // concurrent re-scans of the same activity can't each post.
                                 if (!sentToChat && !string.IsNullOrWhiteSpace(user.Nickname))
                                 {
                                     var factsRaw = await _dataContext.UserFacts
@@ -507,18 +527,6 @@ namespace FitWifFrens.Web.Background
 
                                     sentToChat = true;
                                 }
-
-                                _dataContext.UserMetricProviderValues.Add(new UserMetricProviderValue
-                                {
-                                    UserId = user.Id,
-                                    MetricName = "Exercise",
-                                    ProviderName = "Withings",
-                                    MetricType = MetricType.Minutes,
-                                    Time = activityStartTime,
-                                    Value = activityMinutes
-                                });
-
-                                await _dataContext.SaveChangesAsync(cancellationToken);
                             }
                             else if (userMetricProviderValue.Value != activityMinutes)
                             {
