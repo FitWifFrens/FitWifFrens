@@ -426,7 +426,7 @@ namespace FitWifFrens.Web.Background
                     FormatFactsForPrompt(allUserFacts) +
                     $"Output only your reply, nothing else.";
 
-                return await CallClaude(prompt, cancellationToken, soulPrompt, maxTokens: 512, images: images);
+                return await CallClaude(prompt, cancellationToken, soulPrompt, maxTokens: 512, images: images, enableWebSearch: true);
             }
             catch (Exception ex)
             {
@@ -846,11 +846,11 @@ namespace FitWifFrens.Web.Background
             return sb.ToString();
         }
 
-        private async Task<string?> CallClaude(string prompt, CancellationToken cancellationToken, string? soulPrompt = null, int maxTokens = 512, IReadOnlyList<(byte[] Data, string MediaType)>? images = null)
+        private async Task<string?> CallClaude(string prompt, CancellationToken cancellationToken, string? soulPrompt = null, int maxTokens = 512, IReadOnlyList<(byte[] Data, string MediaType)>? images = null, bool enableWebSearch = false)
         {
             if (_client == null) return null;
 
-            _logger.LogInformation("AiSummaryService: calling Claude API. Images={ImageCount}", images?.Count ?? 0);
+            _logger.LogInformation("AiSummaryService: calling Claude API. Images={ImageCount}, WebSearch={WebSearch}", images?.Count ?? 0, enableWebSearch);
 
             Message userMessage;
             if (images != null && images.Count > 0)
@@ -885,16 +885,34 @@ namespace FitWifFrens.Web.Background
                 SystemMessage = soulPrompt,
             };
 
+            if (enableWebSearch)
+            {
+                // Offer the web search tool — Claude decides per-message whether to use it.
+                // Legacy version keeps it to plain web search (no code-execution sandbox).
+                parameters.Tools = new List<Common.Tool>
+                {
+                    Common.ServerTools.GetWebSearchTool(maxUses: 3, toolVersion: Common.ServerTools.WebSearchVersionLegacy)
+                };
+            }
+
             var response = await _client.Messages.GetClaudeMessageAsync(parameters);
 
             _logger.LogInformation("AiSummaryService: Claude API responded. StopReason={StopReason}, ContentCount={Count}",
                 response.StopReason, response.Content?.Count ?? 0);
 
-            var text = response.Content?.OfType<TextContent>().FirstOrDefault()?.Text?.Trim();
+            // A web search turn can return multiple text blocks interleaved with tool/result
+            // blocks — join them so the full reply is captured, not just the first fragment.
+            var text = response.Content == null
+                ? null
+                : string.Join("\n\n", response.Content
+                    .OfType<TextContent>()
+                    .Select(t => t.Text?.Trim())
+                    .Where(t => !string.IsNullOrWhiteSpace(t)));
 
             if (string.IsNullOrWhiteSpace(text))
             {
                 _logger.LogWarning("AiSummaryService: response contained no text content.");
+                return null;
             }
 
             return text;
