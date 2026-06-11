@@ -255,6 +255,58 @@ namespace FitWifFrens.Web.Background
         }
 
         /// <summary>
+        /// Generates a short, fun message for a real-time, generic exercise notification — any
+        /// physical activity that isn't already posted via a more specific path (e.g. a workout).
+        /// Pass <paramref name="activityType"/> when a meaningful type is known (e.g. a Strava
+        /// "Swim"/"Walk"), or null for a generic "exercise" message. Falls back to a simple
+        /// default message if the AI call fails.
+        /// </summary>
+        public async Task<string> GenerateExerciseMessage(
+            string name,
+            string? activityType,
+            double minutes,
+            CancellationToken cancellationToken,
+            Dictionary<string, List<string>>? userFacts = null,
+            string? soulPrompt = null,
+            string? memorySummary = null)
+        {
+            var hasType = !string.IsNullOrWhiteSpace(activityType) &&
+                          !string.Equals(activityType, "Exercise", StringComparison.OrdinalIgnoreCase);
+
+            var header = hasType
+                ? $"{name} just logged a {activityType} ({minutes:F0} min)"
+                : $"{name} just logged {minutes:F0} min of exercise";
+
+            try
+            {
+                var activityDescription = hasType
+                    ? $"{name} just logged a {activityType} for {minutes:F0} minutes. "
+                    : $"{name} just logged {minutes:F0} minutes of exercise. ";
+
+                var prompt =
+                    Persona("You are a witty fitness group coach posting a real-time exercise update to a group chat. ", soulPrompt) +
+                    activityDescription +
+                    $"Write a single short message (max 20 words) reacting to this exercise. " +
+                    Tone("Be fun and encouraging. Vary the style each time. Keep it friendly. ", soulPrompt) +
+                    FormatMemoryForPrompt(memorySummary) +
+                    FormatFactsForPrompt(userFacts) +
+                    $"Output only the message, no quotes, no extra text.";
+
+                var aiMessage = await CallClaude(prompt, cancellationToken, soulPrompt);
+                if (aiMessage != null)
+                {
+                    return $"{header}\n{aiMessage}";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "AI exercise message generation failed, using default. Error: {Message}", ex.Message);
+            }
+
+            return header;
+        }
+
+        /// <summary>
         /// Generates a fun reminder for a user who hasn't weighed in for a while.
         /// Falls back to a default reminder if the AI call fails.
         /// </summary>
