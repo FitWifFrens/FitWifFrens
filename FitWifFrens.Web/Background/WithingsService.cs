@@ -161,7 +161,6 @@ namespace FitWifFrens.Web.Background
             }
         }
 
-        [DisableConcurrentExecution(300)]
         public async Task UpdateProviderMetricValues(string withingsId, CancellationToken cancellationToken)
         {
             try

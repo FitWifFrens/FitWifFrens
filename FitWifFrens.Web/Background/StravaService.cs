@@ -108,7 +108,6 @@ namespace FitWifFrens.Web.Background
             }
         }
 
-        [DisableConcurrentExecution(300)]
         public async Task UpdateProviderMetricValues(string stravaId, CancellationToken cancellationToken)
         {
             try
