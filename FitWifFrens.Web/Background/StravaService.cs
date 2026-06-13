@@ -279,19 +279,10 @@ namespace FitWifFrens.Web.Background
                             // we never reach the notify, so exactly one run posts the message.
                             if (!string.IsNullOrWhiteSpace(user.Nickname))
                             {
-                                var factsRaw = await _dataContext.UserFacts
-                                    .AsNoTracking()
-                                    .Where(f => f.UserId == user.Id)
-                                    .Select(f => f.Fact)
-                                    .ToListAsync(cancellationToken);
-                                var userFacts = factsRaw.Count > 0
-                                    ? new Dictionary<string, List<string>> { { user.Nickname!, factsRaw } }
-                                    : null;
-
-                                var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(_dataContext, _notificationService.ChatId, cancellationToken);
-                                var memorySummary = await AiSummaryService.LoadMemorySummaryAsync(_dataContext, _notificationService.ChatId, cancellationToken);
+                                var context = await AiSummaryService.LoadChatContextAsync(_dataContext, _notificationService.ChatId, cancellationToken);
                                 var message = await _aiSummaryService.GenerateWorkoutMessage(
-                                    user.Nickname!, activityType!, activityMinutes, cancellationToken, userFacts, soulPrompt, memorySummary);
+                                    user.Nickname!, activityType!, activityMinutes, cancellationToken,
+                                    context.AllUserFacts, context.SoulPrompt, context.MemorySummary, context.RecentMessages);
 
                                 _ = _notificationService.Notify(message);
 
@@ -332,19 +323,10 @@ namespace FitWifFrens.Web.Background
                             // persisted, so concurrent re-scans of the same activity can't each post.
                             if (!sentToChat && !string.IsNullOrWhiteSpace(user.Nickname))
                             {
-                                var factsRaw = await _dataContext.UserFacts
-                                    .AsNoTracking()
-                                    .Where(f => f.UserId == user.Id)
-                                    .Select(f => f.Fact)
-                                    .ToListAsync(cancellationToken);
-                                var userFacts = factsRaw.Count > 0
-                                    ? new Dictionary<string, List<string>> { { user.Nickname!, factsRaw } }
-                                    : null;
-
-                                var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(_dataContext, _notificationService.ChatId, cancellationToken);
-                                var memorySummary = await AiSummaryService.LoadMemorySummaryAsync(_dataContext, _notificationService.ChatId, cancellationToken);
+                                var context = await AiSummaryService.LoadChatContextAsync(_dataContext, _notificationService.ChatId, cancellationToken);
                                 var message = await _aiSummaryService.GenerateExerciseMessage(
-                                    user.Nickname!, activityType, activityMinutes, cancellationToken, userFacts, soulPrompt, memorySummary);
+                                    user.Nickname!, activityType, activityMinutes, cancellationToken,
+                                    context.AllUserFacts, context.SoulPrompt, context.MemorySummary, context.RecentMessages);
 
                                 _ = _notificationService.Notify(message);
 

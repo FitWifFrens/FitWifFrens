@@ -406,21 +406,12 @@ namespace FitWifFrens.Web.Telegram
                     var question = _pollContextById.TryGetValue(pollId, out var pollContext) ? pollContext.Question : "diet poll";
                     var chosenOption = optionRule?.Text ?? $"option {optionIndex + 1}";
 
-                    var factsRaw = await dataContext.UserFacts
-                        .AsNoTracking()
-                        .Where(f => f.UserId == user.Id)
-                        .Select(f => f.Fact)
-                        .ToListAsync(cancellationToken);
-                    var userFacts = factsRaw.Count > 0
-                        ? new Dictionary<string, List<string>> { { user.Nickname!, factsRaw } }
-                        : null;
-
                     var pollChatId = pollContext?.ChatId ?? _notificationServiceConfiguration.ChatId;
-                    var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(dataContext, pollChatId, cancellationToken);
-                    var memorySummary = await AiSummaryService.LoadMemorySummaryAsync(dataContext, pollChatId, cancellationToken);
+                    var context = await AiSummaryService.LoadChatContextAsync(dataContext, pollChatId, cancellationToken);
 
                     var message = await aiSummaryService.GeneratePollResponseMessage(
-                        user.Nickname!, question, chosenOption, cancellationToken, userFacts, soulPrompt, memorySummary);
+                        user.Nickname!, question, chosenOption, cancellationToken,
+                        context.AllUserFacts, context.SoulPrompt, context.MemorySummary, context.RecentMessages);
 
                     _ = notificationService.Notify(message);
                 }

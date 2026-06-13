@@ -48,6 +48,9 @@ namespace FitWifFrens.Web.Background
                     })
                     .ToListAsync(cancellationToken);
 
+                // Load the shared bot context once — it's the same memory/history for every reminder.
+                var context = await AiSummaryService.LoadChatContextAsync(_dataContext, _notificationService.ChatId, cancellationToken);
+
                 foreach (var user in usersWithWithings)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -65,19 +68,9 @@ namespace FitWifFrens.Web.Background
                         "Sending weigh-in reminder. UserId={UserId}, Nickname={Nickname}, DaysSince={DaysSince}",
                         user.Id, user.Nickname, daysSince?.ToString() ?? "never");
 
-                    var factsRaw = await _dataContext.UserFacts
-                        .AsNoTracking()
-                        .Where(f => f.UserId == user.Id)
-                        .Select(f => f.Fact)
-                        .ToListAsync(cancellationToken);
-                    var userFacts = factsRaw.Count > 0
-                        ? new Dictionary<string, List<string>> { { user.Nickname!, factsRaw } }
-                        : null;
-
-                    var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(_dataContext, _notificationService.ChatId, cancellationToken);
-                    var memorySummary = await AiSummaryService.LoadMemorySummaryAsync(_dataContext, _notificationService.ChatId, cancellationToken);
                     var message = await _aiSummaryService.GenerateWeighInReminder(
-                        user.Nickname!, daysSince, cancellationToken, userFacts, soulPrompt, memorySummary);
+                        user.Nickname!, daysSince, cancellationToken,
+                        context.AllUserFacts, context.SoulPrompt, context.MemorySummary, context.RecentMessages);
 
                     _ = _notificationService.Notify(message);
                 }

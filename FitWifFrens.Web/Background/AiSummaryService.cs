@@ -181,7 +181,8 @@ namespace FitWifFrens.Web.Background
             CancellationToken cancellationToken,
             Dictionary<string, List<string>>? userFacts = null,
             string? soulPrompt = null,
-            string? memorySummary = null)
+            string? memorySummary = null,
+            IReadOnlyList<(string DisplayName, string Text, DateTime Timestamp)>? recentMessages = null)
         {
             try
             {
@@ -198,6 +199,7 @@ namespace FitWifFrens.Web.Background
                     $"{name} just weighed in at {weight} kg ({changeText}). " +
                     $"Write a single short message (max 20 words) reacting to this weigh-in. " +
                     Tone("Be fun, encouraging if they lost weight, playfully teasing if they gained. Keep it friendly. ", soulPrompt) +
+                    FormatChatHistoryForPrompt(recentMessages) +
                     FormatMemoryForPrompt(memorySummary) +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
@@ -227,7 +229,8 @@ namespace FitWifFrens.Web.Background
             CancellationToken cancellationToken,
             Dictionary<string, List<string>>? userFacts = null,
             string? soulPrompt = null,
-            string? memorySummary = null)
+            string? memorySummary = null,
+            IReadOnlyList<(string DisplayName, string Text, DateTime Timestamp)>? recentMessages = null)
         {
             try
             {
@@ -236,6 +239,7 @@ namespace FitWifFrens.Web.Background
                     $"{name} just logged a {activityType} for {minutes:F0} minutes. " +
                     $"Write a single short message (max 20 words) reacting to this workout. " +
                     Tone("Be fun and encouraging. Vary the style each time. Keep it friendly. ", soulPrompt) +
+                    FormatChatHistoryForPrompt(recentMessages) +
                     FormatMemoryForPrompt(memorySummary) +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
@@ -268,7 +272,8 @@ namespace FitWifFrens.Web.Background
             CancellationToken cancellationToken,
             Dictionary<string, List<string>>? userFacts = null,
             string? soulPrompt = null,
-            string? memorySummary = null)
+            string? memorySummary = null,
+            IReadOnlyList<(string DisplayName, string Text, DateTime Timestamp)>? recentMessages = null)
         {
             var hasType = !string.IsNullOrWhiteSpace(activityType) &&
                           !string.Equals(activityType, "Exercise", StringComparison.OrdinalIgnoreCase);
@@ -288,6 +293,7 @@ namespace FitWifFrens.Web.Background
                     activityDescription +
                     $"Write a single short message (max 20 words) reacting to this exercise. " +
                     Tone("Be fun and encouraging. Vary the style each time. Keep it friendly. ", soulPrompt) +
+                    FormatChatHistoryForPrompt(recentMessages) +
                     FormatMemoryForPrompt(memorySummary) +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
@@ -316,7 +322,8 @@ namespace FitWifFrens.Web.Background
             CancellationToken cancellationToken,
             Dictionary<string, List<string>>? userFacts = null,
             string? soulPrompt = null,
-            string? memorySummary = null)
+            string? memorySummary = null,
+            IReadOnlyList<(string DisplayName, string Text, DateTime Timestamp)>? recentMessages = null)
         {
             try
             {
@@ -329,6 +336,7 @@ namespace FitWifFrens.Web.Background
                     $"{name} hasn't weighed in for {timeText}. " +
                     $"Write a single short message (max 20 words) reminding them to step on the scale. " +
                     Tone("Be fun, playful, and slightly teasing but always friendly and encouraging. Vary the style each time. ", soulPrompt) +
+                    FormatChatHistoryForPrompt(recentMessages) +
                     FormatMemoryForPrompt(memorySummary) +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
@@ -361,7 +369,8 @@ namespace FitWifFrens.Web.Background
             CancellationToken cancellationToken,
             Dictionary<string, List<string>>? userFacts = null,
             string? soulPrompt = null,
-            string? memorySummary = null)
+            string? memorySummary = null,
+            IReadOnlyList<(string DisplayName, string Text, DateTime Timestamp)>? recentMessages = null)
         {
             try
             {
@@ -370,6 +379,7 @@ namespace FitWifFrens.Web.Background
                     $"{name} just answered the daily poll \"{question}\" with \"{chosenOption}\". " +
                     $"Write a single short message (max 20 words) reacting to their answer. " +
                     Tone("Be fun, playful, and vary the style each time. If their answer is positive, be encouraging. If negative, be supportive. Keep it friendly. ", soulPrompt) +
+                    FormatChatHistoryForPrompt(recentMessages) +
                     FormatMemoryForPrompt(memorySummary) +
                     FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
@@ -843,6 +853,21 @@ namespace FitWifFrens.Web.Background
             return $"You have the following long-term memory about this group and its members. Use this to personalize your responses:\n{memorySummary}\n\n";
         }
 
+        private static string FormatChatHistoryForPrompt(IReadOnlyList<(string DisplayName, string Text, DateTime Timestamp)>? recentMessages)
+        {
+            if (recentMessages == null || recentMessages.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            var lines = recentMessages.Select(m => m.DisplayName == "Bot"
+                ? $"[{m.Timestamp:HH:mm}] [You previously said]: {m.Text}"
+                : $"[{m.Timestamp:HH:mm}] {m.DisplayName}: {m.Text}");
+
+            return "Recent chat messages (so you know what's currently being discussed — react naturally to it and don't repeat yourself):\n" +
+                   string.Join("\n", lines) + "\n\n";
+        }
+
         public static async Task<string?> LoadSoulPromptAsync(DataContext dataContext, string chatId, CancellationToken cancellationToken)
         {
             var traits = await dataContext.BotSouls
@@ -870,6 +895,72 @@ namespace FitWifFrens.Web.Background
             }
 
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// The baseline context the bot has whenever it speaks: its personality (soul), long-term
+        /// memory, known facts about every member, and the recent chat history — i.e. the same
+        /// memory and current history it has when replying to a mention. Individual message types
+        /// layer their own specifics (a weigh-in value, an activity, a poll answer, ...) on top.
+        /// </summary>
+        public sealed record BotChatContext(
+            string? SoulPrompt,
+            string? MemorySummary,
+            Dictionary<string, List<string>>? AllUserFacts,
+            IReadOnlyList<(string DisplayName, string Text, DateTime Timestamp)> RecentMessages);
+
+        /// <summary>
+        /// Loads the standard <see cref="BotChatContext"/> for a chat so every message the bot sends
+        /// is grounded in the same memory and current history, regardless of what triggered it.
+        /// </summary>
+        public static async Task<BotChatContext> LoadChatContextAsync(DataContext dataContext, string chatId, CancellationToken cancellationToken)
+        {
+            var soulPrompt = await LoadSoulPromptAsync(dataContext, chatId, cancellationToken);
+            var memorySummary = await LoadMemorySummaryAsync(dataContext, chatId, cancellationToken);
+            var allUserFacts = await LoadAllUserFactsAsync(dataContext, cancellationToken);
+            var recentMessages = await LoadRecentMessagesAsync(dataContext, chatId, cancellationToken);
+
+            return new BotChatContext(soulPrompt, memorySummary, allUserFacts, recentMessages);
+        }
+
+        /// <summary>
+        /// Loads the known facts for every group member, keyed by display name — so the bot knows
+        /// the whole group, not just whoever triggered the current message.
+        /// </summary>
+        public static async Task<Dictionary<string, List<string>>?> LoadAllUserFactsAsync(DataContext dataContext, CancellationToken cancellationToken)
+        {
+            var rows = await dataContext.UserFacts
+                .AsNoTracking()
+                .Where(f => f.User.TelegramUserId != null)
+                .Select(f => new { f.User.Nickname, f.User.UserName, f.Fact })
+                .ToListAsync(cancellationToken);
+
+            if (rows.Count == 0)
+            {
+                return null;
+            }
+
+            return rows
+                .GroupBy(r => r.Nickname ?? r.UserName ?? "Unknown")
+                .ToDictionary(g => g.Key, g => g.Select(r => r.Fact).ToList());
+        }
+
+        /// <summary>
+        /// Loads the most recent chat messages (oldest-first) so the bot has the current conversation
+        /// as context — the same window used when it replies to a mention.
+        /// </summary>
+        public static async Task<IReadOnlyList<(string DisplayName, string Text, DateTime Timestamp)>> LoadRecentMessagesAsync(DataContext dataContext, string chatId, CancellationToken cancellationToken)
+        {
+            var rows = await dataContext.ChatMessages
+                .AsNoTracking()
+                .Where(m => m.ChatId == chatId)
+                .OrderByDescending(m => m.Timestamp)
+                .Take(Constants.Memory.MentionContextMessageCount)
+                .OrderBy(m => m.Timestamp)
+                .Select(m => new { m.DisplayName, m.Text, m.Timestamp })
+                .ToListAsync(cancellationToken);
+
+            return rows.Select(m => (m.DisplayName, m.Text, m.Timestamp)).ToList();
         }
 
         private static string Persona(string defaultPersona, string? soulPrompt)

@@ -297,19 +297,10 @@ namespace FitWifFrens.Web.Background
                                             ? Math.Round(measureValue - monthAgoValue.Value, 1)
                                             : null;
 
-                                        var factsRaw = await _dataContext.UserFacts
-                                            .AsNoTracking()
-                                            .Where(f => f.UserId == user.Id)
-                                            .Select(f => f.Fact)
-                                            .ToListAsync(cancellationToken);
-                                        var userFacts = factsRaw.Count > 0
-                                            ? new Dictionary<string, List<string>> { { user.Nickname!, factsRaw } }
-                                            : null;
-
-                                        var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(_dataContext, _notificationService.ChatId, cancellationToken);
-                                        var memorySummary = await AiSummaryService.LoadMemorySummaryAsync(_dataContext, _notificationService.ChatId, cancellationToken);
+                                        var context = await AiSummaryService.LoadChatContextAsync(_dataContext, _notificationService.ChatId, cancellationToken);
                                         var message = await _aiSummaryService.GenerateWeighInMessage(
-                                            user.Nickname!, measureValue, monthChange, cancellationToken, userFacts, soulPrompt, memorySummary);
+                                            user.Nickname!, measureValue, monthChange, cancellationToken,
+                                            context.AllUserFacts, context.SoulPrompt, context.MemorySummary, context.RecentMessages);
 
                                         _ = _notificationService.Notify(message);
                                     }
@@ -457,18 +448,10 @@ namespace FitWifFrens.Web.Background
                                 // same activity can't each post (the composite key lets one insert win).
                                 if (!string.IsNullOrWhiteSpace(user.Nickname))
                                 {
-                                    var factsRaw = await _dataContext.UserFacts
-                                        .AsNoTracking()
-                                        .Where(f => f.UserId == user.Id)
-                                        .Select(f => f.Fact)
-                                        .ToListAsync(cancellationToken);
-                                    var userFacts = factsRaw.Count > 0
-                                        ? new Dictionary<string, List<string>> { { user.Nickname!, factsRaw } }
-                                        : null;
-
-                                    var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(_dataContext, _notificationService.ChatId, cancellationToken);
+                                    var context = await AiSummaryService.LoadChatContextAsync(_dataContext, _notificationService.ChatId, cancellationToken);
                                     var message = await _aiSummaryService.GenerateWorkoutMessage(
-                                        user.Nickname!, "Workout", activityMinutes, cancellationToken, userFacts, soulPrompt);
+                                        user.Nickname!, "Workout", activityMinutes, cancellationToken,
+                                        context.AllUserFacts, context.SoulPrompt, context.MemorySummary, context.RecentMessages);
 
                                     _ = _notificationService.Notify(message);
 
@@ -509,18 +492,10 @@ namespace FitWifFrens.Web.Background
                                 // concurrent re-scans of the same activity can't each post.
                                 if (!sentToChat && !string.IsNullOrWhiteSpace(user.Nickname))
                                 {
-                                    var factsRaw = await _dataContext.UserFacts
-                                        .AsNoTracking()
-                                        .Where(f => f.UserId == user.Id)
-                                        .Select(f => f.Fact)
-                                        .ToListAsync(cancellationToken);
-                                    var userFacts = factsRaw.Count > 0
-                                        ? new Dictionary<string, List<string>> { { user.Nickname!, factsRaw } }
-                                        : null;
-
-                                    var soulPrompt = await AiSummaryService.LoadSoulPromptAsync(_dataContext, _notificationService.ChatId, cancellationToken);
+                                    var context = await AiSummaryService.LoadChatContextAsync(_dataContext, _notificationService.ChatId, cancellationToken);
                                     var message = await _aiSummaryService.GenerateExerciseMessage(
-                                        user.Nickname!, null, activityMinutes, cancellationToken, userFacts, soulPrompt);
+                                        user.Nickname!, null, activityMinutes, cancellationToken,
+                                        context.AllUserFacts, context.SoulPrompt, context.MemorySummary, context.RecentMessages);
 
                                     _ = _notificationService.Notify(message);
 
