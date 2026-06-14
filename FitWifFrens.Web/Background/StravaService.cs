@@ -192,9 +192,11 @@ namespace FitWifFrens.Web.Background
 
                     var activityType = activityJson.GetProperty("type").GetString();
 
-                    // Tracks whether this activity has already been announced to the chat (e.g. via the
-                    // workout path) so the generic "Exercise" catch-all below doesn't double-post it.
-                    var sentToChat = false;
+                    // A workout-type activity gets the tailored "workout" message; everything else gets
+                    // the generic "exercise" message. Either way the announcement is gated below on the
+                    // single Exercise row (written for every activity), so it fires exactly once even when
+                    // concurrent webhook re-scans race.
+                    var isWorkoutType = activityType == "Workout" || activityType == "WeightTraining" || activityType == "Yoga";
 
                     if (activityType == "Run" || activityType == "VirtualRun")
                     {
@@ -273,21 +275,6 @@ namespace FitWifFrens.Web.Background
                             });
 
                             await _dataContext.SaveChangesAsync(cancellationToken);
-
-                            // Only announce once the row is persisted: if a concurrent re-scan of the same
-                            // activity already inserted it, this SaveChanges throws on the composite key and
-                            // we never reach the notify, so exactly one run posts the message.
-                            if (!string.IsNullOrWhiteSpace(user.Nickname))
-                            {
-                                var context = await AiSummaryService.LoadChatContextAsync(_dataContext, _notificationService.ChatId, cancellationToken);
-                                var message = await _aiSummaryService.GenerateWorkoutMessage(
-                                    user.Nickname!, activityType!, activityMinutes, cancellationToken,
-                                    context.AllUserFacts, context.SoulPrompt, context.MemorySummary, context.RecentMessages);
-
-                                _ = _notificationService.Notify(message);
-
-                                sentToChat = true;
-                            }
                         }
                         else if (userMetricProviderValue.Value != activityMinutes)
                         {
@@ -318,19 +305,22 @@ namespace FitWifFrens.Web.Background
 
                             await _dataContext.SaveChangesAsync(cancellationToken);
 
-                            // Anything not already announced (runs, rides, swims, walks, hikes, ...) gets
-                            // pushed to the chat as a generic exercise log — but only after the row is
-                            // persisted, so concurrent re-scans of the same activity can't each post.
-                            if (!sentToChat && !string.IsNullOrWhiteSpace(user.Nickname))
+                            // The Exercise row is written for every activity, so it's the single gate for
+                            // announcing it — exactly once, even under concurrent re-scans (the loser of the
+                            // insert throws on the composite key and never reaches here). Workout-type
+                            // activities get the tailored workout message; everything else the generic one.
+                            if (!string.IsNullOrWhiteSpace(user.Nickname))
                             {
                                 var context = await AiSummaryService.LoadChatContextAsync(_dataContext, _notificationService.ChatId, cancellationToken);
-                                var message = await _aiSummaryService.GenerateExerciseMessage(
-                                    user.Nickname!, activityType, activityMinutes, cancellationToken,
-                                    context.AllUserFacts, context.SoulPrompt, context.MemorySummary, context.RecentMessages);
+                                var message = isWorkoutType
+                                    ? await _aiSummaryService.GenerateWorkoutMessage(
+                                        user.Nickname!, activityType!, activityMinutes, cancellationToken,
+                                        context.AllUserFacts, context.SoulPrompt, context.MemorySummary, context.RecentMessages)
+                                    : await _aiSummaryService.GenerateExerciseMessage(
+                                        user.Nickname!, activityType, activityMinutes, cancellationToken,
+                                        context.AllUserFacts, context.SoulPrompt, context.MemorySummary, context.RecentMessages);
 
                                 _ = _notificationService.Notify(message);
-
-                                sentToChat = true;
                             }
                         }
                         else if (userMetricProviderValue.Value != activityMinutes)
