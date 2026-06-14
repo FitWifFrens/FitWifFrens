@@ -313,6 +313,44 @@ namespace FitWifFrens.Web.Background
         }
 
         /// <summary>
+        /// Generates a short, fun message for a real-time blood pressure measurement notification.
+        /// Falls back to a simple default message if the AI call fails.
+        /// </summary>
+        public async Task<string> GenerateBloodPressureMessage(
+            string name,
+            CancellationToken cancellationToken,
+            Dictionary<string, List<string>>? userFacts = null,
+            string? soulPrompt = null,
+            string? memorySummary = null,
+            IReadOnlyList<(string DisplayName, string Text, DateTime Timestamp)>? recentMessages = null)
+        {
+            try
+            {
+                var prompt =
+                    Persona("You are a witty fitness group coach posting a real-time health update to a group chat. ", soulPrompt) +
+                    $"{name} just took a blood pressure measurement. " +
+                    $"Write a single short message (max 20 words) reacting to it. " +
+                    Tone("Be fun and lightly encouraging about them keeping on top of their health. Vary the style each time. Keep it friendly. ", soulPrompt) +
+                    FormatChatHistoryForPrompt(recentMessages) +
+                    FormatMemoryForPrompt(memorySummary) +
+                    FormatFactsForPrompt(userFacts) +
+                    $"Output only the message, no quotes, no extra text.";
+
+                var aiMessage = await CallClaude(prompt, cancellationToken, soulPrompt);
+                if (aiMessage != null)
+                {
+                    return $"{name} just measured their blood pressure\n{aiMessage}";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "AI blood pressure message generation failed, using default. Error: {Message}", ex.Message);
+            }
+
+            return $"{name} just measured their blood pressure";
+        }
+
+        /// <summary>
         /// Generates a fun reminder for a user who hasn't weighed in for a while.
         /// Falls back to a default reminder if the AI call fails.
         /// </summary>

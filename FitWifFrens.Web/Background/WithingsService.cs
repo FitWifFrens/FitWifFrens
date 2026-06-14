@@ -339,7 +339,12 @@ namespace FitWifFrens.Web.Background
                                     // Announce only after the insert wins, so duplicate re-scans don't repeat it.
                                     if (!string.IsNullOrWhiteSpace(user.Nickname))
                                     {
-                                        _ = _notificationService.Notify($"{user.Nickname} just measured their blood pressure");
+                                        var context = await AiSummaryService.LoadChatContextAsync(_dataContext, _notificationService.ChatId, cancellationToken);
+                                        var message = await _aiSummaryService.GenerateBloodPressureMessage(
+                                            user.Nickname!, cancellationToken,
+                                            context.AllUserFacts, context.SoulPrompt, context.MemorySummary, context.RecentMessages);
+
+                                        _ = _notificationService.Notify(message);
                                     }
                                 }
                                 else if (userMetricProviderValue.Value != measureValue)
