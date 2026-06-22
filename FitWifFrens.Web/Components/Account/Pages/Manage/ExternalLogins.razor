@@ -308,11 +308,20 @@
     {
         var userId = await UserManager.GetUserIdAsync(user);
 
-        foreach (var metric in metrics)   
+        foreach (var metric in metrics)
         {
+            var updateMetricProvider = UpdateMetricProviders!.MetricProviders!.SingleOrDefault(mp => mp.MetricName == metric.Name);
+
+            // Skip metrics that were not part of the submitted form (e.g. "Telegram Poll"),
+            // otherwise their UserMetricProvider would be incorrectly deleted.
+            if (updateMetricProvider == null)
+            {
+                continue;
+            }
+
             var userMetricProvider = userMetricProviders.SingleOrDefault(ump => ump.MetricName == metric.Name);
 
-            var updateMetricProviderName = UpdateMetricProviders!.MetricProviders!.SingleOrDefault(mp => mp.MetricName == metric.Name)?.ProviderName;
+            var updateMetricProviderName = updateMetricProvider.ProviderName;
 
             if (userMetricProvider != null)
             {
