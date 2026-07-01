@@ -418,6 +418,86 @@ namespace FitWifFrens.Web.Background
             return $"{name} rated today's diet: {chosenOption}";
         }
 
+        /// <summary>
+        /// Regenerates a fresh, funny label for each poll option while the caller keeps the
+        /// meaning-in-parentheses constant. <paramref name="meanings"/> holds each option's
+        /// fixed meaning in order; the returned list has one funny label per option in the same
+        /// order. Returns null if the AI call fails or doesn't produce a clean label for every
+        /// option (the caller then falls back to the original static option text).
+        /// </summary>
+        public async Task<IReadOnlyList<string>?> GeneratePollOptionLabels(
+            string question,
+            IReadOnlyList<string> meanings,
+            int maxLabelLength,
+            CancellationToken cancellationToken,
+            Dictionary<string, List<string>>? userFacts = null,
+            string? soulPrompt = null,
+            string? memorySummary = null)
+        {
+            if (meanings.Count == 0)
+            {
+                return null;
+            }
+
+            try
+            {
+                var levels = new StringBuilder();
+                for (var i = 0; i < meanings.Count; i++)
+                {
+                    levels.AppendLine($"{i + 1}. {meanings[i]}");
+                }
+
+                var prompt =
+                    Persona("You are a witty fitness group coach writing the answer options for a daily diet-rating poll in a group chat. ", soulPrompt) +
+                    $"The poll question is: \"{question}\". " +
+                    $"Below are the {meanings.Count} rating levels, each with its fixed meaning. For each level, write a short, funny option label that fits that meaning. " +
+                    Tone("Be playful and vary the style every time — self-deprecating, absurd, food-pun heavy, whatever lands. ", soulPrompt) +
+                    $"Match the sentiment to the meaning: positive ratings should sound proud, negative ones like cheerful chaos.\n" +
+                    $"Rules:\n" +
+                    $"- Exactly one label per level, in the same order.\n" +
+                    $"- Each label must be at most {maxLabelLength} characters.\n" +
+                    $"- Do NOT include the meaning text or any parentheses — write only the funny part.\n" +
+                    $"Return exactly one line per level in this format: N: label\n\n" +
+                    $"Rating levels:\n{levels}\n" +
+                    $"Output only the numbered label lines, nothing else.";
+
+                var response = await CallClaude(prompt, cancellationToken, soulPrompt, memorySummary: memorySummary, userFacts: userFacts);
+                if (response == null)
+                {
+                    return null;
+                }
+
+                var labels = new string?[meanings.Count];
+                foreach (var line in response.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    var colonIndex = line.IndexOf(':');
+                    if (colonIndex <= 0)
+                    {
+                        continue;
+                    }
+
+                    if (!int.TryParse(line[..colonIndex].Trim(), out var number) || number < 1 || number > meanings.Count)
+                    {
+                        continue;
+                    }
+
+                    var label = line[(colonIndex + 1)..].Trim().Trim('"');
+                    if (!string.IsNullOrWhiteSpace(label) && label.Length <= maxLabelLength)
+                    {
+                        labels[number - 1] = label;
+                    }
+                }
+
+                // Only use the AI labels if every option got a clean one — otherwise fall back.
+                return labels.Any(l => l == null) ? null : labels!;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "AI poll option label generation failed, using defaults. Error: {Message}", ex.Message);
+                return null;
+            }
+        }
+
         private static string FormatFitnessData(
             string name,
             double? weightChange,
