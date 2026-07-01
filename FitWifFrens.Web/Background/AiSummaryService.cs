@@ -52,11 +52,9 @@ namespace FitWifFrens.Web.Background
                     $"Write a single short sentence (max 15 words) as an intro to the weekly weight summary. " +
                     Tone("Keep it fun, positive, and vary the style each time — sometimes motivational, sometimes playful. ", soulPrompt) +
                     $"This week's data: {dataText}. " +
-                    FormatMemoryForPrompt(memorySummary) +
-                    FormatFactsForPrompt(userFacts) +
                     $"Output only the sentence, no quotes, no extra text.";
 
-                return await CallClaude(prompt, cancellationToken, soulPrompt) ?? "Weight Summary";
+                return await CallClaude(prompt, cancellationToken, soulPrompt, memorySummary: memorySummary, userFacts: userFacts) ?? "Weight Summary";
             }
             catch (Exception ex)
             {
@@ -93,11 +91,9 @@ namespace FitWifFrens.Web.Background
                     $"Write a single short sentence (max 15 words) as an intro to the poll summary results. " +
                     Tone("Keep it fun and vary the style each time. ", soulPrompt) +
                     $"This week's ratings: {dataText}. " +
-                    FormatMemoryForPrompt(memorySummary) +
-                    FormatFactsForPrompt(userFacts) +
                     $"Output only the sentence, no quotes, no extra text.";
 
-                return await CallClaude(prompt, cancellationToken, soulPrompt) ?? $"Q: {question}";
+                return await CallClaude(prompt, cancellationToken, soulPrompt, memorySummary: memorySummary, userFacts: userFacts) ?? $"Q: {question}";
             }
             catch (Exception ex)
             {
@@ -141,11 +137,9 @@ namespace FitWifFrens.Web.Background
                     $"If you know fun facts about a person, occasionally weave them in. " +
                     $"Return exactly one line per person in this format: NAME: comment\n\n" +
                     $"{dataText}\n\n" +
-                    FormatMemoryForPrompt(memorySummary) +
-                    FormatFactsForPrompt(userFacts) +
                     $"Output only the NAME: comment lines, nothing else.";
 
-                var response = await CallClaude(prompt, cancellationToken, soulPrompt);
+                var response = await CallClaude(prompt, cancellationToken, soulPrompt, memorySummary: memorySummary, userFacts: userFacts);
                 if (response == null) return result;
 
                 foreach (var line in response.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
@@ -200,11 +194,9 @@ namespace FitWifFrens.Web.Background
                     $"Write a single short message (max 20 words) reacting to this weigh-in. " +
                     Tone("Be fun, encouraging if they lost weight, playfully teasing if they gained. Keep it friendly. ", soulPrompt) +
                     FormatChatHistoryForPrompt(recentMessages) +
-                    FormatMemoryForPrompt(memorySummary) +
-                    FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
 
-                var aiMessage = await CallClaude(prompt, cancellationToken, soulPrompt);
+                var aiMessage = await CallClaude(prompt, cancellationToken, soulPrompt, memorySummary: memorySummary, userFacts: userFacts);
                 if (aiMessage != null)
                 {
                     return $"{name} just weighed in at {weight} kg{FormatMonthChange(monthChange)}\n{aiMessage}";
@@ -240,11 +232,9 @@ namespace FitWifFrens.Web.Background
                     $"Write a single short message (max 20 words) reacting to this workout. " +
                     Tone("Be fun and encouraging. Vary the style each time. Keep it friendly. ", soulPrompt) +
                     FormatChatHistoryForPrompt(recentMessages) +
-                    FormatMemoryForPrompt(memorySummary) +
-                    FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
 
-                var aiMessage = await CallClaude(prompt, cancellationToken, soulPrompt);
+                var aiMessage = await CallClaude(prompt, cancellationToken, soulPrompt, memorySummary: memorySummary, userFacts: userFacts);
                 if (aiMessage != null)
                 {
                     return $"{name} just logged a {activityType} ({minutes:F0} min)\n{aiMessage}";
@@ -294,11 +284,9 @@ namespace FitWifFrens.Web.Background
                     $"Write a single short message (max 20 words) reacting to this exercise. " +
                     Tone("Be fun and encouraging. Vary the style each time. Keep it friendly. ", soulPrompt) +
                     FormatChatHistoryForPrompt(recentMessages) +
-                    FormatMemoryForPrompt(memorySummary) +
-                    FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
 
-                var aiMessage = await CallClaude(prompt, cancellationToken, soulPrompt);
+                var aiMessage = await CallClaude(prompt, cancellationToken, soulPrompt, memorySummary: memorySummary, userFacts: userFacts);
                 if (aiMessage != null)
                 {
                     return $"{header}\n{aiMessage}";
@@ -332,11 +320,9 @@ namespace FitWifFrens.Web.Background
                     $"Write a single short message (max 20 words) reacting to it. " +
                     Tone("Be fun and lightly encouraging about them keeping on top of their health. Vary the style each time. Keep it friendly. ", soulPrompt) +
                     FormatChatHistoryForPrompt(recentMessages) +
-                    FormatMemoryForPrompt(memorySummary) +
-                    FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
 
-                var aiMessage = await CallClaude(prompt, cancellationToken, soulPrompt);
+                var aiMessage = await CallClaude(prompt, cancellationToken, soulPrompt, memorySummary: memorySummary, userFacts: userFacts);
                 if (aiMessage != null)
                 {
                     return $"{name} just measured their blood pressure\n{aiMessage}";
@@ -375,11 +361,9 @@ namespace FitWifFrens.Web.Background
                     $"Write a single short message (max 20 words) reminding them to step on the scale. " +
                     Tone("Be fun, playful, and slightly teasing but always friendly and encouraging. Vary the style each time. ", soulPrompt) +
                     FormatChatHistoryForPrompt(recentMessages) +
-                    FormatMemoryForPrompt(memorySummary) +
-                    FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
 
-                var aiMessage = await CallClaude(prompt, cancellationToken, soulPrompt);
+                var aiMessage = await CallClaude(prompt, cancellationToken, soulPrompt, memorySummary: memorySummary, userFacts: userFacts);
                 if (aiMessage != null)
                 {
                     return aiMessage;
@@ -418,11 +402,9 @@ namespace FitWifFrens.Web.Background
                     $"Write a single short message (max 20 words) reacting to their answer. " +
                     Tone("Be fun, playful, and vary the style each time. If their answer is positive, be encouraging. If negative, be supportive. Keep it friendly. ", soulPrompt) +
                     FormatChatHistoryForPrompt(recentMessages) +
-                    FormatMemoryForPrompt(memorySummary) +
-                    FormatFactsForPrompt(userFacts) +
                     $"Output only the message, no quotes, no extra text.";
 
-                var aiMessage = await CallClaude(prompt, cancellationToken, soulPrompt);
+                var aiMessage = await CallClaude(prompt, cancellationToken, soulPrompt, memorySummary: memorySummary, userFacts: userFacts);
                 if (aiMessage != null)
                 {
                     return $"{name} rated today's diet: {chosenOption}\n{aiMessage}";
@@ -521,12 +503,10 @@ namespace FitWifFrens.Web.Background
                     Tone("Be funny and aware of the group's fitness stats — don't be afraid to call people out gently. ", soulPrompt) +
                     $"Do NOT repeat or rephrase anything you have already said in this conversation — vary your angle, tone, or focus each time.\n\n" +
                     chatContext +
-                    FormatMemoryForPrompt(memorySummary) +
                     $"Current group fitness summary:\n{groupFitnessSummary}\n" +
-                    FormatFactsForPrompt(allUserFacts) +
                     $"Output only your reply, nothing else.";
 
-                return await CallClaude(prompt, cancellationToken, soulPrompt, maxTokens: 512, images: images, enableWebSearch: true);
+                return await CallClaude(prompt, cancellationToken, soulPrompt, maxTokens: 512, images: images, enableWebSearch: true, memorySummary: memorySummary, userFacts: allUserFacts);
             }
             catch (Exception ex)
             {
@@ -564,11 +544,9 @@ namespace FitWifFrens.Web.Background
                     $"If they have known facts, use those to make the roast even more personal and devastating. " +
                     $"Write 3-5 short punchy lines. Keep each line under 15 words. Be creative and varied. Do not number the lines.\n\n" +
                     $"{dataText}\n" +
-                    FormatMemoryForPrompt(memorySummary) +
-                    FormatFactsForPrompt(userFacts) +
                     $"Output only the roast lines, nothing else.";
 
-                return await CallClaude(prompt, cancellationToken, soulPrompt);
+                return await CallClaude(prompt, cancellationToken, soulPrompt, memorySummary: memorySummary, userFacts: userFacts);
             }
             catch (Exception ex)
             {
@@ -606,11 +584,9 @@ namespace FitWifFrens.Web.Background
                     $"If they have known facts, weave those in to make it personal. " +
                     Tone("Keep it light, fun, and uplifting. ", soulPrompt) + "\n\n" +
                     $"{dataText}\n" +
-                    FormatMemoryForPrompt(memorySummary) +
-                    FormatFactsForPrompt(userFacts) +
                     $"Output only the poem, nothing else.";
 
-                return await CallClaude(prompt, cancellationToken, soulPrompt);
+                return await CallClaude(prompt, cancellationToken, soulPrompt, memorySummary: memorySummary, userFacts: userFacts);
             }
             catch (Exception ex)
             {
@@ -653,11 +629,9 @@ namespace FitWifFrens.Web.Background
                     $"Keep each sentence under 15 words. Be creative and varied — no generic lines.\n\n" +
                     $"User: {name}\n" +
                     $"Balance: {balanceContext}\n" +
-                    FormatMemoryForPrompt(memorySummary) +
-                    FormatFactsForPrompt(userFacts) +
                     $"Output only the commentary, nothing else.";
 
-                return await CallClaude(prompt, cancellationToken, soulPrompt);
+                return await CallClaude(prompt, cancellationToken, soulPrompt, memorySummary: memorySummary, userFacts: userFacts);
             }
             catch (Exception ex)
             {
@@ -708,11 +682,9 @@ namespace FitWifFrens.Web.Background
                     $"Include one NAME line for every person below. Use their name exactly as given.\n" +
                     Tone("Vary the style each time. Be funny, be personal where facts allow, never mean-spirited. ", soulPrompt) +
                     $"\nResults:\n{winnerLines}\n{loserLines}\n\n" +
-                    FormatMemoryForPrompt(memorySummary) +
-                    FormatFactsForPrompt(userFacts) +
                     $"Output only the INTRO and NAME lines, nothing else.";
 
-                var response = await CallClaude(prompt, cancellationToken, soulPrompt);
+                var response = await CallClaude(prompt, cancellationToken, soulPrompt, memorySummary: memorySummary, userFacts: userFacts);
                 if (response == null) return empty;
 
                 string? intro = null;
@@ -775,11 +747,9 @@ namespace FitWifFrens.Web.Background
                     Tone("Vary tone — sometimes hyped, sometimes teasing, sometimes warm. Never generic. ", soulPrompt) +
                     "Reference specific people, numbers, or recent events from the snapshot to ground the message. " +
                     "Avoid repeating something you've already said in the recent chat history.\n\n" +
-                    FormatMemoryForPrompt(memorySummary) +
-                    FormatFactsForPrompt(userFacts) +
                     "Current snapshot:\n" + contextSnapshot;
 
-                var response = await CallClaude(prompt, cancellationToken, soulPrompt, maxTokens: 512);
+                var response = await CallClaude(prompt, cancellationToken, soulPrompt, maxTokens: 512, memorySummary: memorySummary, userFacts: userFacts);
                 if (string.IsNullOrWhiteSpace(response))
                 {
                     return null;
@@ -1027,7 +997,7 @@ namespace FitWifFrens.Web.Background
             return sb.ToString();
         }
 
-        private async Task<string?> CallClaude(string prompt, CancellationToken cancellationToken, string? soulPrompt = null, int maxTokens = 512, IReadOnlyList<(byte[] Data, string MediaType)>? images = null, bool enableWebSearch = false)
+        private async Task<string?> CallClaude(string prompt, CancellationToken cancellationToken, string? soulPrompt = null, int maxTokens = 512, IReadOnlyList<(byte[] Data, string MediaType)>? images = null, bool enableWebSearch = false, string? memorySummary = null, Dictionary<string, List<string>>? userFacts = null)
         {
             if (_client == null) return null;
 
@@ -1056,14 +1026,39 @@ namespace FitWifFrens.Web.Background
                 userMessage = new Message(RoleType.User, prompt);
             }
 
+            // The bot's personality (soul), long-term memory, and known facts about the
+            // group are identical across the many messages it sends in a chat. Putting them
+            // in the system prompt (rather than rebuilding them into every user message) lets
+            // us cache this large, stable prefix so it isn't re-processed on every call.
+            var systemMessages = new List<SystemMessage>();
+            if (soulPrompt != null)
+            {
+                systemMessages.Add(new SystemMessage(soulPrompt));
+            }
+
+            var memoryText = FormatMemoryForPrompt(memorySummary);
+            if (memoryText.Length > 0)
+            {
+                systemMessages.Add(new SystemMessage(memoryText));
+            }
+
+            var factsText = FormatFactsForPrompt(userFacts);
+            if (factsText.Length > 0)
+            {
+                systemMessages.Add(new SystemMessage(factsText));
+            }
+
             var parameters = new MessageParameters
             {
                 Messages = [userMessage],
                 MaxTokens = maxTokens,
-                Model = "claude-sonnet-4-6",
+                Model = "claude-sonnet-5",
                 Stream = false,
                 Temperature = 1m,
-                System = soulPrompt != null ? [new SystemMessage(soulPrompt)] : new List<SystemMessage>(),
+                System = systemMessages,
+                // Cache the system block (personality + memory + facts) so repeated calls
+                // that share this prefix are billed at the reduced cache-read rate.
+                PromptCaching = PromptCacheType.AutomaticToolsAndSystem,
             };
 
             if (enableWebSearch)
