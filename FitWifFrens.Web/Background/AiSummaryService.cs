@@ -1050,14 +1050,16 @@ namespace FitWifFrens.Web.Background
 
             // Cache the system block (personality + memory + facts) so repeated calls that
             // share this prefix are billed at the reduced cache-read rate. The breakpoint
-            // goes on the last block, which caches everything before it too. CacheControl is
-            // init-only, so rebuild the last block with it set.
+            // goes on the last block, which caches everything before it too. A 1h TTL is used
+            // because the memory summary is only rebuilt once a day, so the prefix stays
+            // stable — and every cache read refreshes the window, keeping an active chat warm
+            // off a single write. CacheControl is init-only, so rebuild the last block with it set.
             if (systemBlocks.Count > 0)
             {
                 systemBlocks[^1] = new TextBlockParam
                 {
                     Text = systemBlocks[^1].Text,
-                    CacheControl = new CacheControlEphemeral(),
+                    CacheControl = new CacheControlEphemeral { Ttl = Ttl.Ttl1h },
                 };
             }
 
@@ -1083,8 +1085,13 @@ namespace FitWifFrens.Web.Background
 
             var response = await _client.Messages.Create(parameters);
 
-            _logger.LogInformation("AiSummaryService: Claude API responded. StopReason={StopReason}, ContentCount={Count}",
-                response.StopReason, response.Content.Count);
+            // Token usage — including cache write (CacheCreationInputTokens) and cache read
+            // (CacheReadInputTokens) — so cache effectiveness can be confirmed from the logs.
+            // A healthy cache shows CacheReadTokens > 0 on repeat calls that share the prefix.
+            _logger.LogInformation(
+                "AiSummaryService: Claude API responded. StopReason={StopReason}, ContentCount={Count}, InputTokens={InputTokens}, OutputTokens={OutputTokens}, CacheWriteTokens={CacheWriteTokens}, CacheReadTokens={CacheReadTokens}",
+                response.StopReason, response.Content.Count, response.Usage.InputTokens, response.Usage.OutputTokens,
+                response.Usage.CacheCreationInputTokens, response.Usage.CacheReadInputTokens);
 
             // A web search turn can return multiple text blocks interleaved with tool/result
             // blocks — join them so the full reply is captured, not just the first fragment.
