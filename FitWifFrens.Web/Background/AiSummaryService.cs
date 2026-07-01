@@ -1,5 +1,5 @@
-using Anthropic.SDK;
-using Anthropic.SDK.Messaging;
+using Anthropic;
+using Anthropic.Models.Messages;
 using FitWifFrens.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
@@ -1003,87 +1003,96 @@ namespace FitWifFrens.Web.Background
 
             _logger.LogInformation("AiSummaryService: calling Claude API. Images={ImageCount}, WebSearch={WebSearch}", images?.Count ?? 0, enableWebSearch);
 
-            Message userMessage;
+            MessageParam userMessage;
             if (images != null && images.Count > 0)
             {
-                var content = new List<ContentBase>(images.Count + 1);
+                var content = new List<ContentBlockParam>(images.Count + 1);
                 foreach (var (data, mediaType) in images)
                 {
-                    content.Add(new ImageContent
+                    content.Add(new ImageBlockParam
                     {
-                        Source = new ImageSource
+                        Source = new Base64ImageSource
                         {
                             MediaType = mediaType,
                             Data = Convert.ToBase64String(data),
                         }
                     });
                 }
-                content.Add(new TextContent { Text = prompt });
-                userMessage = new Message { Role = RoleType.User, Content = content };
+                content.Add(new TextBlockParam { Text = prompt });
+                userMessage = new MessageParam { Role = Anthropic.Models.Messages.Role.User, Content = content };
             }
             else
             {
-                userMessage = new Message(RoleType.User, prompt);
+                userMessage = new MessageParam { Role = Anthropic.Models.Messages.Role.User, Content = prompt };
             }
 
             // The bot's personality (soul), long-term memory, and known facts about the
             // group are identical across the many messages it sends in a chat. Putting them
             // in the system prompt (rather than rebuilding them into every user message) lets
             // us cache this large, stable prefix so it isn't re-processed on every call.
-            var systemMessages = new List<SystemMessage>();
+            var systemBlocks = new List<TextBlockParam>();
             if (soulPrompt != null)
             {
-                systemMessages.Add(new SystemMessage(soulPrompt));
+                systemBlocks.Add(new TextBlockParam { Text = soulPrompt });
             }
 
             var memoryText = FormatMemoryForPrompt(memorySummary);
             if (memoryText.Length > 0)
             {
-                systemMessages.Add(new SystemMessage(memoryText));
+                systemBlocks.Add(new TextBlockParam { Text = memoryText });
             }
 
             var factsText = FormatFactsForPrompt(userFacts);
             if (factsText.Length > 0)
             {
-                systemMessages.Add(new SystemMessage(factsText));
+                systemBlocks.Add(new TextBlockParam { Text = factsText });
             }
 
-            var parameters = new MessageParameters
+            // Cache the system block (personality + memory + facts) so repeated calls that
+            // share this prefix are billed at the reduced cache-read rate. The breakpoint
+            // goes on the last block, which caches everything before it too. CacheControl is
+            // init-only, so rebuild the last block with it set.
+            if (systemBlocks.Count > 0)
             {
-                Messages = [userMessage],
-                MaxTokens = maxTokens,
-                Model = "claude-sonnet-5",
-                Stream = false,
-                Temperature = 1m,
-                System = systemMessages,
-                // Cache the system block (personality + memory + facts) so repeated calls
-                // that share this prefix are billed at the reduced cache-read rate.
-                PromptCaching = PromptCacheType.AutomaticToolsAndSystem,
-            };
-
-            if (enableWebSearch)
-            {
-                // Offer the web search tool — Claude decides per-message whether to use it.
-                // Legacy version keeps it to plain web search (no code-execution sandbox).
-                parameters.Tools = new List<Anthropic.SDK.Common.Tool>
+                systemBlocks[^1] = new TextBlockParam
                 {
-                    Anthropic.SDK.Messaging.ServerTools.GetWebSearchTool(maxUses: 3, toolVersion: Anthropic.SDK.Messaging.ServerTools.WebSearchVersionLegacy)
+                    Text = systemBlocks[^1].Text,
+                    CacheControl = new CacheControlEphemeral(),
                 };
             }
 
-            var response = await _client.Messages.GetClaudeMessageAsync(parameters);
+            // Offer the web search tool on the paths that need it — Claude decides per-message
+            // whether to actually use it.
+            var tools = enableWebSearch
+                ? new List<ToolUnion> { new ToolUnion(new WebSearchTool20260209 { MaxUses = 3 }) }
+                : null;
+
+            var parameters = new MessageCreateParams
+            {
+                Messages = [userMessage],
+                MaxTokens = maxTokens,
+                Model = Model.ClaudeSonnet5,
+                Temperature = 1,
+                System = systemBlocks,
+                // These are short chat reactions — disable thinking so the model doesn't
+                // spend the (small) MaxTokens budget on reasoning. Sonnet 5 turns adaptive
+                // thinking on by default when this is omitted.
+                Thinking = new ThinkingConfigDisabled(),
+                Tools = tools,
+            };
+
+            var response = await _client.Messages.Create(parameters);
 
             _logger.LogInformation("AiSummaryService: Claude API responded. StopReason={StopReason}, ContentCount={Count}",
-                response.StopReason, response.Content?.Count ?? 0);
+                response.StopReason, response.Content.Count);
 
             // A web search turn can return multiple text blocks interleaved with tool/result
             // blocks — join them so the full reply is captured, not just the first fragment.
-            var text = response.Content == null
-                ? null
-                : string.Join("\n\n", response.Content
-                    .OfType<TextContent>()
-                    .Select(t => t.Text?.Trim())
-                    .Where(t => !string.IsNullOrWhiteSpace(t)));
+            var text = string.Join("\n\n", response.Content
+                .Select(b => b.Value)
+                .OfType<TextBlock>()
+                .Select(t => t.Text?.Trim())
+                .Where(t => !string.IsNullOrWhiteSpace(t)));
 
             if (string.IsNullOrWhiteSpace(text))
             {
