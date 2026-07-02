@@ -113,6 +113,7 @@ namespace FitWifFrens.Web.Background
                 var labels = await _aiSummaryService.GeneratePollOptionLabels(
                     rule.Question,
                     meanings,
+                    parsed.Select(p => p!.Value.Prefix).ToList(),
                     maxLabelLength,
                     cancellationToken,
                     context.AllUserFacts,

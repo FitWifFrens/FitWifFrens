@@ -428,6 +428,7 @@ namespace FitWifFrens.Web.Background
         public async Task<IReadOnlyList<string>?> GeneratePollOptionLabels(
             string question,
             IReadOnlyList<string> meanings,
+            IReadOnlyList<string> currentLabels,
             int maxLabelLength,
             CancellationToken cancellationToken,
             Dictionary<string, List<string>>? userFacts = null,
@@ -444,17 +445,19 @@ namespace FitWifFrens.Web.Background
                 var levels = new StringBuilder();
                 for (var i = 0; i < meanings.Count; i++)
                 {
-                    levels.AppendLine($"{i + 1}. {meanings[i]}");
+                    var current = i < currentLabels.Count ? currentLabels[i] : string.Empty;
+                    levels.AppendLine($"{i + 1}. Meaning: {meanings[i]} | Current label (do NOT reuse): \"{current}\"");
                 }
 
                 var prompt =
                     Persona("You are a witty fitness group coach writing the answer options for a daily diet-rating poll in a group chat. ", soulPrompt) +
                     $"The poll question is: \"{question}\". " +
-                    $"Below are the {meanings.Count} rating levels, each with its fixed meaning. For each level, write a short, funny option label that fits that meaning. " +
+                    $"Below are the {meanings.Count} rating levels. Each has a fixed meaning plus the label currently in use. For each level, write a brand-new short, funny label that fits its meaning. " +
                     Tone("Be playful and vary the style every time — self-deprecating, absurd, food-pun heavy, whatever lands. ", soulPrompt) +
                     $"Match the sentiment to the meaning: positive ratings should sound proud, negative ones like cheerful chaos.\n" +
                     $"Rules:\n" +
                     $"- Exactly one label per level, in the same order.\n" +
+                    $"- Each new label must be clearly DIFFERENT from the current label shown — a new joke, new angle, new wording. Do not lightly reword the current one or reuse its phrasing.\n" +
                     $"- Each label must be at most {maxLabelLength} characters.\n" +
                     $"- Do NOT include the meaning text or any parentheses — write only the funny part.\n" +
                     $"Return exactly one line per level in this format: N: label\n\n" +
